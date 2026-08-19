@@ -18,7 +18,7 @@
     #set text(size: 8pt, fill: luma(120))
     #grid(
       columns: (1fr, 1fr),
-      align(left)[Raoni F. S. Teixeira — DENE/UFMT],
+      align(left)[Raoni F. S. Teixeira · Rodolfo Quadros — DENE/UFMT],
       align(right)[#context counter(page).display("1")],
     )
   ],
@@ -86,7 +86,7 @@
   #text(fill: rgb("#aaccee"), size: 12pt)[Roteiro 0 — Bancada]
   \
   #v(4pt)
-  #text(fill: luma(200), size: 9pt)[Raoni F. S. Teixeira · DENE/UFMT · 1 sessão · 1,0 ponto · grupos de 3]
+  #text(fill: luma(200), size: 9pt)[Raoni F. S. Teixeira · Rodolfo Quadros · DENE/UFMT · 1 sessão · 1,0 ponto · grupos de 3]
 ]
 
 #v(0.8em)
