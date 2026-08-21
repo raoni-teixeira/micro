@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratório — Microcontroladores</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #eef7f0;
+            color: #222;
+        }
+        header {
+            background: #1a6b3a;
+            color: #fff;
+            padding: 1.5rem 1rem;
+            text-align: center;
+        }
+        header h1 { margin: 0 0 0.3rem; font-size: 1.7rem; }
+        header p  { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+        header a  { color: #aaeec0; text-decoration: none; font-size: 0.9rem; }
+        header a:hover { text-decoration: underline; }
+        main {
+            margin: 2rem auto;
+            padding: 0 1rem;
+            max-width: 820px;
+        }
+        .card-list {
+            background: #fff;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        .card-list h2 {
+            margin: 0;
+            padding: 0.9rem 1.3rem;
+            background: #1a6b3a;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: bold;
+            letter-spacing: .03em;
+        }
+        .card-list ol {
+            margin: 0;
+            padding: 0.5rem 1.3rem 0.8rem 2.8rem;
+        }
+        .card-list li {
+            padding: 0.45rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .card-list li:last-child { border-bottom: none; }
+        a { color: #1a6b3a; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .badge {
+            display: inline-block;
+            background: #e4f3e9;
+            color: #1a6b3a;
+            font-size: 0.75rem;
+            border-radius: 3px;
+            padding: 1px 6px;
+            margin-right: 6px;
+            font-weight: bold;
+        }
+        .note {
+            font-size: 0.9rem;
+            color: #555;
+            padding: 0.5rem 1.3rem 0.9rem;
+        }
+        footer {
+            text-align: center;
+            padding: 1rem 0;
+            background: #1a6b3a;
+            color: #aaeec0;
+            font-size: 0.85rem;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Microcontroladores — Roteiros de Laboratório</h1>
+        <p>DENE/FAET/UFMT &nbsp;·&nbsp; 2026/2 &nbsp;·&nbsp; Prof. Raoni F. S. Teixeira</p>
+        <p style="margin-top:0.5rem"><a href="../index.html">← voltar à página principal</a></p>
+    </header>
+    <main>
+        <div class="card-list">
+            <h2>Roteiros</h2>
+            <ol start="0">
+                <li>
+                    <a href="./R0-bancada.pdf" target="_blank">
+                        <span class="badge">R0</span>Bancada — Apresentação do equipamento e ferramentas
+                    </a>
+                </li>
+                <li>
+                    <a href="./O1-oficina.pdf" target="_blank">
+                        <span class="badge">O1</span>Oficina 1 — Bancada, XM118, segurança e osciloscópio
+                    </a>
+                </li>
+                <li>
+                    <a href="./O2-oficina.pdf" target="_blank">
+                        <span class="badge">O2</span>Oficina 2 — MPLAB X, XC8, bootloader, primeiro pisca
+                    </a>
+                </li>
+                <li>
+                    <a href="./O3-oficina.pdf" target="_blank">
+                        <span class="badge">O3</span>Oficina 3 — C embarcado: tipos, operadores bit a bit, LED como depuração
+                    </a>
+                </li>
+                <li>
+                    <a href="./R1-bits-mascaras.pdf" target="_blank">
+                        <span class="badge">R1</span>Bits e Máscaras
+                    </a>
+                </li>
+                <li>
+                    <a href="./R2-lacos-entradas.pdf" target="_blank">
+                        <span class="badge">R2</span>Laços, Decisão e Leitura de Entradas
+                    </a>
+                </li>
+                <li>
+                    <a href="./R3-lcd.pdf" target="_blank">
+                        <span class="badge">R3</span>Display LCD Alfanumérico
+                    </a>
+                </li>
+                <li>
+                    <a href="./R4-adc.pdf" target="_blank">
+                        <span class="badge">R4</span>Conversor A/D e Sensor de Temperatura
+                    </a>
+                </li>
+                <li>
+                    <a href="./R5-histerese.pdf" target="_blank">
+                        <span class="badge">R5</span>Controle Liga/Desliga e Histerese
+                    </a>
+                </li>
+                <li>
+                    <a href="./R6-pwm.pdf" target="_blank">
+                        <span class="badge">R6</span>Timers e PWM
+                    </a>
+                </li>
+                <li>
+                    <a href="./R7-interrupcoes.pdf" target="_blank">
+                        <span class="badge">R7</span>Interrupções
+                    </a>
+                </li>
+                <li>
+                    <a href="./R8-serial.pdf" target="_blank">
+                        <span class="badge">R8</span>Comunicação Serial e Telemetria
+                    </a>
+                </li>
+                <li>
+                    <a href="./R9-analise.pdf" target="_blank">
+                        <span class="badge">R9</span>Análise Comparativa de Estratégias de Controle
+                    </a>
+                </li>
+                <li>
+                    <a href="./R10-integracao.pdf" target="_blank">
+                        <span class="badge">R10</span>Integração, Hardware Real e Fechamento
+                    </a>
+                </li>
+            </ol>
+            <p class="note">Cada roteiro vale 1,0 ponto. Nota máxima para laboratório: 10,0 pontos.</p>
+        </div>
+        <div class="card-list">
+            <h2>Tutoriais</h2>
+            <ol>
+                <li>
+                    <a href="./tutorial_ociloscopio.pdf" target="_blank">
+                        <span class="badge">T1</span>Tutorial de Osciloscópio
+                    </a>
+                </li>
+            </ol>
+        </div>
+        <div class="card-list">
+            <h2>Planejamento das Aulas Práticas</h2>
+            <p class="note">
+                Calendário detalhado com datas, roteiros previstos e observações de cada aula.
+                <br>
+                <a href="https://docs.google.com/spreadsheets/d/1IuWi-_nJvI9lAxtIG5WPpCvGY_F3FopDyB3n4TkNg3Q/edit?usp=sharing" target="_blank">
+                    Abrir planilha de planejamento →
+                </a>
+            </p>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2026 Raoni F. S. Teixeira — DENE/UFMT</p>
+    </footer>
+</body>
+</html>

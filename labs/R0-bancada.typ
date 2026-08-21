@@ -552,7 +552,7 @@ O roteiro está concluído quando, na presença do professor:
 
 #quadro O grupo grava novamente o firmware, do zero, sem consultar o roteiro.
 
-#quadro A tabela de previsão está preenchida e rubricada, com as medidas ao lado.
+#quadro A tabela de previsão está preenchida com as medidas ao lado.
 
 #quadro `_XTAL_FREQ` foi devolvido a `16000000UL` e o kit regravado.
 
