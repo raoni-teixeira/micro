@@ -150,10 +150,8 @@ O ponto que mais causa confusão é este:
   Connect simplesmente não encontra nada.
 ]
 
-Cinco segundos é tempo suficiente para clicar sem pressa, desde que o programa
-já esteja aberto e a janela visível na tela. O erro típico não é lentidão no
-clique — é reiniciar o kit antes de abrir o programa, ou procurar o botão
-Connect depois do reset.
+O erro típico não é lentidão no clique: é reiniciar o kit antes de abrir o
+programa, ou procurar o botão Connect depois do reset.
 
 === Procedimento correto
 
@@ -220,6 +218,7 @@ logo acima dele.
   as proteções contra surto descritas no manual.
 ]
 */
+
 = Parte 1 — Reconhecimento do kit
 
 #tarefa[
@@ -280,8 +279,8 @@ O trecho essencial do programa é este:
 #define _XTAL_FREQ 16000000UL
 
 void main(void) {
-    LATD  = 0xFF;   /* valor primeiro: os 8 LEDs nascem acesos */
-    TRISD = 0x00;   /* direção depois: PORTD vira saída        */
+    LATD  = 0xFF;
+    TRISD = 0x00;
 
     while (1) {
         LATDbits.LATD0 = 1;
@@ -292,8 +291,8 @@ void main(void) {
 }
 ```
 
-Sete LEDs permanecem acesos; apenas o LED ligado a *RD0* pisca. Esse pino é o
-sinal que você vai medir na Parte 5.
+Sete LEDs permanecem acesos; apenas o LED ligado a *RD0* pisca. É esse o sinal
+medido na Parte 5.
 
 #manual[
   Diretivas `#pragma config` escritas na aplicação são *silenciosamente
@@ -345,9 +344,9 @@ Reset device to reenter bootloader mode.
 ```
 
 #observacao[
-  Repare na última mensagem do próprio programa: _reset device to reenter
-  bootloader mode_. Ela confirma o que foi explicado na primeira seção — para
-  gravar de novo, é preciso reiniciar de novo.
+  A última mensagem — _reset device to reenter bootloader mode_ — confirma o
+  que foi dito na primeira seção: para gravar de novo, é preciso reiniciar de
+  novo.
 ]
 
 == Se não conectar
@@ -370,39 +369,54 @@ Com o _blink_ rodando, responda:
 / 4.1: Sete LEDs ficam acesos e um pisca. Qual deles pisca, e com que período aproximado? #resposta()
 
 
-/ 4.2: Localize no código as duas linhas abaixo e explique, com suas palavras, o que cada uma faz.
+/ 4.2: Explique, com suas palavras, o que faz cada uma das duas primeiras linhas de `main`.
 
 ```c
-LATC  &= ~0b00000110;   /* linha A */
-TRISC &= ~0b00000110;   /* linha B */
+LATD  = 0xFF;    /* linha A */
+TRISD = 0x00;    /* linha B */
 ```
 
 #resposta(n: 2)
 
 #previsao[
-  *4.4* — O que aconteceria se as linhas A e B fossem trocadas de ordem?
+  *4.3* — O que aconteceria se as linhas A e B fossem trocadas de ordem?
 
-  Pense no que o pino faz no instante em que deixa de ser entrada e passa a ser
-  saída. Formule a resposta *antes* de testar; depois, se quiser, teste.
+  Depois do reset, `TRISD` vale `0xFF`: os oito pinos são entradas, e o
+  conteúdo de `LATD` não foi escrito por ninguém. Pense no que acontece no
+  instante em que a linha B executa primeiro.
 
-  #resposta(n: 3)
+  Responda três coisas:
+
+  + Que valor os pinos passam a impor à saída nesse intervalo?
+  + Quanto dura o intervalo, em ciclos de instrução e em nanossegundos?
+    (Use $T_(c y)$ da Parte 5.)
+  + Por que o olho não enxerga esse intervalo, e o que seria preciso ajustar no
+    osciloscópio para capturá-lo?
+
+  Formule a resposta *antes* de testar.
+
+  #resposta(n: 4)
 ]
 
 #conceito[
-  A pergunta 4.4 é o conceito central deste roteiro. Com uma ventoinha, o
-  efeito de um pulso indesejado é inofensivo. Com a resistência de aquecimento
-  — ou, em um sistema de potência real, com um disjuntor ou uma chave de
-  manobra — não seria.
+  A pergunta 4.3 é o conceito central deste roteiro. Aqui a carga é um LED e o
+  intervalo é inofensivo — mas o mesmo par de linhas vai comandar a resistência
+  de aquecimento nos roteiros seguintes.
 
-  Escrever no registrador de dados (`LAT`) *antes* de configurar a direção
+  Escrever no registrador de dados (`LAT`) *antes* de liberar o pino como saída
   (`TRIS`) é a diferença entre um atuador que acorda desligado e um que acorda
   em estado indefinido.
+
+  O valor imposto no intervalo não é necessariamente zero: é o que estiver em
+  `LATD` naquele momento. Após energizar o kit, esse conteúdo é indefinido;
+  após um reset vindo do bootloader, é o que o bootloader deixou. Nenhuma das
+  duas hipóteses é aceitável para um aquecedor.
 ]
 
 = Parte 5 — Medindo o pisca no osciloscópio
 
-Até aqui você julgou o programa pelo que o olho vê. Agora vai medir o mesmo
-sinal com um instrumento, e comparar a medida com um número calculado antes.
+Até aqui você julgou o programa pelo que o olho vê. Agora vai medir o sinal
+com um instrumento e comparar a medida com um número calculado antes.
 
 == Onde medir
 
@@ -564,14 +578,14 @@ O roteiro está concluído quando, na presença do professor:
     table.header(cab[Peso], cab[Item]),
     [0,20], [Teste de aceitação aprovado em bancada],
     [0,10], [Resposta 3.1 — tentativas até conectar e diagnóstico],
-    [0,15], [Respostas 4.1 a 4.3],
-    [0,25], [Resposta 4.4, com justificativa do mecanismo],
+    [0,15], [Respostas 4.1 e 4.2],
+    [0,25], [Resposta 4.3, com justificativa do mecanismo],
     [0,30], [Parte 5 — previsão rubricada, medidas e respostas 5.3 a 5.6],
   ),
   caption: [Distribuição do ponto do Roteiro 0.],
 )
 
-As respostas 4.4 e 5.6 valem mais que as demais porque são as únicas que exigem
+As respostas 4.3 e 5.6 valem mais que as demais porque são as únicas que exigem
 raciocínio sobre causa, e não observação.
 
 = Armadilhas frequentes
@@ -587,8 +601,7 @@ raciocínio sobre causa, e não observação.
     [`PK2Error0022`], [Tentou gravar pelo PICkit-2; use o bootloader],
     [Bootloader não conecta], [Janela de 4 a 5 s expirou: reinicie e clique em seguida],
     [Bootloader não conecta (persistente)], [MPLAB X aberto, ou cabo na USB traseira],
-    [LED não pisca após gravar], [Faltou o RESET (SW9)],
-    [Ventoinha continua ligada], [O `.hex` gravado não é o que você compilou],
+    [LED não pisca após gravar], [Faltou o RESET (SW9), ou o `.hex` gravado não é o que você compilou],
     [XC8 falha com erro sem sentido], [Caminho do projeto com acento ou espaço],
     [Período medido é 3× menor que o previsto], [`_XTAL_FREQ` declarado como 48 MHz],
     [Osciloscópio mostra linha reta], [Garra de terra fora do GND, ou ponta no pino errado],
