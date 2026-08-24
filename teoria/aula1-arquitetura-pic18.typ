@@ -79,7 +79,7 @@
 #let conceito(corpo) = caixa("Conceito", rgb("#5b3a8e"), corpo)
 #let bancada(corpo) = caixa("Bancada", rgb("#6b5334"), corpo)
 #let divergencia(corpo) = caixa("Divergência", rgb("#a03070"), corpo)
-#let contexto(corpo) = caixa("Contexto — não cai em avaliação", rgb("#5a6570"), corpo)
+#let contexto(corpo) = caixa("Contexto", rgb("#5a6570"), corpo)
 
 #let tabela(..args) = table(
   stroke: (x, y) => if y == 0 { (bottom: 0.8pt + primaria) } else { (bottom: 0.3pt + rgb("#c9ced6")) },
@@ -112,18 +112,13 @@
 // =====================================================================
 = Toda arquitetura decide coisas por você
 
-Um microcontrolador não é uma folha em branco. Antes de vocês escreverem a
-primeira linha de código, alguém já decidiu quanto o chip conta por segundo,
-quanta memória existe e como ela é dividida, e em que estado os pinos acordam
-quando a placa é ligada. Esse conjunto de decisões é o que se chama de
-*arquitetura*, e ela tem uma propriedade incômoda: não se negocia. O programa é
+Um microcontrolador não é uma folha em branco. Antes de vocês escreverem a primeira linha de código, alguém já decidiu quanto o chip conta por segundo, quanta memória existe e como ela é dividida, e em que estado os pinos acordam quando a placa é ligada. 
+Esse conjunto de decisões é o que se chama de *arquitetura*, e ela tem uma propriedade incômoda: não se negocia. O programa é
 que tem de caber nela.
 
-Isso não é particularidade do PIC18. Um ESP32, um STM32, um RISC-V — todos têm
-arquitetura, todos decidem exatamente as mesmas coisas, e todos decidem de
-forma diferente. Trocar de plataforma não elimina o problema; troca os números.
-É por isso que vale aprender a *fazer as perguntas*, e não decorar as respostas
-de um dispositivo específico.
+Isso não é particularidade do PIC18. ESP32, STM32, RISC-V — todos têm arquitetura, todos decidem exatamente as mesmas coisas, e todos decidem de forma diferente. 
+Trocar de plataforma não elimina o problema; troca os números.
+É por isso que vale aprender a *fazer as perguntas*, e não decorar as respostas de um dispositivo específico.
 
 Na prática, a arquitetura chega até o trabalho de vocês por três portas:
 
@@ -150,7 +145,7 @@ Na prática, a arquitetura chega até o trabalho de vocês por três portas:
 
 == As quatro perguntas de hoje
 
-Daqui a trinta minutos, no laboratório, vocês vão ligar quatro atuadores usando
+Na aula de laboratório, vocês vão ligar quatro atuadores usando
 apenas saída digital: LEDs, buzzer, lâmpada e cooler. O que se pretende nesta
 aula não é descrever o dispositivo de cima a baixo, mas responder
 antecipadamente às quatro perguntas que aquela bancada vai levantar — cada uma
@@ -168,7 +163,7 @@ delas uma instância de uma das três portas acima.
 #nota[
   A seção 6 reúne o restante da arquitetura — pilha, contador de programa,
   paralelismo, banqueamento — como contexto. Ela explica *por que as coisas são
-  assim*, não *o que fazer na bancada*, e está marcada como tal.
+  assim*, não *o que fazer na bancada*.
 ]
 
 == O dispositivo desta disciplina
@@ -213,8 +208,7 @@ elas é o assunto da próxima seção.
 ]
 
 #atencao[
-  Confundir frequência do oscilador com frequência de instrução é o erro de
-  cálculo mais frequente do semestre. Ele reaparece nos encontros de
+  Confundir frequência do oscilador com frequência de instrução é um erro frequente. Ele reaparece nos encontros de
   temporizadores e de modulação, porque *todos* os divisores partem de
   $T_"cy"$, nunca de $f_"osc"$. Um erro de fator quatro num período é quase
   sempre este.
@@ -262,14 +256,14 @@ frequência antes de entregá-la ao núcleo. Nesta bancada, a divisão resulta e
   está correto.
 ]
 
-#nota[
+/*#nota[
   O nome do arquivo do bootloader é, ele próprio, evidência da frequência do
   núcleo. Vale conferir antes de recorrer ao osciloscópio — a disciplina toda
   favorece diagnóstico por eliminação com os recursos já disponíveis.
-]
+]*/
 
 #tarefa[
-  *Hoje, na oficina.* Com `_XTAL_FREQ` correto, o período medido de um
+   Na aula prática, com `_XTAL_FREQ` correto, o período medido de um
   `__delay_ms(500)` dobrado bate com 1 s? Troque deliberadamente para
   `48000000UL`, meça de novo e confirme o fator três. Leve o cronômetro.
 ]
@@ -379,7 +373,7 @@ deslocamento contido na instrução.
   Com um LED isso é invisível. Com um cooler ou uma resistência de aquecimento,
   não é. Daí a regra: *`LAT` antes de `TRIS`*.
 
-  Vocês vão inverter a ordem deliberadamente hoje à noite e pressionar o
+  Na aula de laboratório, vocês vão inverter a ordem deliberadamente e pressionar o
   #emph[reset] várias vezes, prestando atenção no cooler. Anotem agora o que
   esperam ouvir.
 ]
@@ -476,7 +470,7 @@ diferentes. Aqui, 16 bits para programa e 8 para dados.
   [4], [Gerador de imagem], [Arquivo `.hex`, com o conteúdo da Flash],
   [5], [Gravador], [Dispositivo programado],
 )
-
+/*
 #bancada[
   Na XM118 a etapa 5 não é feita pelo MPLAB X. O ambiente compila em modo
   #emph[No Tool]; a gravação é feita pelo aplicativo do bootloader, após
@@ -495,7 +489,7 @@ ciclos. O *mapa de memória* informa quanto de Flash e de RAM o projeto consome.
   curva observável — e mostra qual das duas memórias vocês precisaram
   administrar de verdade.
 ]
-
+*/
 // =====================================================================
 = Contexto: o resto da arquitetura
 
@@ -590,7 +584,7 @@ preveem agora, com a teoria fresca, e verificam daqui a trinta minutos.
 
 #conceito[
   *Voltando ao início.* A aula abriu afirmando que a arquitetura decide coisas
-  por vocês. Hoje à noite essa afirmação vira observação: o cooler vai partir
+  por vocês. Na aula de laboratório, essa afirmação vira observação: o cooler vai partir
   com um tranco se `TRIS` vier antes de `LAT`, o LED vai errar o ritmo por um
   fator três se `_XTAL_FREQ` estiver errado, e vocês vão descobrir que não
   existe meia velocidade com saída digital pura.
