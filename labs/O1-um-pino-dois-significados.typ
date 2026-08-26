@@ -153,8 +153,9 @@
 ]
 
 // =====================================================================
-= Antes de ligar a bancada
 
+= Antes de ligar a bancada
+/*
 #perigo[
   Os pontos de teste *LAMP*, *HEATER* e *COOLER* estão no trilho de *12 V*, não
   no de 5 V do microcontrolador.
@@ -175,7 +176,7 @@
   A *lâmpada* fica ligada por no máximo 30 segundos por vez, e não se toca nela
   depois de desligar.
 ]
-
+*/
 #bancada[
   *Por bancada:* kit XM118 com fonte, cabo USB, computador com MPLAB X e XC8,
   aplicativo #emph[Bootloader PIC18/XM118] v2.8, cronômetro, celular com
