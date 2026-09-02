@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": "My_Project",
+			"path": "../../../../MPLABProjects/My_Project"
+		}
+	],
+	"settings": {
+		"mplab.clangd.compileCommandsDir": "c:\\Users\\raoni\\MPLABProjects\\My_Project\\_build\\My_Project\\default",
+		"mplab.clangd.arguments": [
+			"--header-insertion=never"
+		],
+		"mplab.clangd.path": "c:\\Program Files\\Microchip\\xc8\\v3.10\\bin\\xc8-clangd.exe"
+	}
+}
