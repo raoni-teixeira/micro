@@ -42,6 +42,12 @@
 *.idb
 *.pdb
 
+# Material docente de 2027-1: nunca publicar no repositorio publico.
+2027-1/**/*-gab.*
+2027-1/**/gabarito*
+2027-1/integradora*.typ
+2027-1/integracao*.typ
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd
