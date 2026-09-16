@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HD44780 — Folha de Referência</title>
+<link rel="stylesheet" href="../estilo.css">
+<style>
+  /* Folha de consulta: densa, uma página impressa. */
+  .ref table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  .ref table th { text-align: left; font-weight: 700; font-size: 0.8rem;
+                  letter-spacing: 0.04em; border-bottom: 1px solid var(--tinta); padding: 0.3rem 0.5rem 0.3rem 0; }
+  .ref table td { border-bottom: 1px solid var(--regra); padding: 0.28rem 0.5rem 0.28rem 0; vertical-align: top; }
+  .ref table tr:last-child td { border-bottom: 1px solid var(--tinta); }
+  .ref table thead tr th:first-child, .ref table td:first-child { padding-left: 0; }
+  .ref code { background: none; padding: 0; font-size: 0.9em; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tabela-rolavel { overflow-x: auto; }
+  @media print {
+    .pagina { padding-top: 0; }
+    h2 { margin-top: 1.1rem; }
+    .naoimprime { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="pagina ref">
+
+  <header>
+    <p class="corrente naoimprime"><a href="./index.html">← Laboratório</a><span>Folha de referência</span></p>
+    <h1>HD44780 — Folha de Referência</h1>
+    <p class="subtitulo">Os números, sem as explicações</p>
+    <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Consulta permitida</span></p>
+  </header>
+
+  <main>
+
+    <section>
+      <h2>Linhas de controle</h2>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Linha</th><th>Nível</th><th>Efeito</th></tr></thead>
+        <tbody>
+          <tr><td><code>RS</code></td><td>0</td><td>Registrador de instrução — o byte é comando</td></tr>
+          <tr><td><code>RS</code></td><td>1</td><td>Registrador de dados — o byte é caractere</td></tr>
+          <tr><td><code>R/W</code></td><td>0</td><td>Escrita. No kit está ligado ao terra</td></tr>
+          <tr><td><code>E</code></td><td>↓</td><td>O dado é capturado na <strong>borda de descida</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Mínimos do ciclo de escrita</h2>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Parâmetro</th><th>Significado</th><th class="num">5 V</th><th class="num">2,7 V</th></tr></thead>
+        <tbody>
+          <tr><td><code>PW<sub>EH</sub></code></td><td>Largura do pulso de <code>E</code> em nível alto</td><td class="num">230 ns</td><td class="num">450 ns</td></tr>
+          <tr><td><code>t<sub>cicE</sub></code></td><td>Ciclo de <code>E</code>, de subida a subida</td><td class="num">500 ns</td><td class="num">1000 ns</td></tr>
+          <tr><td><code>t<sub>AS</sub></code></td><td><code>RS</code> estável antes de <code>E</code> subir</td><td class="num">40 ns</td><td class="num">60 ns</td></tr>
+          <tr><td><code>t<sub>AH</sub></code></td><td><code>RS</code> mantido depois de <code>E</code> descer</td><td class="num">10 ns</td><td class="num">20 ns</td></tr>
+          <tr><td><code>t<sub>DSW</sub></code></td><td>Dado estável antes de <code>E</code> descer</td><td class="num">80 ns</td><td class="num">195 ns</td></tr>
+          <tr><td><code>t<sub>H</sub></code></td><td>Dado mantido depois de <code>E</code> descer</td><td class="num">10 ns</td><td class="num">20 ns</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">A 16 MHz, um ciclo de máquina vale 250 ns.</p>
+    </section>
+
+    <section>
+      <h2>Tempos de execução</h2>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Operação</th><th class="num">Tempo</th><th class="num">Ciclos a 250 ns</th></tr></thead>
+        <tbody>
+          <tr><td>Comando comum ou escrita de caractere</td><td class="num">37 µs</td><td class="num">148</td></tr>
+          <tr><td>Limpar display (<code>0x01</code>)</td><td class="num">1,52 ms</td><td class="num">6 080</td></tr>
+          <tr><td>Voltar ao início (<code>0x02</code>)</td><td class="num">1,52 ms</td><td class="num">6 080</td></tr>
+          <tr><td>Espera após energizar, antes do primeiro comando</td><td class="num">&gt; 40 ms</td><td class="num">160 000</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Comandos</h2>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Valor</th><th>Comando</th><th>Efeito</th></tr></thead>
+        <tbody>
+          <tr><td><code>0x01</code></td><td>Limpar display</td><td>Apaga a DDRAM e põe o cursor em <code>0x00</code></td></tr>
+          <tr><td><code>0x02</code></td><td>Voltar ao início</td><td>Cursor em <code>0x00</code>, sem apagar</td></tr>
+          <tr><td><code>0x06</code></td><td>Modo de entrada</td><td>Cursor avança, tela não rola</td></tr>
+          <tr><td><code>0x04</code></td><td>Modo de entrada</td><td>Cursor recua, tela não rola</td></tr>
+          <tr><td><code>0x08</code></td><td>Display off</td><td>Apaga a tela; o conteúdo da DDRAM permanece</td></tr>
+          <tr><td><code>0x0C</code></td><td>Display on</td><td>Tela ligada, cursor oculto</td></tr>
+          <tr><td><code>0x0E</code></td><td>Display on</td><td>Tela ligada, cursor visível</td></tr>
+          <tr><td><code>0x0F</code></td><td>Display on</td><td>Tela ligada, cursor visível e piscando</td></tr>
+          <tr><td><code>0x20</code></td><td>Function set</td><td>4 bits, 1 linha, matriz 5×8</td></tr>
+          <tr><td><code>0x28</code></td><td>Function set</td><td>4 bits, 2 linhas, matriz 5×8</td></tr>
+          <tr><td><code>0x30</code></td><td>Function set</td><td>8 bits, 1 linha, matriz 5×8</td></tr>
+          <tr><td><code>0x38</code></td><td>Function set</td><td>8 bits, 2 linhas, matriz 5×8</td></tr>
+          <tr><td><code>0x40 | end</code></td><td>Endereço de CGRAM</td><td>Aponta a memória de caracteres próprios</td></tr>
+          <tr><td><code>0x80 | end</code></td><td>Endereço de DDRAM</td><td>Posiciona o cursor no endereço dado</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Endereços da tela (DDRAM)</h2>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Linha</th><th class="num">Coluna 1</th><th class="num">Coluna 16</th><th class="num">Existe até</th></tr></thead>
+        <tbody>
+          <tr><td>Primeira</td><td class="num"><code>0x00</code></td><td class="num"><code>0x0F</code></td><td class="num"><code>0x27</code></td></tr>
+          <tr><td>Segunda</td><td class="num"><code>0x40</code></td><td class="num"><code>0x4F</code></td><td class="num"><code>0x67</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">São 40 posições por linha; 16 aparecem. Os endereços não são contíguos entre as linhas.</p>
+      <p>Posicionar na linha <span class="num">L</span>, coluna <span class="num">C</span> (ambas a partir de zero):
+      comando <code>0x80 | (base + C)</code>, com base <code>0x00</code> na primeira linha e <code>0x40</code> na segunda.</p>
+    </section>
+
+    <section>
+      <h2>Sequência de inicialização — 4 bits</h2>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Passo</th><th>Envio</th><th class="num">Espera depois</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>— (só alimentar)</td><td class="num">50 ms</td></tr>
+          <tr><td>1</td><td>nibble <code>0x30</code></td><td class="num">5 ms</td></tr>
+          <tr><td>2</td><td>nibble <code>0x30</code></td><td class="num">150 µs</td></tr>
+          <tr><td>3</td><td>nibble <code>0x30</code></td><td class="num">150 µs</td></tr>
+          <tr><td>4</td><td>nibble <code>0x20</code></td><td class="num">37 µs</td></tr>
+          <tr><td>5</td><td>comando <code>0x28</code></td><td class="num">37 µs</td></tr>
+          <tr><td>6</td><td>comando <code>0x0C</code></td><td class="num">37 µs</td></tr>
+          <tr><td>7</td><td>comando <code>0x06</code></td><td class="num">37 µs</td></tr>
+          <tr><td>8</td><td>comando <code>0x01</code></td><td class="num">1,52 ms</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Em 8 bits, os passos 1 a 3 são o byte <code>0x30</code> e o passo 4 não existe; o passo 5 vira <code>0x38</code>.</p>
+    </section>
+
+    <section>
+      <h2>Códigos de caractere</h2>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Caractere</th><th class="num">Código</th><th>Observação</th></tr></thead>
+        <tbody>
+          <tr><td>espaço</td><td class="num"><code>0x20</code></td><td>É o que o comando de limpar escreve em toda a tela</td></tr>
+          <tr><td><code>'0'</code> a <code>'9'</code></td><td class="num"><code>0x30</code>–<code>0x39</code></td><td>Consecutivos</td></tr>
+          <tr><td><code>'A'</code> a <code>'Z'</code></td><td class="num"><code>0x41</code>–<code>0x5A</code></td><td>Consecutivos</td></tr>
+          <tr><td><code>'a'</code> a <code>'z'</code></td><td class="num"><code>0x61</code>–<code>0x7A</code></td><td>Consecutivos</td></tr>
+          <tr><td>°</td><td class="num"><code>0xDF</code></td><td>Grau, na ROM A00. Não é ASCII</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">Acentos do português não existem no conjunto padrão; dependem da CGRAM.</p>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>Raoni F. S. Teixeira</span>
+    <span>DENE/UFMT</span>
+  </footer>
+
+</div>
+</body>
+</html>
