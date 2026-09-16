@@ -46,6 +46,8 @@ controlador próprio, oscilador próprio, e leva tempo para executar o que receb
   [Energização inicial], [#sym.tilde.op 40 ms], [160#h(1pt)000],
 )
 
+A última linha é o mínimo da folha de dados. O driver espera 50 ms — a diferença é margem, e a Tarefa 5 mostra por que ela não é opcional.
+
 #atencao[
 Ignorar esses tempos produz o sintoma mais traiçoeiro do semestre: *o display
 funciona às vezes*.
@@ -66,6 +68,8 @@ pinos são recurso escasso, e o compartilhamento tem consequências visíveis.
 = Parte 1 — o driver, lido antes de usado
 
 O professor fornece `lcd.c` e `lcd.h`. *Leia antes de gravar qualquer coisa.*
+
+Os comentários do fonte marcam com `[T#]` a tarefa que trata de cada trecho. Eles fazem as perguntas; nenhum as responde.
 
 #tarefa[
 *Tarefa 1.* Localize `lcd_pulso()` e responda:
@@ -132,7 +136,8 @@ Compare com a previsão P4 da folha da aula 3.
 ]
 
 #tarefa[
-*Tarefa 5.* Remova o `__delay_ms(50)` inicial e grave.
+*Tarefa 5.* Remova o `__delay_ms(LCD_T_ENERGIA_MS)` de `lcd_iniciar()` — são
+os 50 ms — e grave.
 
 O display funciona? Funciona *sempre*? Ligue e desligue o kit três vezes:
 
@@ -162,7 +167,7 @@ o bastante; em outros, não.
 *Tarefa 6.* Remova *uma* das três repetições de `0x30`. Grave, e ligue e desligue
 o kit cinco vezes. Depois pressione o reset — sem desligar — mais cinco vezes.
 
-Os dois casos se comportam igual?
+Os dois casos se comportam igual? Confronte com a previsão P3 da folha da aula 3.
 ]
 
 #conceito[
@@ -186,8 +191,12 @@ O display recebe *caracteres*, não números. Para mostrar 37 é preciso enviar
 `'3'` e depois `'7'`.
 
 #tarefa[
-*Tarefa 7.* Escreva `lcd_numero(uint8_t v)` que mostre um valor de 0 a 255, e use
-para exibir um contador incrementando a cada 500 ms.
+*Tarefa 7.* Escreva a sua própria `lcd_u8(uint8_t v)`, que mostre um valor de 0 a
+255, e use para exibir um contador incrementando a cada 500 ms.
+
+Escreva a versão ingênua: só os dígitos que o número tem, sem nenhum cuidado com
+o que já estava na tela. O driver traz uma `lcd_numero()` pronta — *não use ainda*,
+e não a chame de dentro da sua.
 
 Antes de escrever: por que `'0' + digito` funciona? O que garante que os dígitos
 sejam consecutivos na tabela de caracteres?
@@ -198,6 +207,9 @@ sejam consecutivos na tabela de caracteres?
 
 Compare com a previsão P1 da folha e explique. Depois corrija — *de duas formas
 diferentes*, uma na função de escrita e outra na formatação do número.
+
+Só então abra a `lcd_numero()` do driver e diga qual das duas correções ela usa,
+e por que é ela que o resto do semestre vai chamar.
 ]
 
 #nota[
@@ -288,7 +300,7 @@ dezenas, e uma atualização de tela custa alguns milhares.
   [Linha superior com quadrados escuros], [Inicialização incompleta],
   [Funciona às vezes], [Falta de atraso após a energização],
   [Caracteres embaralhados], [Falta de espera após o comando de limpar],
-  [Texto na linha errada], [Endereço de cursor: linha 1 começa em `0x40`],
+  [Texto na linha errada], [Endereço de cursor: a *segunda* linha começa em `0x40`],
   [Resíduo ao diminuir dígitos], [Largura variável; não limpou a posição anterior],
   [LEDs piscando junto], [Esperado — PORTD é compartilhado],
   [Relé chaveando a cada caractere], [CH5-3 ou CH5-4 ligado. *Desligue agora*],
@@ -307,6 +319,7 @@ Responda também:
 justifica a escolha e a margem obtida.
 
 *(b)* Na Tarefa 6, por que o defeito aparece no reset e não na energização?
+Sua previsão P3 acertou a condição de falha?
 
 *(c)* Com os números da Tarefa 9, você escolheria quatro ou oito bits para um
 produto? Justifique com as duas grandezas.

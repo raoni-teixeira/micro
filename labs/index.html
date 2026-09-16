@@ -29,8 +29,7 @@
         <li><span class="cod">O1</span><span class="item"><a href="./O1-um-pino-dois-significados.pdf" target="_blank">Um pino, dois significados: LED e botão</a></span></li>
         <li><span class="cod">O2</span><span class="item"><a href="./O2-oficina.pdf" target="_blank">MPLAB X, XC8, bootloader e o primeiro pisca</a></span></li>
         <li><span class="cod">O3</span><span class="item"><a href="./O3-oficina.pdf" target="_blank">C embarcado: tipos, operadores bit a bit, LED como depuração</a></span></li>
-        <li><span class="cod">R1</span><span class="item"><a href="./R4-display-hd44780.pdf" target="_blank">Display LCD alfanumérico</a></span></li>
-        <li><span class="cod">R4</span><span class="item"><a href="./R4-adc.pdf" target="_blank">Conversor A/D e sensor de temperatura</a></span></li>
+        <li><span class="cod">R4</span><span class="item"><a href="./R4-display-hd44780.pdf" target="_blank">O display, e o custo da espera</a></span></li>
         <li><span class="cod">R5</span><span class="item"><a href="./R5-histerese.pdf" target="_blank">Controle liga/desliga e histerese</a></span></li>
         <li><span class="cod">R6</span><span class="item"><a href="./R6-pwm.pdf" target="_blank">Timers e PWM</a></span></li>
         <li><span class="cod">R7</span><span class="item"><a href="./R7-interrupcoes.pdf" target="_blank">Interrupções</a></span></li>
@@ -56,7 +55,17 @@
       <ol class="lista">
         <li><span class="cod">R0</span><span class="item"><a class="baixar" href="../code/roteiro0.c" download>roteiro0.c</a><span class="glosa">Código base do Roteiro 0</span></span></li>
         <li><span class="cod">O1</span><span class="item"><a class="baixar" href="../code/oficina1_esqueleto.c" download>oficina1_esqueleto.c</a><span class="glosa">Esqueleto da Oficina 1</span></span></li>
+        <li><span class="cod">R4</span><span class="item"><a class="baixar" href="./lcd-driver/lcd/lcd.c" download>lcd.c</a><span class="glosa">Driver do display HD44780 — implementação</span></span></li>
+        <li><span class="cod">R4</span><span class="item"><a class="baixar" href="./lcd-driver/lcd/lcd.h" download>lcd.h</a><span class="glosa">Driver do display HD44780 — mapa de pinos, tempos e API</span></span></li>
+        <li><span class="cod">R4</span><span class="item"><a href="./lcd-driver/lcd/LEIAME.md">LEIAME.md</a><span class="glosa">Como montar o projeto, chaves do kit e como ler o fonte</span></span></li>
       </ol>
+
+      <p class="passagem">
+        <span class="rotulo">Driver do display</span>
+        <code>lcd.c</code> e <code>lcd.h</code> entram no mesmo projeto do MPLAB X. Antes de gravar,
+        confira o mapa de pinos no topo de <code>lcd.h</code> contra a serigrafia
+        da placa, e escolha o modo do barramento em <code>LCD_BITS</code>.
+      </p>
     </section>
 
     <section>

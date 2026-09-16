@@ -48,6 +48,10 @@
 2027-1/integradora*.typ
 2027-1/integracao*.typ
 
+# Material docente dos laboratorios: nunca publicar no repositorio publico.
+labs/**/gabarito/
+labs/**/*-gab.*
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd
