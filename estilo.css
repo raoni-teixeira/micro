@@ -1,0 +1,335 @@
+/* estilo.css — folha de estilo comum das páginas da disciplina
+ * DENE/UFMT — Raoni F. S. Teixeira
+ *
+ * Contraparte web de labs/estilo.typ, modo "teoria": sem cor, régua fina no
+ * lugar de caixa colorida, rótulo em versalete na margem, coluna de texto
+ * estreita. A única cor do sistema é `perigo`, e ela não aparece num índice.
+ */
+
+/* ------------------------------------------------------------------ tinta */
+:root {
+  --tinta:   #111111;
+  --cinza:   #4A4A4A;
+  --cinza-c: #6E6E6E;          /* rótulos, metadados */
+  --regra:   #C9C6C0;          /* filete de linha de tabela */
+  --papel:   #FBFAF8;
+  --papel-2: #F2F0EC;          /* fundo de código */
+  --navy:    #003366;          /* só em foco/hover de link */
+  --vermelho:#9B1C1C;          /* perigo — único elemento colorido */
+
+  --serifa: "Libertinus Serif", "Linux Libertine O", "Linux Libertine",
+            "Latin Modern Roman", Georgia, "Times New Roman", serif;
+  --mono:   "DejaVu Sans Mono", "Liberation Mono", ui-monospace, monospace;
+
+  /* geometria: coluna de texto estreita + coluna de notas à direita,
+     na mesma proporção da página A4 do preâmbulo (13cm / 4,2cm). */
+  --col: 34rem;
+  --mg-larg: 12rem;
+  --mg-dx: 2.6rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tinta: #E8E6E1;
+    --cinza: #B0ACA4;
+    --cinza-c: #94908A;
+    --regra: #45423C;
+    --papel: #16150F;
+    --papel-2: #211F19;
+    --navy: #9DC0E8;
+    --vermelho: #E08585;
+  }
+}
+
+/* ------------------------------------------------------------------ base */
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--serifa);
+  font-size: 1.0625rem;
+  line-height: 1.52;
+  text-rendering: optimizeLegibility;
+}
+
+.pagina {
+  width: min(100% - 2.5rem, calc(var(--col) + var(--mg-dx) + var(--mg-larg)));
+  margin: 0 auto;
+  padding: 2rem 0 3.5rem;
+}
+
+.pagina > header,
+.pagina > main,
+.pagina > footer { max-width: var(--col); }
+
+/* ----------------------------------------------------------------- links */
+a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--regra);
+}
+a:hover, a:focus-visible {
+  color: var(--navy);
+  border-bottom-color: currentColor;
+}
+a:focus-visible { outline: 1px solid var(--navy); outline-offset: 3px; }
+
+/* --------------------------------------------- cabeçalho corrente e título */
+.corrente {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--cinza-c);
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--tinta);
+}
+.corrente a { border-bottom: none; }
+.corrente a:hover { border-bottom: 1px solid currentColor; }
+
+h1 {
+  font-size: 1.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 1.6rem 0 0;
+}
+
+.subtitulo {
+  font-size: 1.08rem;
+  font-style: italic;
+  color: var(--tinta);
+  margin: 0.35rem 0 0;
+}
+
+.filiacao {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: var(--cinza-c);
+  margin: 0.55rem 0 0;
+}
+
+/* -------------------------------------------------------------- títulos */
+main { counter-reset: secao; margin-top: 2.6rem; }
+
+h2 {
+  font-size: 1.16rem;
+  font-weight: 700;
+  margin: 2.5rem 0 0.6rem;
+}
+h2::before {
+  counter-increment: secao;
+  content: counter(secao);
+  color: var(--cinza-c);
+  font-weight: 400;
+  margin-right: 0.7em;
+}
+main > section:first-of-type > h2 { margin-top: 0; }
+
+h3 {
+  font-size: 1.02rem;
+  font-weight: 400;
+  font-style: italic;
+  margin: 1.4rem 0 0.4rem;
+}
+
+p { margin: 0.7rem 0; }
+
+/* ------------------------------------------------------- objetivos/moldura */
+/* Contraparte de #objetivos: bloco entre dois filetes, sem preenchimento. */
+.objetivos {
+  border-top: 1px solid var(--tinta);
+  border-bottom: 1px solid var(--tinta);
+  padding: 0.55rem 0 0.75rem;
+  margin: 1.8rem 0;
+}
+
+/* Contraparte de _caixa_moldura: emoldurado, sem preenchimento. */
+.moldura {
+  border: 1px solid var(--regra);
+  padding: 0.85rem 1rem 1rem;
+  margin: 1.2rem 0;
+}
+
+.rotulo {
+  display: block;
+  font-size: 0.73rem;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--cinza-c);
+  margin: 0 0 0.35rem;
+}
+
+/* Contraparte de _caixa_margem: passagem recuada, rótulo na margem. */
+.passagem {
+  position: relative;
+  padding-left: 1.3rem;
+  padding-right: 1.3rem;
+  margin: 1.2rem 0;
+  font-size: 0.96rem;
+}
+.passagem > .rotulo {
+  position: absolute;
+  left: calc(var(--col) + var(--mg-dx));
+  top: 0.25em;
+  width: var(--mg-larg);
+  margin: 0;
+}
+
+/* Contraparte de #margem: grafite de margem, sem rótulo. */
+.margem {
+  position: absolute;
+  left: calc(var(--col) + var(--mg-dx));
+  width: var(--mg-larg);
+  font-size: 0.83rem;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--cinza);
+  margin: 0;
+}
+.margem a { border-bottom-color: var(--regra); }
+section { position: relative; }
+
+/* --------------------------------------------------------------- listas */
+/* Contraparte de #tab: filete forte no topo, filetes finos entre linhas,
+   sem régua vertical, sem preenchimento. */
+.lista {
+  --cod: 4.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1.5px solid var(--tinta);
+  border-bottom: 1px solid var(--tinta);
+}
+.lista--larga { --cod: 5.6rem; }
+
+.lista > li {
+  display: grid;
+  grid-template-columns: var(--cod) minmax(0, 1fr);
+  gap: 0 0.8rem;
+  align-items: baseline;
+  padding: 0.5rem 0.1rem;
+}
+.lista > li + li { border-top: 1px solid var(--regra); }
+
+.cod {
+  font-size: 0.73rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cinza-c);
+  white-space: nowrap;
+}
+
+.item a { border-bottom-color: transparent; }
+.item a:hover, .item a:focus-visible { border-bottom-color: currentColor; }
+
+.glosa {
+  display: block;
+  font-size: 0.87rem;
+  color: var(--cinza);
+  margin-top: 0.1rem;
+}
+
+/* marcador discreto de destino: ↗ externo, ↓ download */
+.ext::after { content: " \2197"; color: var(--cinza-c); font-size: 0.8em; }
+.baixar::after { content: " \2193"; color: var(--cinza-c); font-size: 0.8em; }
+
+/* ------------------------------------------------------------- entradas */
+/* Duas portas de entrada da página inicial: molduras, não cartões. */
+.entradas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.1rem;
+  margin: 1.8rem 0 0;
+}
+.entrada {
+  display: block;
+  border: 1px solid var(--regra);
+  border-bottom-width: 1px;
+  padding: 1.1rem 1.1rem 1.2rem;
+}
+.entrada:hover, .entrada:focus-visible {
+  border-color: var(--tinta);
+  color: inherit;
+}
+.entrada .nome {
+  display: block;
+  font-size: 1.14rem;
+  font-weight: 700;
+  margin-top: 0.15rem;
+}
+.entrada .glosa { margin-top: 0.4rem; }
+
+/* ------------------------------------------------------------ definições */
+.ident {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.3rem 1rem;
+  font-size: 0.97rem;
+}
+.ident dt {
+  font-size: 0.73rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cinza-c);
+  padding-top: 0.22em;
+}
+.ident dd { margin: 0; }
+
+/* ---------------------------------------------------------------- rodapé */
+.pagina > footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 3.5rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--tinta);
+  font-size: 0.8rem;
+  color: var(--cinza-c);
+}
+
+code, kbd { font-family: var(--mono); font-size: 0.88em; background: var(--papel-2); padding: 0.05em 0.3em; }
+
+/* --------------------------------------------------- coluna única, telas estreitas */
+@media (max-width: 58rem) {
+  .pagina { width: min(100% - 2rem, var(--col)); }
+  .margem, .passagem > .rotulo {
+    position: static;
+    width: auto;
+    display: block;
+  }
+  .margem {
+    border-left: 1px solid var(--regra);
+    padding-left: 0.9rem;
+    margin: 0.9rem 0 1.2rem;
+  }
+  .passagem { padding-left: 0; padding-right: 0; border-left: 1px solid var(--regra); padding-left: 0.9rem; }
+  .passagem > .rotulo { margin-bottom: 0.3rem; }
+}
+
+@media (max-width: 34rem) {
+  body { font-size: 1rem; }
+  .entradas { grid-template-columns: 1fr; }
+  .lista > li { grid-template-columns: 1fr; gap: 0.15rem; }
+  .filiacao, .corrente, .pagina > footer { flex-direction: column; gap: 0.15rem; }
+  .ident { grid-template-columns: 1fr; gap: 0.1rem 0; }
+  .ident dd { margin-bottom: 0.55rem; }
+}
+
+/* ---------------------------------------------------------------- impressão */
+@media print {
+  :root { --papel: #fff; --tinta: #111; --cinza: #444; --cinza-c: #555; --regra: #bbb; }
+  body { font-size: 10.5pt; }
+  .pagina { width: auto; padding: 0; }
+  a { border-bottom: none; }
+  .margem, .passagem > .rotulo { position: static; width: auto; }
+}

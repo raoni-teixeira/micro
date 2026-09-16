@@ -1,99 +1,68 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Microcontroladores — 2027/1</title>
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            background: #eef2f7;
-            color: #222;
-        }
-        header {
-            background: #003366;
-            color: #fff;
-            padding: 2rem 1rem;
-            text-align: center;
-        }
-        header h1 { margin: 0 0 .4rem; font-size: 2rem; }
-        header p { margin: 0; opacity: .85; }
-        main {
-            max-width: 860px;
-            margin: 2.5rem auto;
-            padding: 0 1rem;
-        }
-        .notice, section {
-            background: #fff;
-            border-radius: 4px;
-            padding: 1.2rem 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, .07);
-        }
-        .notice { border-left: 4px solid #b36b00; }
-        h2 { color: #003366; margin-top: 0; }
-        ul { margin: 0; padding-left: 1.4rem; }
-        li { margin: .35rem 0; }
-        a { color: #1a4d80; }
-        footer {
-            background: #003366;
-            color: #ccd9e8;
-            font-size: .85rem;
-            margin-top: 3rem;
-            padding: 1rem;
-            text-align: center;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microcontroladores — 2027/1</title>
+<link rel="stylesheet" href="../estilo.css">
 </head>
 <body>
-    <header>
-        <h1>UFMT — Microcontroladores</h1>
-        <p>Material de preparação de aula · 2027/1</p>
-    </header>
+<div class="pagina">
 
-    <main>
-        <div class="notice">
-            <strong>Página provisória.</strong>
-            Este índice reúne os materiais publicados até o momento e será atualizado
-            durante a preparação da disciplina.
-        </div>
+  <header>
+    <p class="corrente"><span>Microcontroladores</span><span>2027/1</span></p>
+    <h1>Microcontroladores</h1>
+    <p class="subtitulo">Material de preparação de aula — 2027/1</p>
+    <p class="filiacao"><span>DENE/FAET — UFMT</span><span>Raoni F. S. Teixeira</span></p>
+  </header>
 
-        <section>
-            <h2>Notas de aula</h2>
-            <ul>
-                <li><a href="./pdf/aula0-como-se-programa.pdf" target="_blank">Aula 0 — Como se programa</a></li>
-                <li><a href="./pdf/aula1-memoria-e-datasheet.pdf" target="_blank">Aula 1 — Memória e datasheet</a></li>
-                <li><a href="./pdf/aula2-clock-e-execucao.pdf" target="_blank">Aula 2 — Clock e execução</a></li>
-                <li><a href="./pdf/aula3-paralelo-e-display.pdf" target="_blank">Aula 3 — Paralelo e display</a></li>
-                <li><a href="./pdf/aula4-adc-e-lm35.pdf" target="_blank">Aula 4 — ADC e LM35</a></li>
-                <li><a href="./pdf/aula5-temporizadores-e-pwm.pdf" target="_blank">Aula 5 — Temporizadores e PWM</a></li>
-                <li><a href="./pdf/aula7-interrupcoes-e-repique.pdf" target="_blank">Aula 7 — Interrupções e repique</a></li>
-                <li><a href="./pdf/aula8-potencia-e-reset.pdf" target="_blank">Aula 8 — Potência e reset</a></li>
-                <li><a href="./pdf/aula9-liga-desliga-e-histerese.pdf" target="_blank">Aula 9 — Liga-desliga e histerese</a></li>
-                <li><a href="./pdf/aula10-comunicacao-serial.pdf" target="_blank">Aula 10 — Comunicação serial</a></li>
-                <li><a href="./pdf/aula11-i2c-e-memoria.pdf" target="_blank">Aula 11 — I²C e memória</a></li>
-                <li><a href="./pdf/aula13-controle-embarcado.pdf" target="_blank">Aula 13 — Controle embarcado</a></li>
-            </ul>
-        </section>
+  <main>
 
-        <section>
-            <h2>Roteiros de laboratório</h2>
-            <ul>
-                <li><a href="./pdf/R0-c-do-pc-ao-micro.pdf" target="_blank">R0 — C, do PC ao micro</a></li>
-                <li><a href="./pdf/R1-o-kit-xm118.pdf" target="_blank">R1 — O kit XM118</a></li>
-                <li><a href="./pdf/R2-memoria-em-python.pdf" target="_blank">R2 — Memória em Python</a></li>
-                <li><a href="./pdf/R3-pino-tempo-osciloscopio.pdf" target="_blank">R3 — Pino, tempo e osciloscópio</a></li>
-                <li><a href="./pdf/R4-display-hd44780.pdf" target="_blank">R4 — Display HD44780</a></li>
-                <li><a href="./pdf/R5-entrada-e-conversor.pdf" target="_blank">R5 — Entrada e conversor</a></li>
-            </ul>
-        </section>
-    </main>
+    <section>
+      <p class="passagem">
+        <span class="rotulo">Nota</span>
+        Página provisória. Este índice reúne os materiais publicados até o momento
+        e será atualizado durante a preparação da disciplina.
+      </p>
+    </section>
 
-    <footer>
-        <p>&copy; 2026 Raoni F. S. Teixeira — DENE/UFMT</p>
-    </footer>
+    <section>
+      <h2>Notas de aula</h2>
+      <ol class="lista lista--larga">
+        <li><span class="cod">Aula 0</span><span class="item"><a href="./pdf/aula0-como-se-programa.pdf" target="_blank">Como se programa</a></span></li>
+        <li><span class="cod">Aula 1</span><span class="item"><a href="./pdf/aula1-memoria-e-datasheet.pdf" target="_blank">Memória e datasheet</a></span></li>
+        <li><span class="cod">Aula 2</span><span class="item"><a href="./pdf/aula2-clock-e-execucao.pdf" target="_blank">Clock e execução</a></span></li>
+        <li><span class="cod">Aula 3</span><span class="item"><a href="./pdf/aula3-paralelo-e-display.pdf" target="_blank">Paralelo e display</a></span></li>
+        <li><span class="cod">Aula 4</span><span class="item"><a href="./pdf/aula4-adc-e-lm35.pdf" target="_blank">ADC e LM35</a></span></li>
+        <li><span class="cod">Aula 5</span><span class="item"><a href="./pdf/aula5-temporizadores-e-pwm.pdf" target="_blank">Temporizadores e PWM</a></span></li>
+        <li><span class="cod">Aula 7</span><span class="item"><a href="./pdf/aula7-interrupcoes-e-repique.pdf" target="_blank">Interrupções e repique</a></span></li>
+        <li><span class="cod">Aula 8</span><span class="item"><a href="./pdf/aula8-potencia-e-reset.pdf" target="_blank">Potência e reset</a></span></li>
+        <li><span class="cod">Aula 9</span><span class="item"><a href="./pdf/aula9-liga-desliga-e-histerese.pdf" target="_blank">Liga-desliga e histerese</a></span></li>
+        <li><span class="cod">Aula 10</span><span class="item"><a href="./pdf/aula10-comunicacao-serial.pdf" target="_blank">Comunicação serial</a></span></li>
+        <li><span class="cod">Aula 11</span><span class="item"><a href="./pdf/aula11-i2c-e-memoria.pdf" target="_blank">I²C e memória</a></span></li>
+        <li><span class="cod">Aula 13</span><span class="item"><a href="./pdf/aula13-controle-embarcado.pdf" target="_blank">Controle embarcado</a></span></li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Roteiros de laboratório</h2>
+      <ol class="lista">
+        <li><span class="cod">R0</span><span class="item"><a href="./pdf/R0-c-do-pc-ao-micro.pdf" target="_blank">C, do PC ao micro</a></span></li>
+        <li><span class="cod">R1</span><span class="item"><a href="./pdf/R1-o-kit-xm118.pdf" target="_blank">O kit XM118</a></span></li>
+        <li><span class="cod">R2</span><span class="item"><a href="./pdf/R2-memoria-em-python.pdf" target="_blank">Memória em Python</a></span></li>
+        <li><span class="cod">R3</span><span class="item"><a href="./pdf/R3-pino-tempo-osciloscopio.pdf" target="_blank">Pino, tempo e osciloscópio</a></span></li>
+        <li><span class="cod">R4</span><span class="item"><a href="./pdf/R4-display-hd44780.pdf" target="_blank">Display HD44780</a></span></li>
+        <li><span class="cod">R5</span><span class="item"><a href="./pdf/R5-entrada-e-conversor.pdf" target="_blank">Entrada e conversor</a></span></li>
+      </ol>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>Raoni F. S. Teixeira</span>
+    <span>DENE/UFMT — 2027/1</span>
+  </footer>
+
+</div>
 </body>
 </html>
