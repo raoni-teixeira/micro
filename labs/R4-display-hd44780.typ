@@ -102,7 +102,21 @@ que funciona na sua bancada e falha na do colega, com um módulo de outro lote.*
 ]
 
 #tarefa[
-*Tarefa 2.* Com o osciloscópio no pino `E`, disparo na borda de subida, meça:
+*Tarefa 2.* Duas ponteiras, e é este roteiro que exige as duas.
+
+#tab(
+  columns: (auto, auto, 1fr),
+  [Canal], [Ponto], [O que ele mostra],
+  [CH1], [`E` — pino RE1], [O pulso de habilitação. Dispare aqui, na borda de subida],
+  [CH2], [`D6` — pino RD6], [Um bit do barramento de dados],
+)
+
+Escreva o caractere `'A'` continuamente, e nada mais. `'A'` é `0x41`, ou
+`0100 0001` em binário: o nibble alto tem `D6` em *1* e o nibble baixo tem `D6`
+em *0*. Os dois pulsos de um mesmo byte ficam, portanto, visivelmente
+diferentes no CH2 — e é isso que permite dizer qual veio primeiro.
+
+Meça, e preencha:
 
 #tab(
   columns: (1fr, auto, auto),
@@ -110,9 +124,35 @@ que funciona na sua bancada e falha na do colega, com um módulo de outro lote.*
   [Largura do pulso de habilitação], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
   [Intervalo entre dois pulsos consecutivos], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
   [Tempo entre os dois nibbles de um byte], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
+  [`D6` estável *antes* da descida de `E`], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
+  [`D6` mantido *depois* da descida de `E`], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
 )
 
-Compare com a previsão P4 da folha da aula 3.
+Compare as três primeiras com a previsão P4 da folha da aula 3, e as duas
+últimas com `t#sub[DSW]` e `t#sub[H]` da folha de referência.
+
+*(a)* Qual nibble sai primeiro, o alto ou o baixo? Responda *pela medida*, e diga
+o que na tela do osciloscópio permitiu decidir.
+
+*(b)* O dado muda antes ou depois da borda de descida de `E`? Por que a resposta
+tinha de ser essa?
+]
+
+#conceito[
+Com uma ponteira só, "o dado é capturado na borda de descida" é uma afirmação que
+o aluno aceita. Com duas, ela é uma coisa que ele vê: o CH2 já está parado e
+estável quando o CH1 desce, e só muda bem depois.
+
+É a diferença entre saber o protocolo e ter medido o protocolo — e é também como
+se depura um barramento que não funciona, quando o problema é justamente o dado
+chegar tarde demais.
+]
+
+#atencao[
+As duas ponteiras compartilham o mesmo terra pelo chassi do osciloscópio. Prenda
+as duas garras no *mesmo* ponto de terra do kit. Terras em pontos diferentes da
+placa fecham uma malha, e a malha aparece como ruído exatamente na escala de
+tempo que você está tentando medir.
 ]
 
 = Parte 2 — a inicialização, e a falha intermitente
@@ -190,6 +230,101 @@ mecanismo.
 O display recebe *caracteres*, não números. Para mostrar 37 é preciso enviar
 `'3'` e depois `'7'`.
 
+== O número que você tem não tem dígitos
+
+Um `uint8_t` é um byte. Ele guarda uma quantidade entre 0 e 255, e guarda essa
+quantidade em binário — oito bits, peso 128 no mais significativo. O valor 37 é
+`0010 0101`, e não há nenhum `3` nem nenhum `7` armazenado em lugar nenhum.
+
+Os dígitos decimais não estão no número: eles são uma *representação* dele. E a
+representação decimal é uma soma de potências de dez:
+
+$ n = c dot.c 10^2 + d dot.c 10^1 + u dot.c 10^0 $
+
+com $c$, $d$ e $u$ entre 0 e 9. Exibir um número é resolver essa equação para
+$c$, $d$ e $u$ — é o mesmo trabalho que o encontro 2 fez em sentido contrário,
+quando converteu hexadecimal em binário.
+
+#nota[
+Repare que `'3'` não é 3. O caractere `'3'` vale `0x33` na tabela do HD44780, e o
+que faz `'0' + digito` funcionar é os dez dígitos serem consecutivos a partir de
+`0x30`. Encontrar o dígito e converter o dígito em caractere são dois problemas
+diferentes, e só o segundo é barato.
+]
+
+== Três maneiras de achar os dígitos
+
+*A clássica: divisão e resto.* Cada divisão por dez descasca um dígito pela
+direita, e o resto é o dígito.
+
+```c
+u = n % 10;   n = n / 10;
+d = n % 10;   n = n / 10;
+c = n;
+```
+
+Lê-se bem, e é o que quase todo mundo escreve. Mas o PIC18 *não tem instrução de
+divisão*. Ele tem multiplicador em hardware — `MULWF` faz 8 por 8 em um ciclo —
+e não tem divisor. Cada `/` e cada `%` deste trecho é uma chamada a uma rotina
+da biblioteca, que divide por subtrações sucessivas num laço.
+
+*A ingênua: subtrair até não dar mais.* É o que a rotina da biblioteca faz, só
+que escrito à mão:
+
+```c
+c = 0;  while (n >= 100u) { n -= 100u; c++; }
+d = 0;  while (n >=  10u) { n -=  10u; d++; }
+u = n;
+```
+
+Duas coisas valem observar. A primeira é que isto é a divisão, e não uma
+alternativa a ela. A segunda é que o número de voltas *depende do valor*: para
+`n` = 9 o segundo laço não executa nenhuma vez, e para `n` = 99 ele executa nove.
+O custo não é constante — e um trecho de código cujo tempo depende do dado é
+exatamente o que estraga uma temporização.
+
+*A elegante: multiplicar pela recíproca.* Dividir por dez é multiplicar por um
+décimo. Como não há ponto flutuante, usa-se uma fração cujo denominador é
+potência de dois, porque dividir por potência de dois é deslocar bits:
+
+$ 1/100 approx 41/4096 quad quad 1/10 approx 205/2048 $
+
+```c
+c = (uint8_t)((n * 41u) >> 12);      /* n / 100 */
+n = (uint8_t)(n - c * 100u);
+d = (uint8_t)((n * 205u) >> 11);     /* n / 10  */
+u = (uint8_t)(n - d * 10u);
+```
+
+Sem laço, sem divisão, e sempre o mesmo número de ciclos.
+
+#conceito[
+*Por que 41 e 205, e por que isso dá o resultado exato.*
+
+$41 slash 4096$ vale 0,010009…, e não 0,01. A multiplicação erra para cima — e é
+por isso que ela funciona: o deslocamento à direita trunca, e o erro é pequeno
+demais para empurrar o resultado para o degrau seguinte. Dentro da faixa em que
+isso vale, o resultado não é aproximado: é *idêntico* ao da divisão inteira.
+
+E a faixa importa. Para `uint8_t`, de 0 a 255, as duas constantes acima são
+exatas. A de 41 continua exata até 1023 — e falha pela primeira vez em 1099. Um
+número mágico carrega sempre, junto, a faixa em que ele é válido, e usar fora
+dela produz um erro silencioso.
+]
+
+#atencao[
+*O produto intermediário é o perigo, e ele é o mesmo defeito do encontro 4.*
+
+`n * 205` com `n` = 255 dá 52#h(1pt)275, que ainda cabe em dezesseis bits. Mas se
+alguém aplicar a mesma linha a um valor de dez bits — 1023, por exemplo — o
+produto vale 209#h(1pt)715 e *não cabe*. A conta dá voltas em silêncio e devolve
+um dígito plausível e errado.
+
+No encontro 5 vocês vão reencontrar isso literalmente, ao multiplicar o código do
+conversor por 625. É a mesma armadilha, com outro número: *toda multiplicação por
+constante grande precisa de uma verificação do maior produto possível.*
+]
+
 #tarefa[
 *Tarefa 7.* Escreva a sua própria `lcd_u8(uint8_t v)`, que mostre um valor de 0 a
 255, e use para exibir um contador incrementando a cada 500 ms.
@@ -198,8 +333,37 @@ Escreva a versão ingênua: só os dígitos que o número tem, sem nenhum cuidad
 o que já estava na tela. O driver traz uma `lcd_numero()` pronta — *não use ainda*,
 e não a chame de dentro da sua.
 
-Antes de escrever: por que `'0' + digito` funciona? O que garante que os dígitos
-sejam consecutivos na tabela de caracteres?
+*(a)* Implemente a separação de dígitos das *três* maneiras da seção anterior:
+divisão e resto, subtrações sucessivas, e multiplicação pela recíproca. Confira
+que as três dão o mesmo resultado para 0, 7, 99, 100 e 255.
+
+*(b)* Meça as três, com o pino auxiliar levantado antes e baixado depois da
+separação — *sem* a escrita no display, que domina tudo:
+
+#tab(
+  columns: (1fr, auto, auto),
+  [Implementação], [`v` = 7], [`v` = 255],
+  [Divisão e resto], [#lacuna(largura: 2.2cm)], [#lacuna(largura: 2.2cm)],
+  [Subtrações sucessivas], [#lacuna(largura: 2.2cm)], [#lacuna(largura: 2.2cm)],
+  [Recíproca e deslocamento], [#lacuna(largura: 2.2cm)], [#lacuna(largura: 2.2cm)],
+)
+
+Duas colunas, e é de propósito: *qual das três muda de tempo conforme o valor, e
+por quê?*
+
+*(c)* Antes de escrever qualquer coisa: por que `'0' + digito` funciona? O que
+garante que os dígitos sejam consecutivos na tabela de caracteres?
+]
+
+#nota[
+Compile com otimização e confira o resultado no listing de assembly antes de
+concluir qualquer coisa da medida. O XC8 reconhece multiplicação por constante e
+costuma trocá-la por somas e deslocamentos sozinho — o que significa que a
+terceira versão pode não ser tão diferente da primeira quanto o código sugere, e
+que a primeira *continua* chamando a rotina de divisão.
+
+O ponto da tarefa não é que a recíproca é sempre melhor. É que você não sabe
+qual é melhor até medir, e que o compilador é um participante da conta.
 ]
 
 #tarefa[
