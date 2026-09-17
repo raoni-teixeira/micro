@@ -35,10 +35,9 @@
 #v(2pt)
 
 #text(size: 9pt)[
-Nome: #box(width: 60%, line(length: 100%, stroke: 0.4pt)) #h(1fr) 20 minutos
+Nome: #box(width: 60%, line(length: 100%, stroke: 0.4pt)) #h(1fr) 
 #v(2pt)
-Consulta permitida à folha de referência do HD44780. #strong[Nenhuma questão se
-responde procurando] — todas pedem uma consequência do que está lá.
+Consulta permitida à folha de referência do HD44780. #strong
 As respostas valem pelo raciocínio; um número certo sem justificativa vale
 metade.
 ]
@@ -187,7 +186,7 @@ interrompido durante a espera.
 #line(length: 100%, stroke: 0.4pt)
 #v(3pt)
 
-#block[
+/*#block[
   #text(weight: "bold")[Questão-ponte] #h(4pt)
   #text(size: 8.5pt, fill: luma(90))[(sem nota — leve a resposta para o R4)]
   #v(3pt)
@@ -225,3 +224,4 @@ interrompido durante a espera.
   aparente do comando.
   ]
 ]
+*/
