@@ -22,15 +22,6 @@
   [CH5-3 e CH5-4], [*OFF, obrigatoriamente*],
   [Chaves SWITCHS (PORTB)], [Todas em OFF],
 )
-
-*A verificar antes desta sessão, e é bloqueante:* se as linhas de relé
-compartilham PORTD com o barramento do display, cada escrita de dado chaveia relé.
-CH5-3 e CH5-4 desligados é pré-requisito, não recomendação — conferir na
-serigrafia.
-
-*Também a verificar:* se a linha `R/W` do módulo está aterrada. Se estiver, o
-indicador de ocupado é inacessível e toda a temporização por atraso fixo deste
-roteiro é consequência dessa escolha de hardware.
 ]
 
 = O primeiro periférico que não obedece na hora
@@ -158,7 +149,7 @@ tempo que você está tentando medir.
 = Parte 2 — a inicialização, e a falha intermitente
 
 #tarefa[
-*Tarefa 3.* Localize a sequência de inicialização e preencha:
+*Tarefa 3.* Localize a sequência de inicialização em `lcd_iniciar()` e descreva o que cada comando faz:
 
 #tab(
   columns: (auto, 1fr),
@@ -169,6 +160,8 @@ tempo que você está tentando medir.
   [`0x06`], [#lacuna(largura: 8cm)],
   [`0x01`], [#lacuna(largura: 8cm)],
 )
+
+Use a folha de dados do HD44780 para justificar cada resposta. A resposta não é o que o código diz: é o que o comando *faz* no controlador.
 ]
 
 #tarefa[
