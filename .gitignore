@@ -52,6 +52,12 @@
 labs/**/gabarito/
 labs/**/*-gab.*
 
+# Material docente das aulas teoricas: nunca publicar no repositorio publico.
+teoria/**/gabarito/
+teoria/**/*-gab.*
+teoria/integradora*
+teoria/integracao*
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd

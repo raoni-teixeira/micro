@@ -230,6 +230,9 @@ section { position: relative; }
 .item a { border-bottom-color: transparent; }
 .item a:hover, .item a:focus-visible { border-bottom-color: currentColor; }
 
+/* Entrada de lista sem material para baixar: avaliacao, seminario. */
+.item .vazio { color: var(--cinza-c); font-style: italic; }
+
 .glosa {
   display: block;
   font-size: 0.87rem;
