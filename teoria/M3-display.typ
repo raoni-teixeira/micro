@@ -1,9 +1,9 @@
 #let gab = sys.inputs.at("gab", default: "0") == "1"
 
 #set page(paper: "a4", margin: (x: 18mm, y: 14mm), numbering: "1")
-#set text(font: "Latin Modern Roman", size: 10pt, lang: "pt")
+#set text(font: "New Computer Modern", size: 10pt, lang: "pt")
 #set par(justify: false, leading: 0.6em)
-#let mono = "Latin Modern Mono"
+#let mono = "DejaVu Sans Mono"
 #let c(x) = text(font: mono, size: 9pt)[#x]
 
 #let q(n, pontos, corpo) = block(above: 12pt, below: 4pt)[
@@ -35,11 +35,11 @@
 #v(2pt)
 
 #text(size: 9pt)[
-Nome: #box(width: 60%, line(length: 100%, stroke: 0.4pt)) #h(1fr) 
+Nome: #box(width: 60%, line(length: 100%, stroke: 0.4pt)) #h(1fr) 20 minutos
 #v(2pt)
-Consulta permitida à folha de referência do HD44780. #strong
-As respostas valem pelo raciocínio; um número certo sem justificativa vale
-metade.
+Consulta permitida à folha de referência do HD44780 — *nenhuma questão se
+responde procurando*. As respostas valem pelo raciocínio; um número certo sem
+justificativa vale metade.
 ]
 
 #v(2pt)

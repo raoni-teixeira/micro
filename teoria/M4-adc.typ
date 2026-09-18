@@ -1,9 +1,9 @@
 #let gab = sys.inputs.at("gab", default: "0") == "1"
 
 #set page(paper: "a4", margin: (x: 18mm, y: 14mm), numbering: "1")
-#set text(font: "Latin Modern Roman", size: 10pt, lang: "pt")
+#set text(font: "New Computer Modern", size: 10pt, lang: "pt")
 #set par(justify: false, leading: 0.6em)
-#let mono = "Latin Modern Mono"
+#let mono = "DejaVu Sans Mono"
 #let c(x) = text(font: mono, size: 9pt)[#x]
 
 #let q(n, pontos, corpo) = block(above: 12pt, below: 4pt)[
