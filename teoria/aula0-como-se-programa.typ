@@ -77,7 +77,7 @@ uma incubadora ou de um #box[ar-condicionado] inverter. Não é um modelo reduzi
   [6],  [*Avaliação integradora I*], [R6 — PWM no ventilador], [—],
   [7],  [Interrupções e ruído de contato], [*Avaliação prática I*], [M7],
   [8],  [Estágio de potência e atuadores], [R7 — botões, repique e teclado matricial], [M8],
-  [9],  [Controle liga-desliga e histerese], [R8 — aquecedor e relé], [M9],
+  [9],  [Controle liga-desliga, histerese e comparação analógica], [R8 — aquecedor e relé], [M9],
   [10], [Comunicação serial], [R9 — termostato liga-desliga completo], [M10],
   [11], [Barramento serial síncrono: I#super[2]C e memória não volátil], [R10 — telemetria por UART], [M11],
   [12], [*Avaliação integradora II*], [R11 — setpoint em EEPROM], [—],

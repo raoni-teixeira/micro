@@ -1,11 +1,11 @@
-// Aula 9 — Controle liga-desliga e histerese
+// Aula 9 — Controle liga-desliga, histerese e comparação analógica
 // Microcontroladores — DENE/UFMT — Raoni F. S. Teixeira
 
 #import "estilo.typ": *
 #import "figuras.typ": *
 #show: conf.with(
   titulo: "Aula 9 — Controle liga-desliga e histerese",
-  subtitulo: "A regra mais simples possível, e o que ela cobra",
+  subtitulo: "A regra mais simples possível, o que ela cobra, e como o silício a resolve",
 )
 
 #objetivos[
@@ -14,6 +14,10 @@
 - Derivar o período do ciclo limite a partir das taxas de aquecimento e resfriamento, e converter em acionamentos por hora.
 - Justificar um piso para a faixa de histerese a partir da resolução do conversor.
 - Distinguir amplitude prevista de amplitude medida, e atribuir a diferença à inércia térmica.
+- Descrever o módulo de comparadores do PIC18F4550 e a disputa de pinos que ativá-lo provoca.
+- Calcular o degrau da referência programável e confrontá-lo com os 10 mV por grau do LM35.
+- Dimensionar histerese por realimentação positiva a partir da largura desejada.
+- Decidir entre comparador e conversor a partir de uma especificação, justificando com as grandezas certas.
 ]
 
 = A regra mais simples do mundo
@@ -71,8 +75,12 @@ exatamente pelo mesmo motivo, e resolve exatamente o mesmo problema: um sinal
 que atravessa devagar a região de decisão produziria uma rajada de transições.
 
 Lá a solução está em silício e o projetista não escolhe a largura. Aqui ela está
-em software e a largura é sua. É a mesma ideia, duas vezes, em camadas
-diferentes — e vale dizer isso à turma em voz alta.
+em software e a largura é sua.
+
+E há uma terceira camada, entre as duas, que esta aula vê mais adiante: o
+comparador analógico, em que o hardware decide e a largura *também* é sua. Mesma
+ideia, três vezes, com três graus de liberdade diferentes — e vale dizer isso à
+turma em voz alta.
 ]
 
 = O que a histerese cobra
@@ -238,6 +246,269 @@ intervalo medido seja menor que o período de repetição. Trinta segundos contr
 65,5 — cabe, com pouca folga.
 
 Comparar `agora > desde + MIN` seria o mesmo erro escrito de outro jeito.
+]
+
+= O mesmo problema, resolvido em silício
+
+O código da seção anterior custa uma conversão — 60 ciclos de máquina, medidos no
+encontro 4 — mais a aritmética, mais a comparação, mais a máquina de estados. Tudo
+isso para produzir *um bit*: ligar ou não ligar.
+
+Existe um periférico que produz exatamente esse bit sem processador nenhum. Está
+dentro do mesmo chip, desligado, desde a primeira aula.
+
+#conceito[
+*Um comparador é um conversor de um bit.* A frase não é analogia.
+
+Um conversor #emph[flash] de $n$ bits é feito de $2^n - 1$ comparadores em
+paralelo, cada um com seu limiar, todos decidindo ao mesmo tempo. E o conversor
+por aproximações sucessivas do encontro 4 usa *um* comparador e um conversor
+digital-analógico, aplicando o limiar dez vezes seguidas — a figura da busca
+binária que vocês viram lá é a figura de um comparador sendo reutilizado.
+
+O comparador é o tijolo elementar de toda conversão. O que muda entre as
+arquiteturas é quantos existem e quantas vezes cada um decide.
+]
+
+A saída digital diz qual das duas entradas analógicas é maior, e a transição
+acontece continuamente no tempo, sem comando de disparo. Três propriedades
+separam isso da conversão:
+
+#tab(
+  columns: (auto, 1fr),
+  [Propriedade], [Consequência],
+  [Custo de processador nulo], [Opera em hardware analógico, continuamente. O processador pode estar executando outra coisa — ou dormindo],
+  [Latência de centenas de ns], [Contra dezenas de µs da conversão somada ao software que a rodeia],
+  [Funciona sem clock], [Continua operando com o processador parado, e a mudança de estado pode ser o evento que o desperta],
+)
+
+#margem[Sessenta ciclos contra zero. É a única vez no curso em que a comparação dá esse número.]
+
+== O módulo do PIC18F4550
+
+São *dois* comparadores, C1 e C2, com interligação selecionável aos pinos. Toda a
+configuração está em `CMCON`.
+
+#fig(
+  fig_campos((
+    ("C2OUT", "0"), ("C1OUT", "0"),
+    ("C2INV", "0"), ("C1INV", "0"),
+    ("CIS", "0"), ("CM<2:0>", "111"),
+  ), w: 0.72cm, fonte_rotulo: 6.6pt),
+  [`CMCON` no estado em que o firmware do laboratório o deixa: `CM<2:0>` = `111`,
+  módulo desligado. `C1OUT` e `C2OUT` são somente leitura — são as saídas dos
+  comparadores, não configuração.],
+)
+
+#kit[
+A linha `CMCON = 0x07` da inicialização do firmware de referência é exatamente o
+modo desligado, e está lá por segurança: com o módulo ativo, RA0 a RA3 deixam de
+responder como entrada e saída digital.
+
+*Ativar os comparadores exige remover essa linha*, e quem remove precisa saber que
+está fazendo isso. É o mesmo feitio do `ADCON1` do encontro 4: o pino tem mais de
+um caminho de entrada, e alguém escolheu o outro.
+]
+
+Cada pino usado pelo comparador é um pino subtraído do conversor ou da porta
+digital:
+
+#tab(
+  columns: (auto, 1fr, 1fr),
+  [Pino], [Função no módulo], [Disputa com],
+  [RA0], [Entrada inversora de C1], [AN0],
+  [RA1], [Entrada inversora de C2], [AN1],
+  [RA2], [Não inversora de C2; saída de `CVREF`], [AN2, referência negativa],
+  [RA3], [Não inversora de C1], [AN3, referência positiva],
+  [RA4], [`C1OUT`, nos modos com saída], [Entrada de clock do Timer0],
+  [RA5], [`C2OUT`, nos modos com saída], [AN4],
+)
+
+#atencao[
+Repare em RA3: ele é a entrada não inversora de C1 *e* a entrada de referência
+positiva do conversor. Usar referência externa para ganhar resolução no ADC — a
+alternativa discutida no encontro 4 — e usar C1 ao mesmo tempo são coisas
+mutuamente exclusivas neste chip.
+
+O módulo também tem interrupção própria, por `CMIF`, e ela dispara *a cada
+mudança* de saída, na subida e na descida. Vale a regra do encontro 7: o tratador
+não sabe em que estado está só por ter sido chamado, e a leitura de `CMCON` faz
+parte da condição para baixar o sinalizador. Limpar `CMIF` sem ter lido o
+registrador leva à ressinalização imediata, e o sintoma se parece com travamento.
+]
+
+== A referência programável, e a conta que não fecha
+
+Comparar contra uma tensão externa exigiria divisor, potenciômetro ou referência
+de precisão. O chip evita isso com `CVREF`, gerada por uma escada de dezesseis
+degraus e controlada por `CVRCON`.
+
+#fig(
+  fig_campos((
+    ("CVREN", "1"), ("CVROE", "0"), ("CVRR", "1"), ("CVRSS", "0"),
+    ("CVR<3:0>", "0010"),
+  ), w: 0.72cm, fonte_rotulo: 6.6pt),
+  [`CVRCON` com a referência habilitada, faixa baixa, escada alimentada pela fonte
+  interna, degrau 2. `CVROE` leva a referência ao pino RA2, o que permite medir
+  com o osciloscópio o valor que se programou.],
+)
+
+Sendo $V_"src"$ a tensão selecionada por `CVRSS` e $k$ o valor de `CVR<3:0>`:
+
+$ "faixa baixa" quad ("CVRR" = 1): quad V_"CVREF" = k/24 dot.c V_"src" $
+
+$ "faixa alta" quad ("CVRR" = 0): quad V_"CVREF" = V_"src"/4 + k/32 dot.c V_"src" $
+
+Com os 5 V da alimentação, a faixa baixa vai de 0 a 3,125 V em degraus de 208 mV;
+a faixa alta vai de 1,25 V a 3,59 V em degraus de 156 mV.
+
+#conceito[
+*Agora a conta que decide a seção.* O LM35 entrega 10 mV por grau, então um degrau
+de 208 mV vale *20,8 #sym.degree#h(0pt)C*. Os limiares que a faixa baixa consegue
+expressar são estes:
+
+#tab(
+  columns: (auto, auto, auto, auto, auto),
+  [`CVR<3:0>`], [0], [1], [2], [3],
+  [Tensão], [0 V], [208 mV], [417 mV], [625 mV],
+  [Temperatura], [0 #sym.degree#h(0pt)C], [20,8 #sym.degree#h(0pt)C], [41,7 #sym.degree#h(0pt)C], [62,5 #sym.degree#h(0pt)C],
+)
+
+Não é que 40 #sym.degree#h(0pt)C seja inatingível — o degrau 2 cai a 41,7, a menos
+de dois graus. O problema é outro: *você não escolhe*. Um alvo de 35 ou de 50
+#sym.degree#h(0pt)C não existe nesta escada. O passo do ajuste é de vinte graus.
+
+A faixa alta é pior, e de um jeito que vale enunciar: ela *começa* em 1,25 V, ou
+125 #sym.degree#h(0pt)C de LM35. É inteiramente inútil para este sensor.
+]
+
+#atencao[
+Esta é uma limitação real do dispositivo, e não um detalhe de configuração.
+Qualquer material que apresente o comparador como substituto direto do conversor
+num termostato com LM35 está omitindo esta conta.
+]
+
+Há três saídas. Baixar a fonte da escada com `CVRSS` = 1 e alimentá-la com 1 V dá
+degraus de 42 mV, ou pouco mais de 4 #sym.degree#h(0pt)C — melhora uma ordem de
+grandeza, ainda não serve para controle fino, e consome RA3, que é a entrada de
+C1. Amplificar o sensor por 5 divide o degrau por cinco, ao custo de um
+amplificador externo e da precisão dele. Ou então:
+
+#conceito[
+*Usar o comparador para aquilo em que ele é insubstituível.* Um limiar de
+segurança de sobretemperatura não precisa de precisão de um grau: precisa de
+atuação rápida, independente de software e operante com o processador parado. Aqui
+os 208 mV de degrau deixam de ser um problema.
+
+É esta a saída que orienta o projeto do semestre. O conversor continua responsável
+pela *medição* — o valor que vai ao display, à telemetria e à malha de controle. O
+comparador assume a *proteção*: um limiar superior que corta o aquecedor por
+caminho independente, mesmo com o firmware travado.
+
+Não são alternativas concorrentes. São camadas com funções distintas, e é assim
+que aparecem em equipamento real.
+]
+
+== Histerese em silício
+
+Os comparadores do PIC18F4550 *não têm histerese programável*. Famílias mais
+recentes trazem um bit para isso; esta não traz. Ela precisa ser construída.
+
+O caminho clássico realimenta a saída para a entrada não inversora por um
+resistor, formando com o resistor da referência um divisor cujo resultado depende
+do estado da saída. Seja $V_"ref"$ ligada por $R_1$ e a saída realimentada por
+$R_2$; a tensão no nó é a superposição das duas fontes:
+
+$ V_+ = (V_"ref" dot.c R_2 + V_o dot.c R_1)/(R_1 + R_2) $
+
+Com a saída baixa, $V_o = 0$, o limiar é $V_"TL" = (V_"ref" dot.c R_2) slash (R_1 + R_2)$;
+com a saída alta, $V_o = V_"DD"$, ele sobe. A largura é a diferença:
+
+$ Delta V = V_"TH" - V_"TL" = V_"DD" dot.c R_1/(R_1 + R_2) $
+
+#conceito[
+*A largura não depende da referência.* Só da razão entre os resistores e da
+excursão da saída. É uma boa notícia de projeto: mover o limiar não mexe na
+histerese — exatamente o contrário do que acontece na versão em software, onde
+$h$ e o alvo são a mesma conta.
+
+Para 2 #sym.degree#h(0pt)C com o LM35 são 20 mV. Com $V_"DD"$ = 5 V:
+
+$ R_1/(R_1 + R_2) = 20 "mV" slash 5 "V" = 0,004 quad => quad R_2 approx 249 dot.c R_1 $
+
+Com $R_1$ = 1 k#sym.Omega e o valor comercial $R_2$ = 240 k#sym.Omega, resulta
+$Delta V$ = 20,7 mV, ou 2,1 #sym.degree#h(0pt)C.
+
+Repare na ordem de grandeza: histereses estreitas exigem realimentação fraca, e
+resistores muito desiguais. É a fonte de erro mais comum neste circuito.
+]
+
+Existe ainda uma alternativa puramente digital: quando a saída comuta, o tratador
+de interrupção reprograma `CVR<3:0>` para o degrau vizinho, deslocando o limiar
+contra novas comutações.
+
+```c
+/* Histerese por deslocamento da referencia programavel.
+   A leitura de CMCON e obrigatoria antes de baixar o sinalizador. */
+void tratar_comparador(void)
+{
+    uint8_t estado = CMCON;           /* leitura obrigatoria */
+
+    if (estado & 0x40) {              /* C1OUT em nivel alto */
+        CVRCON = (CVRCON & 0xF0) | DEGRAU_BAIXO;
+    } else {
+        CVRCON = (CVRCON & 0xF0) | DEGRAU_ALTO;
+    }
+
+    PIR2bits.CMIF = 0;
+}
+```
+
+#divergencia[
+O custo é reintroduzir o software na malha, e ele é alto o bastante para observar.
+
+A largura passa a ser um degrau inteiro da escada — os mesmos 20,8
+#sym.degree#h(0pt)C — largo demais para qualquer termostato útil. E a resposta
+volta a depender da latência de interrupção, que é justamente a propriedade que
+motivou usar o comparador.
+
+Vale conhecer a técnica pelo que ela revela, não para usar aqui: as duas vantagens
+do comparador foram devolvidas, uma de cada vez, por uma solução que parecia
+elegante.
+]
+
+== O conversor mede, o comparador vigia
+
+#tab(
+  columns: (1fr, 1fr, 1fr),
+  [Aspecto], [Comparador], [Conversor],
+  [Informação produzida], [Um bit], [Palavra de dez bits],
+  [Custo de processador], [Nenhum], [60 ciclos, mais o software],
+  [Latência], [Centenas de ns], [Dezenas de µs],
+  [Precisão do limiar], [Degraus de 20,8 #sym.degree#h(0pt)C], [Degraus de 0,49 #sym.degree#h(0pt)C],
+  [Limiar ajustável por software], [Em degraus grosseiros], [Em qualquer valor],
+  [Opera com o processador parado], [Sim], [Não],
+  [Serve para display e telemetria], [Não], [Sim],
+  [Permite filtragem e média], [Não], [Sim],
+)
+
+A regra prática sai da tabela: *o conversor mede, o comparador vigia.* Sempre que
+for preciso saber o valor — para mostrar, transmitir, filtrar ou usar num
+algoritmo de controle — a conversão é necessária. Sempre que bastar saber que um
+limite foi ultrapassado, e sobretudo quando isso precisar acontecer rápido, com
+baixo consumo ou independentemente do software, a comparação é a resposta.
+
+#nota[
+É por isso que o termostato deste curso usa o conversor: ele precisa do valor na
+tela e na telemetria, e precisa de um alvo ajustável em qualquer temperatura. O
+comparador entraria *por cima*, como limiar fixo de sobretemperatura — e num
+produto real entraria.
+
+Em várias famílias ARM Cortex-M essa camada fica ainda mais limpa: a saída do
+comparador pode ser ligada internamente à entrada de desligamento de emergência do
+temporizador que gera o PWM do encontro 5. Ao ultrapassar o limiar, o acionamento
+é cortado *em hardware*, em nanossegundos, sem executar uma instrução — e a
+proteção continua válida com o firmware travado. É bom tema de seminário.
 ]
 
 = As duas medidas do R9
@@ -406,4 +677,51 @@ para medir a amplitude é preciso registrar o valor ao longo do tempo.
 
 O display mostra o instante; ele não guarda a história. A telemetria existe
 exatamente para isso, e é ela que vai produzir os dados que o encontro 13 usa.
+]
+
+#tarefa[
+*Exercício 9.5.* Um colega quer um termostato com ajuste de 30 a 60
+#sym.degree#h(0pt)C em passos de 1 #sym.degree#h(0pt)C, e propõe usar o comparador
+com `CVREF` para não gastar processador.
+
+(a) Quantos valores distintos de limiar a faixa baixa oferece nessa janela?
+
+(b) A proposta é viável? Se não, diga o que você usaria e por quê.
+]
+
+#resposta[
+(a) Dois: o degrau 2, a 41,7 #sym.degree#h(0pt)C, e o degrau 3, a 62,5
+#sym.degree#h(0pt)C — e o segundo já está fora da janela pedida. Na prática, *um*.
+
+(b) Não é viável. O requisito é de passo de 1 #sym.degree#h(0pt)C e a escada tem
+passo de 20,8. A especificação pede o conversor, cujo degrau é de 0,49
+#sym.degree#h(0pt)C — mais de quarenta vezes mais fino que o necessário.
+
+O comparador pode entrar em cima disso como camada de proteção, com um limiar fixo
+de sobretemperatura no degrau 3. Aí a granularidade não incomoda, porque ninguém
+precisa ajustar esse limite com precisão.
+]
+
+#tarefa[
+*Exercício 9.6.* Você dimensionou histerese por realimentação positiva com
+$R_1$ = 1 k#sym.Omega e $R_2$ = 240 k#sym.Omega, obtendo 2,1 #sym.degree#h(0pt)C.
+Ao montar, trocou $R_2$ por 24 k#sym.Omega sem perceber.
+
+(a) Qual passa a ser a largura da histerese, em graus?
+
+(b) Que sintoma o termostato apresenta na bancada, e por que ele é difícil de
+perceber?
+]
+
+#resposta[
+(a) $Delta V$ = 5 V #sym.times 1/25 = 200 mV, ou *20 #sym.degree#h(0pt)C* — dez
+vezes a largura pretendida.
+
+(b) O aquecedor liga e desliga muito raramente, com excursão enorme: aquece até
+vinte graus acima do ponto de desliga e só volta a ligar vinte graus abaixo.
+
+É difícil de perceber porque o controle *parece* saudável — não oscila rápido, não
+trepida, não castiga o relé. Todos os sintomas que a aula ensinou a procurar
+apontam para o lado oposto. Só medir a temperatura ao longo do tempo revela o
+erro, e ele é de um dígito num valor comercial.
 ]
