@@ -124,7 +124,8 @@ Compare as três primeiras com a previsão P4 da folha da aula 3, e as duas
 
 *(a)* Qual nibble sai primeiro, o alto ou o baixo? Responda *pela medida*, e diga
 o que na tela do osciloscópio permitiu decidir.
-
+]
+/*
 *(b)* O dado muda antes ou depois da borda de descida de `E`? Por que a resposta
 tinha de ser essa?
 ]
@@ -145,6 +146,7 @@ as duas garras no *mesmo* ponto de terra do kit. Terras em pontos diferentes da
 placa fecham uma malha, e a malha aparece como ruído exatamente na escala de
 tempo que você está tentando medir.
 ]
+*/
 
 = Parte 2 — a inicialização, e a falha intermitente
 
@@ -359,7 +361,7 @@ O ponto da tarefa não é que a recíproca é sempre melhor. É que você não s
 qual é melhor até medir, e que o compilador é um participante da conta.
 ]
 
-#tarefa[
+/*#tarefa[
 *Tarefa 8.* Deixe o contador passar de 100 para 99. O que aparece?
 
 Compare com a previsão P1 da folha e explique. Depois corrija — *de duas formas
@@ -375,7 +377,7 @@ a primeira, e o display não apaga nada. Sobra o excedente do texto anterior.
 
 A correção que o resto do semestre vai usar é largura fixa — o número ocupa
 sempre as mesmas posições, completado com espaço à esquerda.
-]
+]*/
 
 = Parte 4 — quatro bits contra oito, medido
 
@@ -384,7 +386,7 @@ nesta bancada. A aula 3 argumentou que quatro bits economizam quatro pinos.
 Agora vocês medem o que isso custa.
 
 #tarefa[
-*Tarefa 9.* Rode o mesmo texto nos dois modos e meça, com um pino auxiliar
+*Tarefa 8.* Rode o mesmo texto nos dois modos e meça, com um pino auxiliar
 levantado antes e baixado depois da escrita:
 
 #tab(
@@ -414,7 +416,7 @@ código. A decisão se justifica com os dois números medidos, e não com prefer
 = Parte 5 — o custo da tela inteira
 
 #tarefa[
-*Tarefa 10.* Meça o tempo de uma atualização completa: posicionar o cursor,
+*Tarefa 9.* Meça o tempo de uma atualização completa: posicionar o cursor,
 escrever dezesseis caracteres, posicionar de novo, escrever mais dezesseis.
 
 Levante um pino auxiliar antes e baixe depois; meça a largura do pulso.
@@ -429,7 +431,7 @@ Levante um pino auxiliar antes e baixe depois; meça a largura do pulso.
 ]
 
 #tarefa[
-*Tarefa 11.* Acrescente `lcd_comando(0x01)` — limpar — antes de cada atualização,
+*Tarefa 10* Acrescente `lcd_comando(0x01)` — limpar — antes de cada atualização,
 e meça de novo. Depois olhe para a tela e descreva o que mudou visualmente.
 ]
 
