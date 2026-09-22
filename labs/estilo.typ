@@ -46,7 +46,7 @@
 )
 
 // Passagem recuada com rótulo na margem — modo teoria
-#let _caixa_margem(titulo, corpo, tamanho: 10.5pt) = block(
+#let _caixa_margem(titulo, corpo, tamanho: 10.5pt, selo: none, cor: cinza) = block(
   width: 100%,
   breakable: true,
   above: 10pt,
@@ -58,7 +58,17 @@
       dy: 0.25em,
       box(
         width: _mg_larg,
-        align(left, text(size: 7.4pt, fill: cinza, tracking: 0.8pt, weight: "medium")[#upper(titulo)]),
+        align(left, {
+          text(size: 7.4pt, fill: cinza, tracking: 0.8pt, weight: "medium")[#upper(titulo)]
+          // Selo de pontuação: visível também na versão do aluno, porque é ele
+          // quem precisa saber onde vale a pena gastar o tempo da sessão. Fica
+          // na mesma linha do rótulo — a linha de baixo da margem é invadida
+          // pelos blocos de código e de tabela, que avançam _mg_dx à direita.
+          if selo != none {
+            text(size: 7.4pt, fill: cinza)[ #sym.dot.c ]
+            text(size: 8.2pt, fill: cor, weight: "bold", selo)
+          }
+        }),
       ),
     )
     pad(left: 1.3em, right: 1.3em, text(size: tamanho, corpo))
@@ -81,11 +91,11 @@
 )
 
 // Seletor: usa a forma do modo corrente.
-#let _sel(titulo, cor, corpo, tamanho: 10.5pt, moldura: false) = context {
+#let _sel(titulo, cor, corpo, tamanho: 10.5pt, moldura: false, selo: none) = context {
   if moldura {
     _caixa_moldura(titulo, corpo)
   } else {
-    _caixa_margem(titulo, corpo, tamanho: tamanho)
+    _caixa_margem(titulo, corpo, tamanho: tamanho, selo: selo, cor: cor)
   }
 }
 
@@ -113,7 +123,9 @@
 }
 
 #let conceito(c)    = _sel("Conceito", navy, c)
-#let tarefa(c)      = _sel("Tarefa", navy, c)
+// `nota` é a pontuação da tarefa, escrita na margem logo abaixo do rótulo:
+//   #tarefa(nota: "1,5 pontos")[...]
+#let tarefa(c, nota: none) = _sel("Tarefa", navy, c, selo: nota)
 #let atencao(c)     = _sel("Atenção", ambar, c, tamanho: 9.6pt)
 #let nota(c)        = _sel("Nota", cinza, c, tamanho: 9.6pt)
 #let divergencia(c) = _sel("Divergência", roxo, c, tamanho: 9.6pt)

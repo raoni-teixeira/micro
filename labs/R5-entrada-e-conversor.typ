@@ -1,338 +1,544 @@
 // R5 — O pino que não responde, e o conversor
-// Microcontroladores (Laboratório) — DENE/UFMT — Raoni F. S. Teixeira
+// Revisão 2026/2, após medidas na bancada:
+//   - ADCON1 herdado = 0x07 (bootloader grava PBADEN = 0): RB0–RB4 nascem digitais.
+//   - Botão INT0 = SW12 em RB0, inferior direito da seção PUSH BUTTONS,
+//     vizinho do RESET (SW9); LEDs de PORTD ativos em nível baixo.
+//   - Varredura do PORTB com pull-ups internos desligados: F0 = F1 = 1011 1111.
+//     Todo pino tem resistor na placa (RB6/PGC para baixo, os demais para cima);
+//     não há pino solto no PORTB.
+//
+// Enxugado para caber em um encontro: nove tarefas com nota (8,0) e três
+// extensões sem nota no fim. Saíram do caminho obrigatório as duas medidas de
+// tempo com pino auxiliar e a dupla compilação — o que mais custava bancada.
+//
+// Compilação:  typst compile R5-entrada-e-conversor.typ
+//              typst compile --input gab=1 R5-entrada-e-conversor.typ
 
 #import "estilo.typ": *
+
 #show: conf.with(
   titulo: "R5 — O pino que não responde, e o conversor",
   subtitulo: "Eletrônica de entrada, quantização e o que a média não conserta",
   modo: "roteiro",
 )
 
+// Espaço de resposta: linhas na versão do aluno, resposta no gabarito.
+#let resp(n: 2, corpo) = if gab { resposta(corpo) } else {
+  for i in range(n) { v(0.55em); lacuna(largura: 100%) }
+}
+
 #objetivos[
-- Reproduzir e diagnosticar o sintoma de um botão que não responde, e corrigi-lo pela causa.
-- Medir o degrau do conversor na própria bancada e comparar com o valor derivado.
-- Converter o código de dez bits em décimos de grau, sem ponto flutuante.
-- Distinguir ruído aleatório de erro de quantização, e decidir o que a média resolve.
+  - Explicar por que o botão responde sem configuração, descobrindo o estado que o bootloader deixa no conversor.
+  - Provocar e diagnosticar o sintoma do botão que não responde, e corrigi-lo pela causa.
+  - Medir o que define o nível de cada pino de entrada da placa.
+  - Medir o degrau do conversor na própria bancada e comparar com o valor derivado.
+  - Converter o código de dez bits em décimos de grau, sem ponto flutuante.
+  - Distinguir ruído aleatório de erro de quantização, e decidir o que a média resolve.
 ]
 
 #kit[
-#tab(
-  columns: (auto, 1fr),
-  [CH2-1 (LCD)], [ON — o display do R4 continua],
-  [Chaves SWITCHS (PORTB)], [OFF; o botão usado é o de `INT0`],
-  [CH5-3 e CH5-4], [OFF],
-  [Sensor LM35], [Habilitado no canal analógico correspondente],
-)
+  #tab(columns: (auto, 1fr),
+    [CH2-1 (LCD)], [ON — o display do R4 continua],
+    [Chaves SWITCHS (PORTB)], [OFF],
+    [Botão], [SW12, marcado `INT0`, em *RB0* — ativo em nível baixo; inferior direito, ao lado do `RESET`],
+    [LEDs de PORTD], [ativos em nível baixo: `LATD0 = 0` acende],
+    [CH5-3 e CH5-4], [OFF],
+    [CH1-7 (TEMP)], [ON — LM35 em RA0/AN0],
+    [CH1-1, CH1-5 e CH1-6], [OFF — também chegam ao RA0],
+  )
 
-*A verificar antes da sessão:* em qual canal o LM35 está ligado, e se a referência
-de fundo de escala é a própria alimentação. Todo número deste roteiro depende
-dessas duas respostas.
+  *A verificar antes da sessão:* a tensão real da alimentação, medida com o
+  multímetro. O fundo de escala do conversor é a própria alimentação, e todo
+  número da Parte 3 depende dela.
 ]
 
-= Parte 1 — o botão que não responde
+*Pontuação.* As nove tarefas somam 8,0, e a folha de previsões entregue
+preenchida vale 2,0. A nota de cada tarefa está na margem, ao lado dela. A seção
+_Se sobrar tempo_, no fim, não vale nota: é para quem terminar antes.
 
-#tarefa[
-*Tarefa 1.* Escreva um programa que leia o botão de `INT0` e acenda um LED
-enquanto ele estiver pressionado. *Não escreva nada em `ADCON1`.*
+= Parte 1 — o botão que responde, e por quê
 
-Grave, pressione o botão, e registre:
+#bancada[
+  *Onde fica o botão, e em que pino ele chega.* Na seção `PUSH BUTTONS`, na
+  metade inferior da placa, seis botões em três linhas de dois. O `INT0` (SW12) é
+  o *inferior direito* — e o vizinho imediato dele, à esquerda, é o `RESET` (SW9):
 
-#tab(
-  columns: (1fr, auto),
-  [O que a previsão P1 dizia], [#lacuna(largura: 3cm)],
-  [O que o LED faz com o botão solto], [#lacuna(largura: 3cm)],
-  [O que o LED faz com o botão pressionado], [#lacuna(largura: 3cm)],
-)
+  #tab(columns: (auto, 1fr, 1fr),
+    [], [Coluna esquerda], [Coluna direita],
+    [Linha 1], [`CH0` (SW11)], [`INT2` (SW14)],
+    [Linha 2], [`TMR1` (SW10)], [`INT1` (SW13)],
+    [Linha 3], [*`RESET` (SW9)*], [*`INT0` (SW12)*],
+  )
+
+  Eletricamente, o SW12 chega ao *RB0* do microcontrolador — o mesmo pino que o
+  datasheet também chama de *AN12*. Guardem esses dois nomes para o mesmo pino: é
+  disso que trata a Parte 1 inteira.
+
+  E cuidado com o vizinho. Apertar o `RESET` sem querer reinicia o programa, e o
+  sintoma disso se parece com um defeito de código — o contador zera, o display
+  volta ao início, o LED apaga. Antes de culpar o programa, confira qual dos dois
+  botões o seu dedo alcançou.
 ]
 
-#tarefa[
-*Tarefa 2.* Antes de corrigir, *meça*. Com o multímetro, e depois com o
-osciloscópio, verifique a tensão no pino do botão nas duas posições.
+#tarefa(nota: "0,5 pt")[
+  *Tarefa 1.* Complete o programa abaixo, para que o LED de RD0 acenda enquanto o
+  botão `INT0` estiver pressionado. *Não escreva nada em `ADCON1`* — é justamente
+  o que esta parte vai investigar.
 
-O pino está mudando de tensão? #lacuna(largura: 6cm)
+  ```c
+  #include <xc.h>
 
-Então o defeito está no circuito ou no programa? #lacuna(largura: 6cm)
+  void main(void)
+  {
+      /* Nenhuma linha de ADCON1 aqui. */
+      LATDbits.LATD0   = 1;   /* LED apagado: PORTD é ativo em nível baixo */
+      TRISDbits.TRISD0 = 0;   /* RD0 como saída                            */
+      TRISBbits.TRISB0 = 1;   /* RB0 como entrada: é lá que chega o SW12   */
+
+      while (1) {
+          /* Uma linha só, aqui: o botão pressionado leva RB0 a 0,
+             e o LED aceso pede LATD0 = 0. */
+      }
+  }
+  ```
+
+  Grave, pressione o botão, e registre:
+
+  #tab(columns: (1fr, 5.5cm),
+    [O que a previsão P1 dizia], [],
+    [O que o LED faz com o botão solto], [#if gab [apagado]],
+    [O que o LED faz com o botão pressionado], [#if gab [aceso]],
+  )
+]
+
+#resposta[
+  A linha que falta é uma cópia direta:
+  ```c
+  LATDbits.LATD0 = PORTBbits.RB0;
+  ```
+  Vale perguntar em voz alta por que não há `!`. Botão e LED são ativos em nível
+  baixo, e as duas inversões se cancelam — quem escreveu `!` fez o LED acender
+  quando o botão está solto, e vai descobrir isso na bancada.
+
+  O que importa é que o programa funciona *sem nenhuma configuração do conversor*.
+  É essa surpresa que a Tarefa 2 vai explicar.
+]
+
+O datasheet diz que RB0 é também o canal analógico AN12, e que um canal
+analógico habilitado não lê nível lógico. Mesmo assim, o botão respondeu.
+Alguém configurou esse pino antes de você.
+
+#tarefa(nota: "1,0 pt")[
+  *Tarefa 2.* Descubra o que o conversor herdou. Grave um programa cuja
+  *primeira* linha copie `ADCON1` para uma variável e a mostre nos LEDs:
+
+  ```c
+  unsigned char herdado = ADCON1;  /* 1a linha */
+  LATD  = (unsigned char)~herdado; /* aceso = 1 */
+  TRISD = 0x00;
+  while (1);
+  ```
+
+  #tab(columns: 9,
+    [bit], [7], [6], [5], [4], [3], [2], [1], [0],
+    [nome], [—], [—], [`VCFG1`], [`VCFG0`], [`PCFG3`], [`PCFG2`], [`PCFG1`], [`PCFG0`],
+    [lido], ..(if gab { ([0], [0], [0], [0], [0], [1], [1], [1]) } else { range(8).map(_ => []) }),
+  )
+
+  Valor de `ADCON1` em hexadecimal: #if gab [`0x07`] else [#lacuna()]
+
+  Com a tabela de `PCFG` do datasheet: quais canais estão analógicos e quais
+  digitais? Em qual grupo está RB0 (AN12)?
+  #resp[AN0–AN7 analógicos (RA0–RA3, RA5, RE0–RE2); AN8–AN12 digitais, o que inclui RB0 a RB4. RB0 é digital, e por isso o botão respondeu.]
+
+  O datasheet dá *dois* valores de `PCFG` após o reset, e quem escolhe entre eles
+  é o bit de configuração `PBADEN`. Qual dos dois vocês leram? Então quanto vale
+  `PBADEN` neste kit?
+  #resp[`PBADEN = 1` faz `PCFG = 0000` (tudo analógico); `PBADEN = 0` faz `PCFG = 0111`. Lemos `0111`: `PBADEN = 0`.]
+
+  O que os bits `VCFG` dizem sobre a referência do conversor?
+  #resp(n: 1)[`VCFG1:VCFG0 = 00`: referências em VDD e VSS. O fundo de escala é a própria alimentação.]
 ]
 
 #conceito[
-O pino muda de tensão e o programa lê sempre zero. O botão funciona, o fio
-funciona, e a leitura não.
+  Vocês não escreveram `PBADEN`, e não poderiam: os bits de configuração
+  pertencem ao bootloader, e o `#pragma config` da aplicação é ignorado. Quem
+  gravou o bootloader escolheu `PBADEN = 0`, e o próprio reset carregou `0111`
+  em `PCFG`. Não há código escondido escrevendo `ADCON1`: há um bit escolhido por
+  outra pessoa, e o hardware obedecendo a ele.
 
-A causa está entre os dois: quando o canal analógico daquele pino está
-habilitado, *o buffer de entrada digital é desligado*, e a leitura de `PORTB`
-devolve 0 independentemente do que houver no fio.
-
-Quem decide isso após o reset é um bit de configuração — `PBADEN` — que deixa RB0
-a RB4 nascendo analógicos.
+  É o princípio do encontro 0 pela terceira vez — _o código que veio antes do
+  seu_ —, agora na forma mais traiçoeira: um programa que *funciona* por causa de
+  uma decisão que você não tomou, não vê e não controla.
 ]
 
-#kit[
-E `PBADEN` não é ajustável por você: os bits de configuração pertencem ao
-bootloader, e o `#pragma config` da sua aplicação é ignorado. É o princípio do
-encontro 0 aparecendo pela terceira vez.
+#tarefa(nota: "1,0 pt")[
+  *Tarefa 3.* Agora provoque o sintoma. Acrescente, antes do laço da Tarefa 1:
 
-A correção é desfazer o efeito em tempo de execução:
+  ```c
+  ADCON1 = 0x00;   /* tudo analógico, até AN12 */
+  ```
 
-```c
-ADCON1 = 0x0F;    /* todos os canais em modo digital */
-```
+  Antes de gravar, preveja o que o LED fará nas duas posições do botão. Depois
+  grave e registre:
 
-E o padrão do curso a partir de agora: *tudo digital na primeira linha, e o
-analógico se declara explicitamente depois.*
-]
+  #tab(columns: (1fr, 5.5cm),
+    [Previsão], [],
+    [Botão solto], [#if gab [aceso]],
+    [Botão pressionado], [#if gab [aceso]],
+  )
 
-#tarefa[
-*Tarefa 3.* Acrescente a linha, grave, e confirme. Depois responda: *por que este
-defeito é difícil de encontrar sozinho?*
+  Antes de corrigir, meça: com o multímetro, verifique a tensão no pino do botão
+  nas duas posições.
 
-Liste duas hipóteses erradas que um aluno testaria antes de chegar na causa.
-]
+  O pino está mudando de tensão? #if gab [Sim: ≈ 5 V solto, ≈ 0 V pressionado.] else [#lacuna(largura: 5cm)]
 
-= Parte 2 — o que existe atrás do pino
-
-#tarefa[
-*Tarefa 4.* Deixe o pino de entrada *solto* — sem botão, sem resistor, sem nada
-ligado — e leia o estado num laço, exibindo no display.
-
-O valor é estável? Aproxime a mão do pino sem tocar. O que acontece?
+  Então o defeito está no circuito ou no programa? #if gab [No programa — na configuração do pino.] else [#lacuna(largura: 4cm)]
 ]
 
 #conceito[
-Um pino configurado como entrada é de *alta impedância*: ele observa sem
-consumir. E um nó de alta impedância sem nada que o defina não tem nível — ele
-adota o que a capacitância parasita e o ambiente elétrico lhe derem.
+  O pino muda de tensão e o programa lê sempre zero. O botão funciona, o fio
+  funciona, e a leitura não.
 
-Aproximar a mão acopla ruído da rede, e o valor lido acompanha.
-
-É por isso que toda entrada digital precisa de algo que a defina quando o botão
-está solto: um resistor de elevação ou de descida, externo ou interno ao chip.
-Deixar flutuando não é economia, é indefinição.
+  A causa está entre os dois: quando o canal analógico de um pino está
+  habilitado, *o buffer de entrada digital é desligado*, e a leitura de `PORTB`
+  devolve 0 independentemente do que houver no fio. Como o LED acende com 0, ele
+  fica aceso o tempo todo: o sintoma aparece como "o LED não apaga", e não como
+  "o botão não funciona".
 ]
 
-#tarefa[
-*Tarefa 5.* Com o osciloscópio no pino do botão, aperte e solte devagar,
-observando a transição.
+#tarefa(nota: "1,0 pt")[
+  *Tarefa 4.* Troque `0x00` por `0x0F`, grave, e confirme que o botão voltou.
 
-A borda é limpa? Descreva o que vê entre os dois níveis: #lacuna(largura: 6cm)
+  Neste kit, o programa da Tarefa 1 funcionava sem essa linha. Por que, então,
+  o padrão do curso passa a ser escrever `ADCON1 = 0x0F` na primeira linha?
+  #resp(n: 3)[Porque sem ela o programa depende de um bit que o aluno não controla. O mesmo código num PIC18F4550 novo, gravado pelo programador e sem bootloader, falha: bit de configuração apagado vale 1, `PBADEN = 1`, RB0 nasce analógico. E no próprio kit o sintoma aparece assim que algum trecho — tipicamente o driver do conversor da Parte 3 — escreve em `ADCON1` um valor que habilita canais demais.]
+
+  Com o valor herdado `0x07`, cite dois pinos do kit que *ainda* sofreriam o
+  sintoma se fossem usados como entrada digital.
+  #resp(n: 1)[Quaisquer de RA0–RA3, RA5, RE0–RE2 (AN0–AN7).]
+
+  Por que este defeito é difícil de encontrar sozinho? Cite uma hipótese errada
+  que um aluno testaria antes de chegar na causa.
+  #resp(n: 2)[Botão defeituoso; chave DIP errada; `TRIS` errado; lógica invertida. É difícil porque o circuito está perfeito e a linha culpada pode estar longe — em outro arquivo, ou em outro programa.]
+]
+
+E o padrão do curso a partir de agora: *tudo digital na primeira linha*, e o
+analógico se declara explicitamente depois, habilitando só o canal que se vai
+usar. Não é superstição: é não depender do que veio antes.
+
+= Parte 2 — o que define o nível do pino
+
+Um pino configurado como entrada é de alta impedância: ele observa sem consumir.
+Isso tem um preço. Se nada ligado ao pino define a tensão dele, a leitura não
+tem valor garantido. A pergunta desta parte é: nos pinos do PORTB, *quem* define
+o nível quando nenhum botão está pressionado?
+
+#tarefa(nota: "1,5 pt")[
+  *Tarefa 5.* O programa `r5-t5-varre-portb.c`, na página do curso, desliga os
+  pull-ups internos do PORTB, *força* o PORTB inteiro em 0, solta, espera 100 ms
+  e lê. Depois repete forçando 1. As duas leituras aparecem no display:
+
+  ```c
+  static uint8_t forca_e_le(uint8_t nivel)
+  {
+      LATB  = nivel;      /* LAT antes de TRIS */
+      TRISB = 0x00;       /* dirige o PORTB    */
+      __delay_us(10);
+      TRISB = 0xFF;       /* solta             */
+      __delay_ms(100);    /* espera            */
+      return PORTB;
+  }
+  ```
+
+  Antes de gravar, responda: se um pino não tiver nada ligado a ele, o que a
+  leitura deveria mostrar depois de forçar 0? E depois de forçar 1?
+  #resp[Deveria seguir a força: a capacitância do pino guarda o nível que foi deixado nele.]
+
+  Grave e registre os 8 bits:
+
+  #tab(columns: 9,
+    [bit], [7], [6], [5], [4], [3], [2], [1], [0],
+    [após forçar 0], ..(if gab { ([1], [0], [1], [1], [1], [1], [1], [1]) } else { range(8).map(_ => []) }),
+    [após forçar 1], ..(if gab { ([1], [0], [1], [1], [1], [1], [1], [1]) } else { range(8).map(_ => []) }),
+  )
+
+  Algum pino seguiu a força? Para cada pino que não seguiu, o que o puxa, e para
+  que lado?
+  #resp(n: 3)[Nenhum. RB7 e RB5–RB0 voltam a 1: há resistor de elevação na placa. RB6 volta a 0: há algo puxando para baixo. Os pull-ups internos estavam desligados, então os resistores são externos.]
+]
+
+#atencao[
+  Não pressione botões nem teclas enquanto o programa roda. Durante os 10 µs de
+  força os pinos são saídas, e um botão pressionado com o pino em 1 liga uma
+  saída diretamente ao terra.
+]
+
+#conceito[
+  Um nó de alta impedância sem nada que o defina não tem nível: ele fica com o
+  que a capacitância parasita guardou, e esse valor deriva com a corrente de
+  fuga até cair na faixa em que o buffer de entrada não promete nada.
+
+  É por isso que toda entrada digital precisa de algo que a defina quando o botão
+  está solto: um resistor de elevação ou de descida, externo ou interno ao chip.
+  Deixar flutuando não é economia, é indefinição.
+]
+
+#tarefa(nota: "0,5 pt")[
+  *Tarefa 6.* O projetista da placa já resolveu o problema acima em todos os
+  pinos do PORTB.
+
+  (a) Por que colocar resistor externo, se o PIC tem pull-ups internos no PORTB?
+  #resp(n: 3)[Porque o pull-up interno depende de o programa lembrar de ligá-lo (`RBPU = 0`). Numa placa didática, em que o programa é do aluno, o nível do botão não pode depender disso. É o mesmo princípio da Parte 1, visto do lado do hardware: o circuito não depende do código.]
+
+  (b) RB6 é também o PGC, a linha de relógio da gravação. Por que faria sentido
+  ele ser puxado para *baixo*? Confirme com o multímetro a tensão em RB6 com o
+  pino como entrada.
+  #resp(n: 3)[Um relógio de gravação solto pode ser lido como bordas espúrias; mantê-lo em repouso em 0 é a escolha natural para uma linha de clock. O multímetro deve indicar ≈ 0 V. (Hipótese de projeto: o esquema da placa confirma ou não.)]
+
+  (c) O manual do kit diz que os pull-ups internos precisam ser habilitados para o
+  teclado funcionar. A sua medida concorda?
+  #resp(n: 2)[Não. As colunas RB0–RB3 já têm resistor externo; habilitar o `RBPU` não faz mal, mas não é por isso que o teclado lê.]
+]
+
+#experimento[
+  *Demonstração — o pino que ninguém define.* No PIC18F4550 da protoboard do
+  encontro 0 não há resistor nenhum: os pinos estão realmente soltos. O mesmo
+  programa da Tarefa 5, gravado pelo programador, vai rodar lá.
+
+  Antes da demonstração, preveja as duas linhas do display para o chip nu, e o
+  que acontece quando a espera de 100 ms passa para 1 s:
+  #resp(n: 3)[Com 100 ms, os bits tendem a seguir a força (0000 0000 e 1111 1111): o pino ainda guarda o nível. Com esperas maiores, a fuga leva o nó para o meio da faixa, e os bits passam a oscilar ou a mudar de valor. O instante exato varia de pino para pino e de chip para chip — que é o ponto.]
+
+  Note que a primeira linha do programa, `ADCON1 = 0x0F`, faz diferença no chip
+  nu: lá `PBADEN` vale 1, e sem ela RB0 a RB4 leriam 0 qualquer que fosse a força.
+]
+
+#docente[
+  O chip nu não tem bootloader: o programa precisa dos seus próprios
+  `#pragma config` (oscilador, `WDTEN`, `LVP`) e é gravado pelo Snap. Rodar antes
+  da aula e anotar a espera a partir da qual os bits começam a derivar.
 ]
 
 #nota[
-Duas coisas aparecem aqui, e vocês vão encontrá-las de novo.
-
-O sinal leva um tempo *finito* para atravessar a faixa entre os dois níveis, e
-nessa faixa o buffer de entrada não promete nada — é para isso que ele tem
-histerese, com um limiar para subir e outro para descer.
-
-E o contato mecânico não fecha uma vez: ele ricocheteia. Registre o que viu; o R7
-volta a esse traço com o osciloscópio configurado para capturá-lo.
+  Falta ainda o que acontece *durante* a transição do botão. O sinal leva um
+  tempo finito para atravessar a faixa entre os dois níveis, e nessa faixa o
+  buffer de entrada não promete nada — é para isso que ele tem histerese, com um
+  limiar para subir e outro para descer. E o contato mecânico não fecha uma vez:
+  ele ricocheteia. Quem terminar antes pode ver os dois efeitos na extensão E1;
+  de todo modo, o R7 volta a esse traço com o osciloscópio configurado para
+  capturá-lo.
 ]
 
 = Parte 3 — o conversor, em bruto
 
-#tarefa[
-*Tarefa 6.* Com o driver fornecido, mostre no display o valor bruto do conversor,
-de 0 a 1023, atualizado a cada 500 ms.
+#tarefa(nota: "0,5 pt")[
+  *Tarefa 7.* Com o driver fornecido, mostre no display o valor bruto do
+  conversor, de 0 a 1023, atualizado a cada 500 ms. Confira que o driver
+  habilita *só* o AN0 (`ADCON1 = 0x0E`) — a Tarefa 4 explica por quê.
 
-#tab(
-  columns: (1fr, auto, auto),
-  [], [Previsto (P2)], [Observado],
-  [Código à temperatura ambiente], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
-  [Código com o dedo no sensor, 10 s], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
-  [Variação por grau (P4)], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
-)
+  #tab(columns: (1fr, 3cm, 3cm),
+    [], [Previsto (P2)], [Observado],
+    [Código à temperatura ambiente], [#if gab [≈ 55–65]], [],
+    [Código com o dedo no sensor, 10 s], [#if gab [sobe alguns códigos]], [],
+    [Variação por grau (P4)], [#if gab [≈ 2 códigos/°C]], [],
+  )
 ]
 
 #conceito[
-Da referência de 5 V e dos dez bits:
+  Da referência de 5 V e dos dez bits: 1 LSB = 5000/1024 ≈ 4,88 mV. E o LM35
+  entrega 10 mV por grau, então 1 LSB ≈ 0,488 °C.
 
-#align(center)[1 LSB $= 5000 slash 1024 approx 4,88$ mV]
-
-E o LM35 entrega 10 mV por grau, então:
-
-#align(center)[1 LSB $approx 0,488$ #sym.degree#h(0pt)C]
-
-*Meio grau.* Este é o degrau da sua bancada, e ele não melhora com código melhor.
+  Meio grau. Este é o degrau da sua bancada, e ele não melhora com código melhor.
 ]
 
 #nota[
-O manual informa que o LM35 fica montado *junto à resistência de aquecimento*.
-Ele mede a temperatura do conjunto sensor-resistência, e não a do ar da sala —
-uma diferença de alguns graus para mais é esperada, e não é erro de conversão.
-
-Comparar com um termômetro da sala e concluir que "a conta está errada" é o erro
-que este parágrafo existe para evitar.
+  O manual informa que o LM35 fica montado junto à resistência de aquecimento.
+  Ele mede a temperatura do conjunto sensor-resistência, e não a do ar da sala —
+  uma diferença de alguns graus para mais é esperada, e não é erro de conversão.
+  Comparar com um termômetro da sala e concluir que "a conta está errada" é o erro
+  que este parágrafo existe para evitar.
 ]
 
 = Parte 4 — a conversão, sem ponto flutuante
 
 #conceito[
-O LM35 entrega 10 mV por grau, e 1 mV equivale a 0,1 #sym.degree#h(0pt)C. Logo *o
-valor em milivolts já é o valor em décimos de grau*, e não é preciso converter
-duas vezes:
-
-#align(center)[décimos de grau $=$ código $dot.c 625 slash 128$]
-
-A fração é exata, e 128 é potência de dois — o que transforma a divisão num
-deslocamento.
+  O LM35 entrega 10 mV por grau, e 1 mV equivale a 0,1 °C. Logo o valor em
+  milivolts já é o valor em décimos de grau, e não é preciso converter duas
+  vezes:
+  #align(center)[décimos de grau = código · 625/128]
+  A fração é exata, e 128 é potência de dois — o que transforma a divisão num
+  deslocamento.
 ]
 
-#tarefa[
-*Tarefa 7.* Implemente e mostre a temperatura no formato `NN.N C`, com largura
-fixa — como o R4 estabeleceu.
+#tarefa(nota: "1,5 pt")[
+  *Tarefa 8.* Implemente e mostre a temperatura no formato `NN.N C`, com largura
+  fixa — como o R4 estabeleceu.
 
-```c
-int16_t adc_para_decimos(uint16_t leitura)
-{
-    uint32_t acumulador = (uint32_t) leitura * 625UL;
-    return (int16_t)(acumulador >> 7);
-}
-```
+  ```c
+  int16_t adc_para_decimos(uint16_t leitura)
+  {
+      uint32_t acumulador = (uint32_t) leitura * 625UL;
+      return (int16_t)(acumulador >> 7);
+  }
+  ```
 
-*(a)* Por que o acumulador precisa ser de 32 bits? Calcule o maior produto
-possível e compare com 65#h(1pt)535.
+  (a) Por que o acumulador precisa ser de 32 bits? Calcule o maior produto
+  possível e compare com 65535.
+  #resp[1023 · 625 = 639 375, quase dez vezes 65 535.]
 
-*(b)* A partir de que temperatura o defeito apareceria, se o acumulador fosse de
-16 bits?
+  (b) A partir de que temperatura o defeito apareceria, se o acumulador fosse de
+  16 bits?
+  #resp[Estoura quando código · 625 > 65 535, isto é, código ≥ 105. Código 105 ≈ 512 mV ≈ 51,2 °C; ali a leitura cai para ≈ 0,0 °C e volta a subir.]
+
+  (c) Troque o `uint32_t` por `uint16_t` de propósito, grave, e aqueça o sensor
+  até passar do ponto que você calculou em (b). Registre o que a tela mostrou, e
+  compare com a sua previsão.
+  #resp(n: 2)[A temperatura exibida despenca para perto de 0,0 °C e volta a subir, no código previsto em (b).]
 ]
 
 #atencao[
-Troque o `uint32_t` por `uint16_t` de propósito, grave, e aqueça o sensor até
-passar do ponto que você calculou em (b).
-
-O programa não trava, não reinicia e não avisa. A temperatura exibida despenca e
-volta a subir. *Registre o que viu* — é o modo de falha mais comum de aritmética
-inteira em sistema embarcado, e vocês vão reconhecê-lo pelo resto da vida.
+  Repare no que o programa *não* fez na alínea (c): não travou, não reiniciou e
+  não avisou. Ele continuou exibindo um número com toda a confiança. É o modo de
+  falha mais comum de aritmética inteira em sistema embarcado, e vocês vão
+  reconhecê-lo pelo resto da vida.
 ]
 
 = Parte 5 — o ruído, e o que a média não conserta
 
-#tarefa[
-*Tarefa 8.* Com o kit imóvel e sem tocar no sensor, observe o último dígito por
-trinta segundos.
+#tarefa(nota: "0,5 pt")[
+  *Tarefa 9.* Com o kit imóvel e sem tocar no sensor, observe o último dígito por
+  trinta segundos.
 
-Previsão P3 dizia quantos códigos distintos? #lacuna(largura: 3cm)
+  Previsão P3 dizia quantos códigos distintos? #lacuna(largura: 2cm) \
+  Quantos você contou? #lacuna(largura: 2cm)
 
-Quantos você contou? #lacuna(largura: 3cm)
+  A oscilação observada é compatível com 1 LSB?
+  #resp(n: 1)[Tipicamente dois códigos adjacentes: a exibição alterna cerca de 0,5 °C, que é 1 LSB.]
 
-A oscilação observada é compatível com 1 LSB? Mostre a comparação.
-]
+  Agora implemente a média de oito amostras e observe de novo.
 
-#tarefa[
-*Tarefa 9.* Implemente a média de oito amostras e observe de novo.
+  ```c
+  uint16_t adc_media(uint8_t n_pot2)
+  {
+      uint32_t soma  = 0;
+      uint16_t total = (uint16_t)(1u << n_pot2);
+      for (uint16_t i = 0; i < total; i++) {
+          soma += adc_amostra();
+      }
+      return (uint16_t)(soma >> n_pot2);
+  }
+  ```
 
-```c
-uint16_t adc_media(uint8_t n_pot2)
-{
-    uint32_t soma = 0;
-    uint16_t total = (uint16_t)(1u << n_pot2);
-
-    for (uint16_t i = 0; i < total; i++) {
-        soma += adc_amostra();
-    }
-    return (uint16_t)(soma >> n_pot2);
-}
-```
-
-A oscilação diminuiu? Desapareceu? E por que o número de amostras é potência de
-dois?
+  A oscilação diminuiu? Desapareceu? E por que o número de amostras é potência de
+  dois?
+  #resp[Diminui se o ruído for aleatório; não desaparece se a tensão estiver entre dois códigos. Potência de dois transforma a divisão em deslocamento.]
 ]
 
 #conceito[
-A média reduz o ruído *aleatório*, que é o que faz o dígito oscilar. Ela não
-reduz o erro de *quantização*, que é sistemático: se a tensão real cai entre dois
-códigos, nenhuma quantidade de médias inventa o valor intermediário.
+  A média reduz o ruído aleatório, que é o que faz o dígito oscilar. Ela não
+  reduz o erro de quantização, que é sistemático: se a tensão real cai entre dois
+  códigos, nenhuma quantidade de médias inventa o valor intermediário.
 
-E há um caso que costuma surpreender: *se a leitura for perfeitamente estável, a
-média não melhora nada* — oito amostras idênticas têm média igual a elas mesmas.
-Um conversor limpo demais não pode ser melhorado por média.
+  E há um caso que costuma surpreender: se a leitura for perfeitamente estável, a
+  média não melhora nada — oito amostras idênticas têm média igual a elas mesmas.
+  Um conversor limpo demais não pode ser melhorado por média.
 
-Distinguir essas duas fontes de erro é o que separa quem filtra por hábito de
-quem filtra por motivo.
-]
-
-#tarefa[
-*Tarefa 10.* Meça o custo. Com um pino auxiliar levantado antes e baixado depois,
-compare o tempo de uma leitura simples e o de uma média de oito.
-
-#tab(
-  columns: (1fr, auto, auto),
-  [], [Tempo], [Ciclos],
-  [Uma conversão], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
-  [Média de oito], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
-  [Atualização de tela (do R4)], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
-)
-
-Qual das três domina o laço?
-]
-
-= Parte 6 — o custo da representação
-
-#tarefa[
-*Tarefa 11.* Compile duas versões do mesmo programa: uma com a conversão inteira
-e outra com
-
-```c
-float temp = leitura * 5000.0f / 1024.0f / 10.0f;
-```
-
-Compare o *tamanho do programa* no arquivo de mapa gerado pela compilação.
-
-#tab(
-  columns: (1fr, auto, auto),
-  [], [Inteira], [Com `float`],
-  [Bytes de programa], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
-  [Percentual dos 32 kB], [#lacuna(largura: 2.5cm)], [#lacuna(largura: 2.5cm)],
-)
-]
-
-#nota[
-O número que sai daqui é o que justifica, retroativamente, a decisão do R0 de
-representar temperatura como `int16_t` em décimos de grau.
-
-Não foi preferência estética nem purismo: é o preço medido, no seu compilador, do
-tipo que parecia mais natural.
+  Distinguir essas duas fontes de erro é o que separa quem filtra por hábito de
+  quem filtra por motivo.
 ]
 
 = Entrega
 
 #tarefa[
-*Entrega.* As tabelas das Tarefas 6, 10 e 11; o registro do estouro provocado na
-Parte 4; a contagem de códigos distintos da Tarefa 8.
+  As tabelas das Tarefas 2, 5 e 7; o registro do sintoma provocado na Tarefa 3;
+  o registro do estouro provocado na Tarefa 8; a contagem de códigos distintos da
+  Tarefa 9.
 
-Responda também:
+  Responda também:
 
-*(a)* Por que o botão não respondia? Descreva a causa em termos do que existe
-atrás do pino, e não em termos de "faltava uma linha".
+  (a) A partir do valor de `ADCON1` que você leu, explique por que o botão
+  respondia sem nenhuma configuração, e por que parou de responder com
+  `ADCON1 = 0x00`. Descreva a causa em termos do que existe atrás do pino, e não
+  em termos de "faltava uma linha".
+  #resp(n: 3)[`PBADEN = 0` (bootloader) faz o reset carregar `PCFG = 0111`: RB0 (AN12) nasce digital e o buffer de entrada está ligado. Com `0x00`, AN12 vira analógico, o buffer digital é desligado e a leitura devolve 0 qualquer que seja a tensão no fio.]
 
-*(b)* Você mediu quantos códigos distintos com o sistema parado. A média de oito
-melhorou? Se não melhorou, o que isso diz sobre o ruído da sua bancada?
+  (b) Com a tabela da Tarefa 5: o que manteria o nível de um botão definido se o
+  seu programa esquecesse de ligar os pull-ups internos? E no chip nu da
+  demonstração?
+  #resp(n: 2)[No kit, os resistores externos. No chip nu, nada: o pino flutuaria — e, sem `ADCON1 = 0x0F`, RB0 nem seria lido como digital.]
 
-*(c)* Qual é o menor aquecimento que a sua bancada detecta (P4)? Compare com
-0,488 #sym.degree#h(0pt)C e explique a diferença, se houver.
-
-*(d)* Com os números da Tarefa 10, vale a pena fazer média de oito? Justifique
-comparando com o custo do display.
+  (c) Você mediu quantos códigos distintos com o sistema parado. A média de oito
+  melhorou? Se não melhorou, o que isso diz sobre o ruído da sua bancada?
+  #resp(n: 2)[Se não melhorou, o ruído aleatório é menor que 1 LSB e o que resta é quantização.]
 ]
 
 #criterio[
-Previsões preenchidas antes: 2,0.
+  Previsões preenchidas *antes* da sessão: 2,0.
 
-Parte 1 completa, com a medida da Tarefa 2 feita *antes* da correção: 2,5 — o
-ponto é diagnosticar, não corrigir. Descontar 1,0 de quem corrigiu primeiro e
-mediu depois.
+  Tarefa 1 (o botão que responde): 0,5. Tarefa 2 (o valor herdado): 1,0. Tarefas
+  3 e 4 (provocar, medir e corrigir): 2,0 — é o centro do roteiro, e a nota está
+  no diagnóstico, não na correção. Tarefa 5 (varredura do PORTB): 1,5. Tarefa 6
+  (por que resistor externo): 0,5. Tarefa 7 (código bruto): 0,5. Tarefa 8
+  (décimos de grau e o estouro provocado): 1,5. Tarefa 9 (ruído e média): 0,5.
 
-Parte 4 com o estouro provocado e registrado: 2,0. Parte 5 com a comparação
-numérica contra 1 LSB: 2,0. Parte 6 com os dois tamanhos: 1,5.
+  Na Tarefa 4 e na alínea (a) da entrega, a resposta completa nomeia o buffer de
+  entrada desligado. Dizer "faltava configurar" não vale a nota: é a descrição do
+  conserto, não da causa.
 
-Na alínea (b), aceitar "não melhorou" como resposta correta e bem fundamentada —
-é o resultado esperado se o ruído da bancada for menor que 1 LSB.
+  As extensões E1 a E3 não pontuam. Se a turma render, E3 é a que vale mais a
+  pena puxar em voz alta — é o número que justifica a decisão do R0.
+]
+
+= Se sobrar tempo
+
+#opcional[
+  *E1 — a borda, de perto.* Com o osciloscópio no pino do botão `INT0`, aperte e
+  solte devagar, observando a transição. A borda é limpa? Descreva o que vê entre
+  os dois níveis.
+  #resp[Não: a transição leva tempo finito e o contato ricocheteia, produzindo várias bordas.]
+]
+
+#opcional[
+  *E2 — o custo da média.* Com um pino auxiliar levantado antes e baixado depois,
+  compare o tempo de uma leitura simples e o de uma média de oito.
+
+  #tab(columns: (1fr, 3cm, 3cm),
+    [], [Tempo], [Ciclos],
+    [Uma conversão], [], [],
+    [Média de oito], [], [],
+    [Atualização de tela (do R4)], [], [],
+  )
+
+  Qual das três domina o laço? Vale a pena fazer média de oito?
+  #resp[A atualização de tela, na casa dos milhares de ciclos. A média de oito fica em torno de oito conversões com seus tempos de aquisição — pequeno perto de uma atualização de tela, e portanto vale a pena quando o ruído justificar.]
+]
+
+#opcional[
+  *E3 — o custo da representação.* Compile duas versões do mesmo programa: uma
+  com a conversão inteira da Tarefa 8 e outra com
+
+  ```c
+  float temp = leitura * 5000.0f / 1024.0f / 10.0f;
+  ```
+
+  Compare o tamanho do programa no arquivo de mapa gerado pela compilação.
+
+  #tab(columns: (1fr, 3cm, 3cm),
+    [], [Inteira], [Com float],
+    [Bytes de programa], [], [],
+    [Percentual dos 32 kB], [], [],
+  )
+
+  O número que sai daqui é o que justifica, retroativamente, a decisão do R0 de
+  representar temperatura como `int16_t` em décimos de grau. Não foi preferência
+  estética nem purismo: é o preço medido, no seu compilador, do tipo que parecia
+  mais natural.
 ]
 
 #nota[
-*No R6:* o PWM, e o mesmo sinal com dois significados. A ventoinha vai ler a razão
-cíclica como energia, e o buzzer vai ler a frequência como nota — com o mesmo
-código, mudando só uma chave.
-
-E uma descoberta desconfortável: o módulo de PWM do chip não alcança o lá de 440
-Hz que vocês tocaram no R3.
+  No R6: o PWM, e o mesmo sinal com dois significados. A ventoinha vai ler a razão
+  cíclica como energia, e o buzzer vai ler a frequência como nota — com o mesmo
+  código, mudando só uma chave. E uma descoberta desconfortável: o módulo de PWM
+  do chip não alcança o lá de 440 Hz que vocês tocaram no R3.
 ]
