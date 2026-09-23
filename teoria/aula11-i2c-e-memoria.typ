@@ -119,7 +119,7 @@ que restringe quantos dispositivos e quanto fio o barramento aceita.
 ]
 
 #kit[
-*A verificar antes do R11.* A placa já traz os resistores de elevação em SDA e
+*A verificar antes do R12.* A placa já traz os resistores de elevação em SDA e
 SCL, ou o roteiro precisa incluí-los? E qual é a peça de memória — 24C02, 24C04 ou
 24C16?
 
@@ -346,11 +346,11 @@ botões do encontro 7;
 são canais analógicos, e portanto o `PBADEN` do encontro 4 volta a importar —
 quatro encontros depois, e pelo mesmo motivo.
 
-*A verificar antes do R11:* como o teclado matricial e a memória convivem em
+*A verificar antes do R12:* como o teclado matricial e a memória convivem em
 PORTB, e se há chaves na placa que isolem a memória do barramento.
 ]
 
-= Previsão para o R11
+= Previsão para o R12
 
 #previsao[
 *P1.* Escreva o alvo na memória, desligue a placa, ligue de novo. O que espera
@@ -516,6 +516,6 @@ branco contra lixo periódico.
 uma planta que responde, um sensor que mede, uma chave que aplica potência, um
 registro que atravessa o desligamento, e um enlace que leva os dados para fora.
 
-Falta usar os números que o R9 mediu para responder à pergunta que ele levantou:
+Falta usar os números que o R10 mediu para responder à pergunta que ele levantou:
 por que a temperatura oscila, e o que se faz a respeito.
 ]

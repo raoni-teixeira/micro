@@ -73,7 +73,7 @@ vê exatamente o que existe, um interruptor batendo.
 #atencao[
 Relé não faz PWM. Cada comutação é um evento mecânico com vida útil contada, e
 comutar a 1 kHz destrói o contato em minutos. O aquecedor acionado por relé é uma
-saída de duas posições — e a oscilação que o R9 vai medir é consequência direta
+saída de duas posições — e a oscilação que o R10 vai medir é consequência direta
 disso. O estágio que permite PWM no aquecedor é o do encontro 8.
 ]
 
@@ -422,7 +422,7 @@ enrolamento sofre magnetostrição na frequência de chaveamento, e uma ventoinh
 PWM a 1 kHz apita a 1 kHz, com rotação perfeitamente estável.
 
 A frequência é escolhida também por critério acústico — e a linha de 20 kHz da
-tabela é a resposta.
+tabela é a resposta. É o que a P4 do R7 vai medir.
 ]
 
 = Três usos, um contador
@@ -434,6 +434,31 @@ tabela é a resposta.
   [Contar eventos], [Pino T0CKI ou T13CKI], [Lê o resultado quando quiser],
   [Gerar forma de onda], [Relógio interno, via `PR2` e `CCPR1L`], [Escreve a razão cíclica e esquece],
 )
+
+= Previsão para o R7
+
+#previsao[
+*P1.* Com `PR2` = 255 e divisor 16, qual frequência você espera medir no pino do
+cooler? Escreva o número antes de ligar o osciloscópio.
+
+*P2.* Você vai variar a razão cíclica de 0 a 100% em passos de 10%. Em qual passo
+espera que o rotor comece a girar? Justifique com o que sabe sobre torque de
+partida.
+
+*P3.* Depois de partir, você vai *reduzir* a razão cíclica. O rotor para no mesmo
+valor em que partiu? Diga sim ou não e por quê.
+
+*P4.* Com razão cíclica em 50%, aproxime o ouvido do cooler a 977 Hz e depois a
+20 kHz. O que espera ouvir em cada caso?
+
+*P5.* Com `PR2` = 255, você vai pedir 100% ao módulo. O que espera ver no
+osciloscópio? E com `PR2` = 199?
+]
+
+#semnota[
+Leve esta folha preenchida. Cada pergunta vale 0,4 — 2,0 no total do R7 —,
+avaliada pelo raciocínio, não por acertar o número.
+]
 
 = Exercícios
 

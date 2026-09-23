@@ -9,7 +9,7 @@
     #grid(
       columns: (1fr, 1fr),
       align(left)[Microcontroladores — Prática],
-      align(right)[Roteiro 9],
+      align(right)[Roteiro 10],
     )
     #line(length: 100%, stroke: 0.4pt + luma(180))
   ],
@@ -75,7 +75,7 @@
   \
   #text(fill: white, size: 18pt, weight: "bold")[Microcontroladores]
   \
-  #text(fill: rgb("#aaccee"), size: 12pt)[Roteiro 9 — Análise comparativa de estratégias de controle]
+  #text(fill: rgb("#aaccee"), size: 12pt)[Roteiro 10 — Análise comparativa de estratégias de controle]
   \
   #v(4pt)
   #text(fill: luma(200), size: 9pt)[Raoni F. S. Teixeira · Rodolfo Quadros · DENE/UFMT · 1 sessão · 1,0 ponto · grupos de 3]
@@ -351,7 +351,7 @@ Acrescenta-se o acúmulo do erro ao longo do tempo: $u = K_p e + K_i integral e$
     [0,3], [Dados coletados, tabelas preenchidas e gráficos legíveis],
     [0,4], [Confronto entre previsão e medida, com explicação das divergências],
   ),
-  caption: [Distribuição do ponto do Roteiro 9.],
+  caption: [Distribuição do ponto do Roteiro 10.],
 )
 
 #observacao[

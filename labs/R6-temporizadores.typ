@@ -201,7 +201,7 @@ defeito aparece em milissegundos, e dá para medir no osciloscópio.
   isso como um número, não como uma impressão.
 
   A saída é deixar o hardware chamar o programa no instante do estouro — a
-  interrupção, que a extensão E1 mostra funcionando e o R7 explica por inteiro.
+  interrupção, que a extensão E1 mostra funcionando e o R8 explica por inteiro.
 ]
 
 = Parte 2 — o contador que não sabe o que é tempo
@@ -300,7 +300,7 @@ void main(void)
 #conceito[
   O hardware não errou: o sinal é que não era o que parecia. Um contador rápido e
   exato revela o repique que um laço lento esconderia. O tratamento do repique é
-  assunto do R7.
+  assunto do R8.
 ]
 
 = Parte 3 — contar as voltas
@@ -437,7 +437,7 @@ pergunta é o que acontece quando o laço tem outra coisa para fazer.
 
   No `main`, antes do laço: `INTCONbits.TMR0IE = 1; INTCONbits.GIE = 1;`, e o
   laço fica só com `TAREFA();`. Meça o período com a tarefa de 7 ms.
-  #resp(n: 1)[20 ms de novo, qualquer que seja a tarefa: a recarga acontece microssegundos depois do estouro. O mecanismo é o assunto do R7.]
+  #resp(n: 1)[20 ms de novo, qualquer que seja a tarefa: a recarga acontece microssegundos depois do estouro. O mecanismo é o assunto do R8.]
 ]
 
 #opcional[
@@ -455,7 +455,8 @@ pergunta é o que acontece quando o laço tem outra coisa para fazer.
 ]
 
 #nota[
-  No R7: a interrupção, por inteiro. A função que o hardware chama, os bits que
-  decidem quem pode interromper, o `volatile` — e o repique que a Tarefa 3
-  mostrou, tratado de verdade.
+  No R7: o PWM. O Timer2 gerando a onda sozinho, a ventoinha que parte numa razão
+  cíclica e para em outra — contada pelo mesmo Timer1 de hoje —, e o limite de
+  frequência do módulo, ouvido no buzzer. No R8, a interrupção, e o repique da
+  Tarefa 3 tratado de verdade.
 ]

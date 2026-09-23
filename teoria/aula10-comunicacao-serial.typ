@@ -157,7 +157,7 @@ ele, ligar o pino direto num conector DE-9 de RS-232 aplicaria #sym.minus 12 V
 num pino que suporta #sym.minus 0,3 V — e o encontro 8 já explicou o que os
 diodos de proteção fazem nessa situação.
 
-*Verificar antes do R10:* qual conversor a placa usa, e em quais pinos o RX e o TX
+*Verificar antes do R11:* qual conversor a placa usa, e em quais pinos o RX e o TX
 do microcontrolador estão ligados.
 ]
 
@@ -464,7 +464,7 @@ t_ms,temp_d,alvo_d,aquecedor,comutacoes
 126300,401,400,0,18
 ```
 
-= Previsão para o R10
+= Previsão para o R11
 
 #previsao[
 *P1.* Com $n = 416$, que taxa real você espera medir no osciloscópio? Qual é a
@@ -484,8 +484,8 @@ com o formato de texto da aula.
 ]
 
 #semnota[
-Leve esta folha preenchida. O arquivo gerado neste roteiro é a matéria-prima do
-encontro 13 — guarde-o.
+Leve esta folha preenchida. Cada pergunta vale 0,4 — 2,0 no total do R11. O
+arquivo gerado neste roteiro é a matéria-prima do encontro 13 — guarde-o.
 ]
 
 = Exercícios

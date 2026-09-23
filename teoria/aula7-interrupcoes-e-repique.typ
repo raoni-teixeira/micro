@@ -73,7 +73,7 @@ precisa concordar com esse endereço. É a mesma classe de erro do simulador que
 começava a executar no menor endereço do HEX: quando não bate, nada acusa — o
 tratamento simplesmente nunca roda.
 
-*Verificar antes do R7:* qual deslocamento de vetor o bootloader do XM118 usa, e
+*Verificar antes do R8:* qual deslocamento de vetor o bootloader do XM118 usa, e
 se o projeto de exemplo do curso já traz o arquivo de ligação correspondente.
 ]
 
@@ -501,7 +501,7 @@ esperar por coisas diferentes ao mesmo tempo.
 estrutura aqui troca de ferramenta sem trocar de ideia.
 ]
 
-= Previsão para o R7
+= Previsão para o R8
 
 #previsao[
 *P1.* Você vai ligar o osciloscópio no botão e capturar um toque. Quantos
@@ -521,8 +521,9 @@ número nos dois? Justifique antes de medir.
 ]
 
 #semnota[
-Leve esta folha preenchida e a captura de osciloscópio do P1 — ela vira a entrada
-do simulador na segunda metade do roteiro.
+Leve esta folha preenchida. Cada pergunta vale 0,4 — 2,0 no total do R8. A
+captura de osciloscópio do P1 vira a entrada do simulador numa extensão do
+roteiro.
 ]
 
 = Exercícios

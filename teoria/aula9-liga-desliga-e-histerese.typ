@@ -4,7 +4,7 @@
 #import "estilo.typ": *
 #import "figuras.typ": *
 #show: conf.with(
-  titulo: "Aula 9 — Controle liga-desliga e histerese",
+  titulo: "Aula 9 — Controle liga-desliga, histerese e comparação analógica",
   subtitulo: "A regra mais simples possível, o que ela cobra, e como o silício a resolve",
 )
 
@@ -111,7 +111,7 @@ Contra 36#h(1pt)000 da regra sem histerese. Um fator de *2250*, obtido com dois
 
 #kit[
 As taxas $a$ e $b$ acima são estimativas. Os valores reais desta bancada saem da
-resposta ao degrau do R9 — aquecedor a 100% a partir da temperatura ambiente — e
+resposta ao degrau do R10 — aquecedor a 100% a partir da temperatura ambiente — e
 todo número desta seção deve ser refeito com eles.
 
 O aquecedor é um resistor de cimento de 47 #sym.Omega dissipando cerca de 3 W, e
@@ -123,7 +123,7 @@ A conta de vida útil muda de escala junto: 100#h(1pt)000 operações a 16 por h
 dão 6#h(1pt)250 horas, ou cerca de *oito meses de operação contínua*.
 
 Nenhuma escolha de firmware compra tanto quanto essa. É por isso que o número de
-acionamentos por hora é uma das duas grandezas que o R9 vai medir — ele tem
+acionamentos por hora é uma das duas grandezas que o R10 vai medir — ele tem
 consequência física direta e mensurável em reais.
 ]
 
@@ -179,7 +179,7 @@ Essa assimetria não atrapalha o liga-desliga — ele não se importa. Ela vai
 importar no encontro 13, quando um controlador proporcional único tiver de servir
 aos dois sentidos com um ganho só.
 
-Registrar a assimetria agora, com o número medido no R9, é o que torna aquela
+Registrar a assimetria agora, com o número medido no R10, é o que torna aquela
 discussão concreta.
 ]
 
@@ -210,7 +210,7 @@ ainda não equalizou.
 
 static uint8_t  aquecendo  = 0;
 static uint16_t desde      = 0;
-volatile uint16_t comutacoes = 0;  /* a segunda medida do R9 */
+volatile uint16_t comutacoes = 0;  /* a segunda medida do R10 */
 
 void controlar(int16_t t_d)
 {
@@ -511,7 +511,7 @@ temporizador que gera o PWM do encontro 6. Ao ultrapassar o limiar, o acionament
 proteção continua válida com o firmware travado. É bom tema de seminário.
 ]
 
-= As duas medidas do R9
+= As duas medidas do R10
 
 #conceito[
 O roteiro não vai apenas fazer o termostato funcionar. Ele vai *medir* duas
@@ -528,7 +528,7 @@ controle do curso, e o aluno chega ao encontro 13 querendo resolver algo que ele
 mediu — não algo que lhe foi afirmado.
 ]
 
-= Previsão para o R9
+= Previsão para o R10
 
 #previsao[
 *P1.* Com o aquecedor a 100% a partir da temperatura ambiente, qual taxa de
@@ -547,6 +547,11 @@ prevê.
 
 *P5.* Desligue a ventoinha e repita. Qual das duas taxas muda, e o que isso faz
 com a razão cíclica do ciclo limite?
+
+*P6.* O comparador C1 vai vigiar o LM35 contra `CVREF`, na faixa baixa e com a
+escada alimentada pelos 5 V. Qual é o degrau da referência, em milivolts e em
+graus? Qual limiar de sobretemperatura você programaria, e o que acontece com o
+corte do aquecedor se o firmware travar?
 ]
 
 #semnota[
@@ -641,7 +646,7 @@ diferença sem sinal dá 7#h(1pt)536 ms, que é o intervalo real. A soma dá
 
 #tarefa[
 *Exercício 9.4.* O termostato precisa segurar 40 #sym.degree#h(0pt)C. Discuta se
-cada mudança abaixo melhora ou piora *cada uma* das duas medidas do R9.
+cada mudança abaixo melhora ou piora *cada uma* das duas medidas do R10.
 
 (a) Aumentar $h$ de 0,5 para 1,0 #sym.degree#h(0pt)C.
 

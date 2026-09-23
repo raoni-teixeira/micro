@@ -9,7 +9,7 @@
     #grid(
       columns: (1fr, 1fr),
       align(left)[Microcontroladores — Prática],
-      align(right)[Roteiro 8],
+      align(right)[Roteiro 9],
     )
     #line(length: 100%, stroke: 0.4pt + luma(180))
   ],
@@ -75,7 +75,7 @@
   \
   #text(fill: white, size: 18pt, weight: "bold")[Microcontroladores]
   \
-  #text(fill: rgb("#aaccee"), size: 12pt)[Roteiro 8 — Comunicação serial e telemetria]
+  #text(fill: rgb("#aaccee"), size: 12pt)[Roteiro 9 — Comunicação serial e telemetria]
   \
   #v(4pt)
   #text(fill: luma(200), size: 9pt)[Raoni F. S. Teixeira · Rodolfo Quadros · DENE/UFMT · 1 sessão · 1,0 ponto · grupos de 3]
@@ -101,7 +101,7 @@ O LCD mostra o instante presente. Para responder "a temperatura oscila?" ou "qua
 #conceito[
   Sem instrumentação, todo diagnóstico de sistema embarcado vira adivinhação. Com telemetria, o sistema relata seu próprio estado e as perguntas passam a ter resposta baseada em evidência.
 
-  Este roteiro existe em boa parte para viabilizar o Roteiro 9: sem registro temporal não há como comparar estratégias de controle com rigor.
+  Este roteiro existe em boa parte para viabilizar o Roteiro 10: sem registro temporal não há como comparar estratégias de controle com rigor.
 ]
 
 = Configuração de bancada
@@ -230,7 +230,7 @@ onde `T` é a temperatura em décimos, `S` o setpoint, `E` a estratégia, `A` a 
   }
   ```
 
-  Ler `RCREG` sem verificar trava o programa até que algo chegue — e desmonta toda a estrutura construída no Roteiro 7.
+  Ler `RCREG` sem verificar trava o programa até que algo chegue — e desmonta toda a estrutura construída no Roteiro 8.
 ]
 
 / 4.2: Se ocorrer erro de _overrun_ (`OERR`), o receptor para de funcionar. Por que isso acontece, e como recuperar? #resposta(n: 2)
@@ -261,7 +261,7 @@ onde `T` é a temperatura em décimos, `S` o setpoint, `E` a estratégia, `A` a 
     [0,2], [Resposta 3.4, relacionando amplitude e banda morta],
     [0,1], [Respostas 2.2, 2.3 e 4.2],
   ),
-  caption: [Distribuição do ponto do Roteiro 8.],
+  caption: [Distribuição do ponto do Roteiro 9.],
 )
 
 = Armadilhas frequentes
@@ -283,7 +283,7 @@ onde `T` é a temperatura em décimos, `S` o setpoint, `E` a estratégia, `A` a 
     [Programa trava], [Leitura de `RCREG` sem verificar `RCIF`],
     [Porta COM não existe], [Adaptador USB-RS232 sem driver ou desconectado],
   ),
-  caption: [Diagnóstico rápido do Roteiro 8.],
+  caption: [Diagnóstico rápido do Roteiro 9.],
 )
 
 = Para a próxima sessão

@@ -51,11 +51,12 @@ quem tropeçou numa semana não fica travado na seguinte.
   [R4], [Uma tela que mostra números],
   [R5], [Uma temperatura lida do mundo real],
   [R6], [Um relógio que não depende do laço, e um contador de eventos],
-  [R8], [Um atuador de potência de verdade, isolado do micro],
-  [R9], [Uma decisão automática: o termostato liga-desliga completo],
-  [R10], [Um registro do que aconteceu, enviado para fora],
-  [R11], [Uma memória que sobrevive a desligar a placa],
-  [R12], [Um controle que não fica oscilando em torno do alvo],
+  [R7], [Uma saída proporcional, não apenas ligada ou desligada],
+  [R9], [Um atuador de potência de verdade, isolado do micro],
+  [R10], [Uma decisão automática: o termostato liga-desliga completo],
+  [R11], [Um registro do que aconteceu, enviado para fora],
+  [R12], [Uma memória que sobrevive a desligar a placa],
+  [R13], [Um controle que não fica oscilando em torno do alvo],
 )
 
 Ao final, o objeto na sua bancada é o mesmo que existe dentro de uma estufa, de
@@ -76,19 +77,19 @@ uma incubadora ou de um #box[ar-condicionado] inverter. Não é um modelo reduzi
   [5],  [Temporizadores], [R5 — entrada digital, ADC e LM35 no display], [M5],
   [6],  [Modulação por largura de pulso; *avaliação integradora I* no fim], [R6 — temporizadores: medir e contar], [—],
   [7],  [Interrupções e ruído de contato], [*Avaliação prática I*], [M7],
-  [8],  [Estágio de potência e atuadores], [R7 — botões, repique e teclado matricial], [M8],
-  [9],  [Controle liga-desliga, histerese e comparação analógica], [R8 — aquecedor e relé], [M9],
-  [10], [Comunicação serial], [R9 — termostato liga-desliga completo], [M10],
-  [11], [Barramento serial síncrono: I#super[2]C e memória não volátil], [R10 — telemetria por UART], [M11],
-  [12], [*Avaliação integradora II*], [R11 — setpoint em EEPROM], [—],
+  [8],  [Estágio de potência e atuadores], [R7 — PWM na ventoinha e no buzzer], [M8],
+  [9],  [Controle liga-desliga, histerese e comparação analógica], [R8 — botões, repique e teclado matricial], [M9],
+  [10], [Comunicação serial], [R9 — aquecedor, estágio de potência e reset], [M10],
+  [11], [Barramento serial síncrono: I#super[2]C e memória não volátil], [R10 — termostato liga-desliga completo], [M11],
+  [12], [*Avaliação integradora II*], [R11 — telemetria por UART], [—],
   [13], [Controle embarcado na prática: do liga-desliga ao PI], [*Avaliação prática II*], [—],
-  [14], [*Seminários comparativos*], [R12 — sintonia contra planta simulada], [—],
-  [15], [*Seminários comparativos* e encerramento], [Folga — fechamento do termostato], [—],
+  [14], [*Seminários comparativos*], [R12 — setpoint em EEPROM], [—],
+  [15], [*Seminários comparativos* e encerramento], [R13 — sintonia contra planta simulada], [—],
 )
 ]
 
-O encontro 15 do laboratório é folga deliberada. Ela existe porque o termostato
-vai atrasar em algum ponto do semestre — não porque sobrou tempo.
+O laboratório não tem semana de folga: o PWM ganhou roteiro próprio, o R7, e o
+último roteiro ocupa o encontro 15. Se o termostato atrasar, o R13 é o que cede.
 
 == Como se avalia
 
@@ -117,7 +118,7 @@ uma questão parece pedir conteúdo futuro, é erro meu, e vale reclamar na hora
     #tab(
       columns: (1fr, auto),
       [Instrumento], [Peso],
-      [Roteiros R2–R12 (11, sem descarte)], [40%],
+      [Roteiros R2–R13 (12, sem descarte)], [40%],
       [Avaliação prática I], [25%],
       [Avaliação prática II], [35%],
       [R0 e R1], [sem nota],

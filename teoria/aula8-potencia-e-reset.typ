@@ -82,7 +82,7 @@ software, é o que permite controlar potência sem dissipá-la.
 
 #fig(
   fig_estagio(),
-  [O arranjo que o R8 usa. A carga fica acima da chave, e o terra é comum ao
+  [O arranjo que o R9 usa. A carga fica acima da chave, e o terra é comum ao
   microcontrolador — é isso que permite comandar 12 V com um sinal de 5 V.],
 )
 
@@ -231,7 +231,7 @@ apenas que as interrupções ainda funcionam — que é justamente a parte que
 raramente trava.
 ]
 
-= Previsão para o R8
+= Previsão para o R9
 
 #previsao[
 *P1.* Antes de ligar o aquecedor, meça a resistência dele. Que corrente espera em

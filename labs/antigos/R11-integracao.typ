@@ -9,7 +9,7 @@
     #grid(
       columns: (1fr, 1fr),
       align(left)[Microcontroladores — Prática],
-      align(right)[Roteiro 10],
+      align(right)[Roteiro 11],
     )
     #line(length: 100%, stroke: 0.4pt + luma(180))
   ],
@@ -75,7 +75,7 @@
   \
   #text(fill: white, size: 18pt, weight: "bold")[Microcontroladores]
   \
-  #text(fill: rgb("#aaccee"), size: 12pt)[Roteiro 10 — Integração, hardware real e fechamento]
+  #text(fill: rgb("#aaccee"), size: 12pt)[Roteiro 11 — Integração, hardware real e fechamento]
   \
   #v(4pt)
   #text(fill: luma(200), size: 9pt)[Raoni F. S. Teixeira · Rodolfo Quadros · DENE/UFMT · 1 sessão · 1,0 ponto · grupos de 3]
@@ -222,7 +222,7 @@ Discussão em plenário. Elementos a considerar:
   *4.2* — Entregue um relatório de *no máximo três páginas* contendo:
 
   + O diagrama de blocos do sistema construído;
-  + A tabela comparativa das quatro estratégias (do Roteiro 9);
+  + A tabela comparativa das quatro estratégias (do Roteiro 10);
   + A escolha da estratégia que vocês adotariam para uma aplicação real, com justificativa;
   + Uma limitação conhecida do sistema, honestamente descrita.
 ]
@@ -256,7 +256,7 @@ Discussão em plenário. Elementos a considerar:
     [0,2], [Respostas 1.2 e 1.3 sobre o que é o microcontrolador],
     [0,2], [Previsão 3.1 e revisão 3.3, conectando o semestre aos critérios],
   ),
-  caption: [Distribuição do ponto do Roteiro 10.],
+  caption: [Distribuição do ponto do Roteiro 11.],
 )
 
 = Encerramento

@@ -307,7 +307,7 @@ void main(void)
   A lâmpada não apaga no instante do comando. Esse atraso entre *comandar* e
   *observar o efeito* reaparece, muito mais lento, quando o aquecedor da mesma
   linha RC1 precisar elevar a temperatura do sensor. É a razão de existir do
-  controle com histerese, no Roteiro 9.
+  controle com histerese, no Roteiro 10.
 ]
 
 #tarefa[
