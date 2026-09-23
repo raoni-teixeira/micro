@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temporizadores (PIC18F4550) — Folha de Referência</title>
+<link rel="stylesheet" href="../estilo.css">
+<style>
+  /* Folha de consulta: densa, tipografia precisa, ideal para tela e impressão. */
+  .ref table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin-bottom: 0.8rem; }
+  .ref table th { text-align: left; font-weight: 700; font-size: 0.78rem; vertical-align: bottom;
+                  letter-spacing: 0.04em; border-bottom: 1px solid var(--tinta); padding: 0.3rem 0.5rem 0.3rem 0; }
+  .ref table td { border-bottom: 1px solid var(--regra); padding: 0.28rem 0.5rem 0.28rem 0; vertical-align: top; }
+  .ref table tr:last-child td { border-bottom: 1px solid var(--tinta); }
+  .ref code:not(pre code) { background: none; padding: 0; font-size: 0.88em; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tabela-rolavel { overflow-x: auto; margin-bottom: 1rem; }
+  .formula { font-family: var(--mono); font-size: 0.92rem; background: var(--papel-2); padding: 0.4rem 0.6rem; }
+  pre { background: var(--papel-2); padding: 0.8rem 1rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+  .linha-destaque { background-color: var(--papel-2); }
+
+  /* Tabelas e figuras largas ocupam também a coluna de notas. */
+  .larga table { min-width: 36rem; }
+  @media (min-width: 58rem) {
+    .larga { width: calc(var(--col) + var(--mg-dx) + var(--mg-larg)); }
+  }
+
+  /* Diagrama de registrador: oito células de largura igual, com filete. */
+  .ref table.registrador { table-layout: fixed; font-size: 0.85rem; }
+  .ref table.registrador th, .ref table.registrador td {
+    text-align: center; vertical-align: middle; padding: 0.3rem 0.2rem; border: 1px solid var(--regra); }
+  .ref table.registrador th { border-bottom-color: var(--tinta); color: var(--cinza-c); font-weight: 500; }
+  .ref table.registrador td { border-bottom: 1px solid var(--tinta); }
+  .registrador .nada { color: var(--cinza-c); }
+  .registrador small { display: block; font-size: 0.75rem; color: var(--cinza); }
+  .reinicio { font-size: 0.85rem; color: var(--cinza); margin-top: -0.4rem; }
+
+  /* Diagrama de blocos do Timer0 */
+  .diagrama { overflow-x: auto; margin: 1rem 0 1.2rem; }
+  .diagrama svg { display: block; width: 100%; min-width: 40rem; height: auto; }
+  .diagrama .tr { stroke: var(--tinta); stroke-width: 1.2; fill: none; }
+  .diagrama .cx { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); }
+  .diagrama .cx2 { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); stroke-dasharray: 4 3; }
+  .diagrama .pont { stroke: var(--cinza-c); stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
+  .diagrama .seta { fill: var(--tinta); }
+  .diagrama text { fill: var(--tinta); font-family: var(--serifa); font-size: 13px; }
+  .diagrama text.m { font-family: var(--mono); font-size: 11.5px; }
+  .diagrama text.c { fill: var(--cinza-c); font-size: 11.5px; }
+  .diagrama text.v { fill: var(--vermelho); font-family: var(--mono); font-size: 11.5px; font-weight: 700; }
+  .legenda { font-size: 0.85rem; font-style: italic; color: var(--cinza); margin-top: 0.3rem; }
+
+  @media print {
+    .pagina { padding-top: 0; }
+    .pagina > main { max-width: none; }
+    .larga { width: auto; }
+    h2 { margin-top: 1rem; }
+    pre, table, .diagrama { break-inside: avoid; }
+    .naoimprime { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="pagina ref">
+
+  <header>
+    <p class="corrente naoimprime"><a href="./index.html">← Laboratório</a><span>Folha de referência</span></p>
+    <h1>Temporizadores (PIC18F4550) — Folha de Referência</h1>
+    <p class="subtitulo">Um contador, duas fontes: tempo ou eventos</p>
+    <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Consulta permitida</span></p>
+  </header>
+
+  <main>
+
+    <section>
+      <h2>A ideia: um registrador que conta sozinho</h2>
+      <p>Um temporizador é um registrador que <strong>incrementa a cada pulso de uma fonte de contagem</strong>, sem executar instrução. Ao passar do valor máximo, ele volta a zero e <strong>levanta um indicador</strong> (um bit, <code>TMRxIF</code>). O indicador não se apaga sozinho: o programa precisa zerá-lo.</p>
+      <p>O contador não sabe o que é tempo. A diferença entre <em>temporizador</em> e <em>contador</em> está só na fonte dos pulsos:</p>
+      <p class="margem">Só Timer0, Timer1 e Timer3 contam pulsos de um pino. O Timer2 só conhece o relógio interno: ele serve para gerar tempo (e o PWM), nunca para contar eventos.</p>
+      <ul>
+        <li><strong>Fonte interna</strong>: um pulso por ciclo de instrução, F<sub>OSC</sub>/4. A 16 MHz, isso dá um pulso a cada <strong>T<sub>CY</sub> = 250 ns</strong>. Contar pulsos, nesse caso, é medir tempo.</li>
+        <li><strong>Fonte externa</strong>: um pino. Cada borda válida vale um incremento. Contar pulsos, nesse caso, é contar eventos, como voltas de um eixo ou peças numa esteira.</li>
+      </ul>
+
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead>
+          <tr>
+            <th>Temporizador</th>
+            <th>Tamanho</th>
+            <th>Fonte interna</th>
+            <th>Pino externo</th>
+            <th>Divisor (entrada)</th>
+            <th>Pós-divisor (saída)</th>
+            <th>Indicador / habilitação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Timer0</strong></td>
+            <td>8 <em>ou</em> 16 bits</td>
+            <td>F<sub>OSC</sub>/4</td>
+            <td><code>RA4/T0CKI</code> (pino 6), subida ou descida</td>
+            <td class="num">1:2 … 1:256</td>
+            <td>—</td>
+            <td><code>INTCON.TMR0IF</code> / <code>TMR0IE</code></td>
+          </tr>
+          <tr>
+            <td><strong>Timer1</strong></td>
+            <td>16 bits</td>
+            <td>F<sub>OSC</sub>/4</td>
+            <td><code>RC0/T13CKI</code> (pino 15), só subida; ou cristal em <code>T1OSO/T1OSI</code></td>
+            <td class="num">1:1 … 1:8</td>
+            <td>—</td>
+            <td><code>PIR1.TMR1IF</code> / <code>PIE1.TMR1IE</code></td>
+          </tr>
+          <tr>
+            <td><strong>Timer2</strong></td>
+            <td>8 bits, com período <code>PR2</code></td>
+            <td>F<sub>OSC</sub>/4</td>
+            <td><strong>nenhum</strong></td>
+            <td class="num">1:1, 1:4, 1:16</td>
+            <td class="num">1:1 … 1:16</td>
+            <td><code>PIR1.TMR2IF</code> / <code>PIE1.TMR2IE</code></td>
+          </tr>
+          <tr>
+            <td><strong>Timer3</strong></td>
+            <td>16 bits</td>
+            <td>F<sub>OSC</sub>/4</td>
+            <td>o mesmo <code>RC0/T13CKI</code> ou o oscilador do Timer1</td>
+            <td class="num">1:1 … 1:8</td>
+            <td>—</td>
+            <td><code>PIR2.TMR3IF</code> / <code>PIE2.TMR3IE</code></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Contador de 8 bits e de 16 bits</h2>
+      <p>O tamanho do contador define <strong>quantos pulsos cabem antes do estouro</strong>:</p>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Tamanho</th><th>Faixa</th><th>Pulsos até estourar</th><th>Estouro sem divisor, a 250 ns</th></tr></thead>
+        <tbody>
+          <tr><td>8 bits</td><td class="num"><code>0x00</code> … <code>0xFF</code></td><td class="num">256</td><td class="num">64 µs</td></tr>
+          <tr><td>16 bits</td><td class="num"><code>0x0000</code> … <code>0xFFFF</code></td><td class="num">65 536</td><td class="num">16,384 ms</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Um contador de 16 bits ocupa dois registradores de 8 bits: <code>TMRxL</code> (byte baixo) e <code>TMRxH</code> (byte alto). Quando <code>TMRxL</code> passa de <code>0xFF</code> para <code>0x00</code>, ele manda um vai-um para <code>TMRxH</code>. O indicador só sobe quando os dois bytes passam juntos de <code>0xFFFF</code> para <code>0x0000</code>.</p>
+      <p>No modo de 8 bits do Timer0 (<code>T08BIT = 1</code>), só <code>TMR0L</code> conta, e o estouro de <code>0xFF</code> para <code>0x00</code> já levanta <code>TMR0IF</code>.</p>
+
+      <h3>O byte alto é um buffer, não o contador</h3>
+      <p>O processador lê e escreve um byte por vez, mas o contador pode mudar entre uma operação e outra. Para evitar isso, <code>TMR0H</code> (e <code>TMR1H</code>/<code>TMR3H</code> com <code>RD16 = 1</code>) não é o byte alto real. É uma cópia intermediária, trocada com o contador <strong>no instante em que se acessa o byte baixo</strong>:</p>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Operação</th><th>Ordem obrigatória</th><th>Por quê</th></tr></thead>
+        <tbody>
+          <tr><td>Escrever 16 bits</td><td><code>TMR0H</code> primeiro, depois <code>TMR0L</code></td><td>A escrita em <code>TMR0L</code> transfere os 16 bits de uma vez</td></tr>
+          <tr><td>Ler 16 bits</td><td><code>TMR0L</code> primeiro, depois <code>TMR0H</code></td><td>A leitura de <code>TMR0L</code> congela o byte alto no buffer</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">A ordem invertida não gera erro de compilação. O contador parte de um valor que ninguém pediu, e o erro muda de uma execução para outra.</p>
+      <pre><code>// escrita: alto no buffer, baixo transfere
+TMR0H = (uint8_t)(PRECARGA &gt;&gt; 8);
+TMR0L = (uint8_t)(PRECARGA &amp; 0xFF);
+
+// leitura: baixo congela o alto
+uint8_t  lo = TMR0L;
+uint16_t n  = ((uint16_t)TMR0H &lt;&lt; 8) | lo;</code></pre>
+    </section>
+
+    <section>
+      <h2>Timer0: o caminho do pulso</h2>
+      <p>Cada bit de <code>T0CON</code> controla uma chave no caminho entre a fonte de pulsos e o contador:</p>
+
+      <div class="diagrama larga" role="img" aria-label="Diagrama de blocos do Timer0: a fonte interna ou o pino T0CKI passa pelo seletor T0CS, pelo divisor opcional selecionado por PSA, por uma sincronização de dois ciclos e chega a TMR0L e TMR0H; o estouro levanta TMR0IF.">
+        <svg viewBox="0 0 900 190" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ponta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="seta"/>
+            </marker>
+          </defs>
+
+          <!-- fontes -->
+          <text x="8" y="46">F<tspan font-size="9" dy="3">OSC</tspan><tspan dy="-3">/4 (interno)</tspan></text>
+          <line x1="8" y1="55" x2="248" y2="55" class="tr" marker-end="url(#ponta)"/>
+
+          <text x="8" y="120" class="m">RA4/T0CKI</text>
+          <line x1="8" y1="130" x2="118" y2="130" class="tr" marker-end="url(#ponta)"/>
+          <rect x="120" y="112" width="84" height="36" class="cx"/>
+          <text x="162" y="127" text-anchor="middle">borda</text>
+          <text x="162" y="142" text-anchor="middle" class="m">T0SE</text>
+          <line x1="204" y1="130" x2="248" y2="130" class="tr" marker-end="url(#ponta)"/>
+          <text x="162" y="168" text-anchor="middle" class="c">0 = subida, 1 = descida</text>
+
+          <!-- mux T0CS -->
+          <polygon points="250,30 282,46 282,144 250,160" class="cx"/>
+          <text x="258" y="60" class="v">0</text>
+          <text x="258" y="135" class="v">1</text>
+          <text x="266" y="22" text-anchor="middle" class="m">T0CS</text>
+          <line x1="282" y1="95" x2="312" y2="95" class="tr"/>
+
+          <!-- divisor ou desvio -->
+          <line x1="312" y1="55" x2="312" y2="130" class="tr"/>
+          <line x1="312" y1="55" x2="338" y2="55" class="tr" marker-end="url(#ponta)"/>
+          <rect x="340" y="36" width="110" height="38" class="cx"/>
+          <text x="395" y="52" text-anchor="middle">divisor</text>
+          <text x="395" y="67" text-anchor="middle" class="m">T0PS2:0</text>
+          <line x1="450" y1="55" x2="478" y2="55" class="tr" marker-end="url(#ponta)"/>
+          <line x1="312" y1="130" x2="478" y2="130" class="tr" marker-end="url(#ponta)"/>
+          <text x="395" y="122" text-anchor="middle" class="c">sem divisor (desvio)</text>
+
+          <!-- mux PSA -->
+          <polygon points="480,30 512,46 512,144 480,160" class="cx"/>
+          <text x="488" y="60" class="v">0</text>
+          <text x="488" y="135" class="v">1</text>
+          <text x="496" y="22" text-anchor="middle" class="m">PSA</text>
+          <line x1="512" y1="95" x2="536" y2="95" class="tr" marker-end="url(#ponta)"/>
+
+          <!-- sincronismo -->
+          <rect x="538" y="76" width="74" height="38" class="cx"/>
+          <text x="575" y="92" text-anchor="middle">sinc.</text>
+          <text x="575" y="107" text-anchor="middle" class="c">2 T<tspan font-size="8" dy="3">CY</tspan></text>
+          <line x1="612" y1="95" x2="632" y2="95" class="tr" marker-end="url(#ponta)"/>
+
+          <!-- contador -->
+          <rect x="634" y="76" width="70" height="38" class="cx"/>
+          <text x="669" y="100" text-anchor="middle" class="m">TMR0L</text>
+          <line x1="704" y1="95" x2="730" y2="95" class="tr" marker-end="url(#ponta)"/>
+          <rect x="732" y="76" width="70" height="38" class="cx2"/>
+          <text x="767" y="100" text-anchor="middle" class="m">TMR0H</text>
+          <text x="767" y="66" text-anchor="middle" class="c">só se T08BIT = 0</text>
+          <line x1="802" y1="95" x2="826" y2="95" class="tr" marker-end="url(#ponta)"/>
+          <text x="830" y="92" class="m">TMR0IF</text>
+          <text x="830" y="108" class="c">estouro</text>
+
+          <!-- estouro direto em 8 bits -->
+          <path d="M669,114 V150 H850 V116" class="pont" marker-end="url(#ponta)"/>
+          <text x="760" y="166" text-anchor="middle" class="c">T08BIT = 1: estouro de TMR0L direto</text>
+
+          <!-- liga/desliga -->
+          <text x="575" y="160" text-anchor="middle" class="c">TMR0ON = 0 para tudo</text>
+        </svg>
+      </div>
+      <p class="legenda">Cada seletor é um bit: o valor em vermelho indica qual entrada passa. Ler da esquerda para a direita é ler <code>T0CON</code> do bit 5 ao bit 0.</p>
+
+      <p class="margem">Após o reset, <code>T0CON = 0xFF</code>: o Timer0 já está <em>ligado</em>, em 8 bits, contando o pino RA4. O bootloader pode ter mudado isso. Escreva sempre o registrador inteiro, nunca bit a bit a partir de um valor que você não conhece.</p>
+      <h3><code>T0CON</code> — controle do Timer0</h3>
+      <div class="tabela-rolavel">
+      <table class="registrador">
+        <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>TMR0ON</code><small>liga</small></td>
+            <td><code>T08BIT</code><small>8/16 bits</small></td>
+            <td><code>T0CS</code><small>fonte</small></td>
+            <td><code>T0SE</code><small>borda</small></td>
+            <td><code>PSA</code><small>usa divisor?</small></td>
+            <td colspan="3"><code>T0PS2:T0PS0</code><small>razão do divisor</small></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="reinicio">Valor após reset: <code>1111 1111</code>.</p>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Bit</th><th class="num">= 0</th><th class="num">= 1</th></tr></thead>
+        <tbody>
+          <tr><td><code>TMR0ON</code></td><td>Timer0 parado</td><td>Timer0 contando</td></tr>
+          <tr><td><code>T08BIT</code></td><td><strong>16 bits</strong> (<code>TMR0H:TMR0L</code>)</td><td><strong>8 bits</strong> (só <code>TMR0L</code>)</td></tr>
+          <tr><td><code>T0CS</code></td><td><strong>Interno</strong>: F<sub>OSC</sub>/4, conta tempo</td><td><strong>Externo</strong>: pino <code>RA4/T0CKI</code>, conta eventos</td></tr>
+          <tr><td><code>T0SE</code></td><td>Incrementa na borda de <strong>subida</strong> de T0CKI</td><td>Incrementa na borda de <strong>descida</strong> de T0CKI</td></tr>
+          <tr><td><code>PSA</code></td><td>Divisor <strong>atribuído</strong>: vale <code>T0PS</code></td><td>Divisor <strong>desviado</strong>: conta todo pulso (1:1)</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p><code>T0SE</code> só tem efeito com <code>T0CS = 1</code>. <code>T0PS</code> só tem efeito com <code>PSA = 0</code>.</p>
+
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead>
+          <tr>
+            <th><code>T0PS2:0</code></th>
+            <th class="num">Divisor</th>
+            <th class="num">Passo (interno, 16 MHz)</th>
+            <th class="num">Estouro máximo, 8 bits</th>
+            <th class="num">Estouro máximo, 16 bits</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><em>PSA = 1</em></td><td class="num">1:1</td><td class="num">250 ns</td><td class="num">64 µs</td><td class="num">16,384 ms</td></tr>
+          <tr><td><code>000</code></td><td class="num">1:2</td><td class="num">500 ns</td><td class="num">128 µs</td><td class="num">32,768 ms</td></tr>
+          <tr><td><code>001</code></td><td class="num">1:4</td><td class="num">1 µs</td><td class="num">256 µs</td><td class="num">65,536 ms</td></tr>
+          <tr><td><code>010</code></td><td class="num">1:8</td><td class="num">2 µs</td><td class="num">512 µs</td><td class="num">131,07 ms</td></tr>
+          <tr><td><code>011</code></td><td class="num">1:16</td><td class="num">4 µs</td><td class="num">1,024 ms</td><td class="num">262,14 ms</td></tr>
+          <tr><td><code>100</code></td><td class="num">1:32</td><td class="num">8 µs</td><td class="num">2,048 ms</td><td class="num">524,29 ms</td></tr>
+          <tr><td><code>101</code></td><td class="num">1:64</td><td class="num">16 µs</td><td class="num">4,096 ms</td><td class="num">1,049 s</td></tr>
+          <tr><td><code>110</code></td><td class="num">1:128</td><td class="num">32 µs</td><td class="num">8,192 ms</td><td class="num">2,097 s</td></tr>
+          <tr><td><code>111</code></td><td class="num">1:256</td><td class="num">64 µs</td><td class="num">16,384 ms</td><td class="num">4,194 s</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">Com o divisor atribuído, a menor razão é 1:2. Para contar todo pulso, use <code>PSA = 1</code>, não <code>T0PS = 000</code>.</p>
+    </section>
+
+    <section>
+      <h2>Pré-carga: escolher o intervalo</h2>
+      <p>Sem pré-carga, o contador percorre sempre a faixa inteira. Para um intervalo menor, ele começa de um valor mais alto e estoura antes. <strong>O divisor escolhe o tamanho do passo; a pré-carga escolhe onde a contagem começa.</strong> O divisor alonga o intervalo, a pré-carga encurta.</p>
+      <p class="formula">N = intervalo / (T<sub>CY</sub> · divisor)&nbsp;&nbsp;&nbsp;(precisa ser ≤ 2<sup>n</sup>)<br>pré-carga = 2<sup>n</sup> − N&nbsp;&nbsp;&nbsp;(n = 8 ou 16)</p>
+      <p>Receita: escolha o <strong>menor divisor</strong> que faça N caber em 2<sup>n</sup>, porque o passo menor dá o ajuste mais fino. Depois calcule a pré-carga e escreva o valor de novo <strong>a cada estouro</strong>, porque depois do estouro o contador recomeça de zero.</p>
+
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead>
+          <tr><th>Intervalo</th><th class="num">Divisor</th><th class="num">N</th><th class="num">Pré-carga</th><th class="num"><code>T0CON</code></th><th>Leitura de <code>T0CON</code></th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1 ms</td><td class="num">1:1</td><td class="num">4 000</td><td class="num">61 536 = <code>0xF060</code></td><td class="num"><code>0x88</code></td><td>ligado, 16 bits, interno, sem divisor</td></tr>
+          <tr><td>2 ms</td><td class="num">1:1</td><td class="num">8 000</td><td class="num">57 536 = <code>0xE0C0</code></td><td class="num"><code>0x88</code></td><td>idem</td></tr>
+          <tr class="linha-destaque"><td>10 ms</td><td class="num">1:1</td><td class="num">40 000</td><td class="num">25 536 = <code>0x63C0</code></td><td class="num"><code>0x88</code></td><td>idem (rampa da aula 5)</td></tr>
+          <tr><td>100 ms</td><td class="num">1:8</td><td class="num">50 000</td><td class="num">15 536 = <code>0x3CB0</code></td><td class="num"><code>0x82</code></td><td>ligado, 16 bits, interno, divisor 1:8</td></tr>
+          <tr><td>1 s</td><td class="num">1:64</td><td class="num">62 500</td><td class="num">3 036 = <code>0x0BDC</code></td><td class="num"><code>0x85</code></td><td>ligado, 16 bits, interno, divisor 1:64</td></tr>
+          <tr class="linha-destaque"><td>1 s</td><td class="num">1:256</td><td class="num">15 625</td><td class="num">49 911 = <code>0xC2F7</code></td><td class="num"><code>0x87</code></td><td>ligado, 16 bits, interno, divisor 1:256 (relógio da aula 5)</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">A escrita em <code>TMR0</code> inibe o incremento por 2 T<sub>CY</sub> e zera a contagem parcial do divisor. A recarga sempre atrasa um pouco. Por isso a recarga é feita logo após o estouro, e não quando o laço principal tiver tempo.</p>
+    </section>
+
+    <section>
+      <h2>Contando pulsos externos</h2>
+      <p>Para trocar a fonte, basta mudar um bit, <code>T0CS</code> ou <code>TMR1CS</code>. O resto do temporizador (tamanho, divisor, estouro, indicador) funciona igual. O que muda é o que um incremento significa.</p>
+
+      <h3>Timer0 pelo pino RA4/T0CKI</h3>
+      <ol>
+        <li>Pino como entrada: <code>TRISAbits.TRISA4 = 1</code>. RA4 não é canal analógico no PIC18F4550, então <code>ADCON1</code> não interfere.</li>
+        <li><code>T0CS = 1</code> (fonte externa).</li>
+        <li>Escolha a borda com <code>T0SE</code>. Com botão e resistor de pull-up (solto = 1), a borda de subida acontece ao <strong>soltar</strong>.</li>
+        <li><code>PSA = 1</code> para contar todo pulso, ou <code>PSA = 0</code> e <code>T0PS</code> para contar um a cada 2, 4, …, 256.</li>
+        <li>Zere <code>TMR0</code> e leia quando quiser. Em 8 bits, o valor lido é o número de pulsos, módulo 256.</li>
+      </ol>
+
+      <p class="margem">No kit, RC0 recebe o <strong>tacômetro do cooler</strong> (ponto <code>SPEED</code>, chave CH3-2) e também a chave SW2. Com o Timer1 contando por um tempo conhecido, a leitura dá pulsos por segundo, ou seja, a rotação. Confira na bancada quantos pulsos o cooler dá por volta.</p>
+      <h3>Timer1 pelo pino RC0/T13CKI</h3>
+      <ol>
+        <li>Pino como entrada: <code>TRISCbits.TRISC0 = 1</code>.</li>
+        <li><code>TMR1CS = 1</code> (fonte externa) e <code>T1OSCEN = 0</code> (sem cristal; o sinal entra direto em T13CKI).</li>
+        <li>Borda fixa: <strong>só subida</strong>. Depois de ligar o Timer1, a primeira subida só conta se houver antes uma descida.</li>
+        <li><code>T1SYNC = 0</code> sincroniza o pulso com o relógio interno. É o modo recomendado para ler o valor com o programa rodando.</li>
+        <li><code>RD16 = 1</code> para ler os 16 bits pelo buffer, como no Timer0.</li>
+      </ol>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Parâmetro do pulso em T0CKI (sem divisor)</th><th class="num">Mínimo</th><th class="num">A 16 MHz</th></tr></thead>
+        <tbody>
+          <tr><td>Tempo em nível alto e em nível baixo</td><td class="num">0,5 T<sub>CY</sub> + 20 ns</td><td class="num">145 ns</td></tr>
+          <tr><td>Período</td><td class="num">T<sub>CY</sub> + 10 ns</td><td class="num">260 ns (≈ 3,8 MHz)</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Com o divisor atribuído, o pino aceita pulsos mais rápidos, porque o divisor fica antes do sincronismo. Botões e tacômetros estão muitas ordens de grandeza abaixo desse limite. O problema deles é outro: o <strong>repique</strong>. O contador conta cada fechamento e abertura do contato, e dez apertos raramente dão dez.</p>
+    </section>
+
+    <section>
+      <h2>Timer1 e Timer3 — 16 bits, divisor até 1:8</h2>
+
+      <h3><code>T1CON</code> — controle do Timer1</h3>
+      <div class="tabela-rolavel">
+      <table class="registrador">
+        <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>RD16</code><small>leitura 16 b</small></td>
+            <td><code>T1RUN</code><small>só leitura</small></td>
+            <td colspan="2"><code>T1CKPS1:0</code><small>divisor</small></td>
+            <td><code>T1OSCEN</code><small>oscilador</small></td>
+            <td><code>T1SYNC</code><small>0 = sincroniza</small></td>
+            <td><code>TMR1CS</code><small>fonte</small></td>
+            <td><code>TMR1ON</code><small>liga</small></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="reinicio">Valor após reset: <code>0000 0000</code>.</p>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Bit</th><th>= 0</th><th>= 1</th></tr></thead>
+        <tbody>
+          <tr><td><code>RD16</code></td><td>Dois acessos de 8 bits independentes</td><td>Acesso de 16 bits pelo buffer de <code>TMR1H</code></td></tr>
+          <tr><td><code>T1CKPS1:0</code></td><td colspan="2"><code>00</code> = 1:1, <code>01</code> = 1:2, <code>10</code> = 1:4, <code>11</code> = 1:8</td></tr>
+          <tr><td><code>T1OSCEN</code></td><td>Oscilador do Timer1 desligado</td><td>Ligado: cristal (tipicamente 32,768 kHz) entre RC0/T1OSO e RC1/T1OSI</td></tr>
+          <tr><td><code>T1SYNC</code></td><td>Sincroniza a entrada externa</td><td>Não sincroniza (só vale com <code>TMR1CS = 1</code>)</td></tr>
+          <tr><td><code>TMR1CS</code></td><td><strong>Interno</strong>: F<sub>OSC</sub>/4</td><td><strong>Externo</strong>: borda de subida em RC0/T13CKI</td></tr>
+          <tr><td><code>TMR1ON</code></td><td>Parado</td><td>Contando</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">O divisor máximo é 1:8: a 16 MHz, o Timer1 estoura em no máximo 65 536 · 2 µs = 131 ms. Para 1 s, use o Timer0 ou conte vários estouros.</p>
+
+      <h3><code>T3CON</code> — controle do Timer3</h3>
+      <div class="tabela-rolavel">
+      <table class="registrador">
+        <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>RD16</code><small>leitura 16 b</small></td>
+            <td><code>T3CCP2</code><small>CCP</small></td>
+            <td colspan="2"><code>T3CKPS1:0</code><small>divisor</small></td>
+            <td><code>T3CCP1</code><small>CCP</small></td>
+            <td><code>T3SYNC</code><small>0 = sincroniza</small></td>
+            <td><code>TMR3CS</code><small>fonte</small></td>
+            <td><code>TMR3ON</code><small>liga</small></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="reinicio">Valor após reset: <code>0000 0000</code>.</p>
+      <p>Igual ao Timer1, com duas diferenças. A fonte externa (<code>TMR3CS = 1</code>) é o mesmo pino T13CKI ou o oscilador do Timer1. E os bits <code>T3CCP2:T3CCP1</code> escolhem qual temporizador serve de base para os módulos de captura e comparação: <code>00</code> = Timer1 para os dois CCP; <code>01</code> = Timer3 para CCP2 e Timer1 para CCP1; <code>1x</code> = Timer3 para os dois.</p>
+    </section>
+
+    <section>
+      <h2>Timer2 — 8 bits com período programável</h2>
+      <p>O Timer2 não estoura em <code>0xFF</code>. Ele conta de 0 até o valor de <code>PR2</code> e, no pulso seguinte, <strong>volta a zero sozinho</strong>. Por isso ele não precisa de pré-carga: o período fica em <code>PR2</code> e se repete sem intervenção do programa. Cada volta a zero passa por um <strong>pós-divisor</strong>, e só a cada 1 … 16 voltas o <code>TMR2IF</code> sobe.</p>
+
+      <h3><code>T2CON</code> — controle do Timer2</h3>
+      <div class="tabela-rolavel">
+      <table class="registrador">
+        <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="nada">—</td>
+            <td colspan="4"><code>T2OUTPS3:0</code><small>pós-divisor: valor + 1</small></td>
+            <td><code>TMR2ON</code><small>liga</small></td>
+            <td colspan="2"><code>T2CKPS1:0</code><small>divisor</small></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="reinicio">Valor após reset: <code>-000 0000</code>. <code>PR2</code> após reset: <code>0xFF</code>.</p>
+      <ul>
+        <li><code>T2CKPS1:0</code>: <code>00</code> = 1:1, <code>01</code> = 1:4, <code>1x</code> = 1:16.</li>
+        <li><code>T2OUTPS3:0</code>: <code>0000</code> = 1:1, <code>0001</code> = 1:2, …, <code>1111</code> = 1:16.</li>
+        <li>Escrever em <code>TMR2</code> ou em <code>T2CON</code> zera as contagens parciais do divisor e do pós-divisor.</li>
+      </ul>
+      <p class="formula">T<sub>volta</sub> = (PR2 + 1) · T<sub>CY</sub> · divisor<br>T<sub>TMR2IF</sub> = T<sub>volta</sub> · pós-divisor<br>máximo: 256 · 250 ns · 16 · 16 = 16,384 ms</p>
+      <p>No PWM, o período é T<sub>volta</sub> (o pós-divisor não participa) e a resolução é log<sub>2</sub>(4 · (PR2 + 1)) bits. Com <code>PR2 = 255</code> e divisor 1:16 (<code>T2CON = 0x06</code>), o período é 1024 µs (976,6 Hz) com 10 bits de resolução.</p>
+      <p class="margem">O Timer2 é compartilhado por CCP1 e CCP2 no modo PWM: as duas saídas têm, obrigatoriamente, a mesma frequência.</p>
+    </section>
+
+    <section>
+      <h2>Indicadores e habilitações</h2>
+      <p>O indicador sobe no estouro <strong>mesmo que a interrupção esteja desligada</strong>. Isso permite consultar o bit no laço principal. O bit só volta a 0 quando o programa o zera. Um estouro que acontece com o bit ainda em 1 se perde, porque um bit não conta até dois.</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Temporizador</th><th>Indicador</th><th>Habilitação</th><th>Para interromper (sem prioridades, <code>IPEN = 0</code>)</th></tr></thead>
+        <tbody>
+          <tr><td>Timer0</td><td><code>INTCONbits.TMR0IF</code> (bit 2)</td><td><code>INTCONbits.TMR0IE</code> (bit 5)</td><td><code>TMR0IE = 1</code>, <code>GIE = 1</code></td></tr>
+          <tr><td>Timer1</td><td><code>PIR1bits.TMR1IF</code> (bit 0)</td><td><code>PIE1bits.TMR1IE</code> (bit 0)</td><td><code>TMR1IE = 1</code>, <strong><code>PEIE = 1</code></strong>, <code>GIE = 1</code></td></tr>
+          <tr><td>Timer2</td><td><code>PIR1bits.TMR2IF</code> (bit 1)</td><td><code>PIE1bits.TMR2IE</code> (bit 1)</td><td><code>TMR2IE = 1</code>, <strong><code>PEIE = 1</code></strong>, <code>GIE = 1</code></td></tr>
+          <tr><td>Timer3</td><td><code>PIR2bits.TMR3IF</code> (bit 1)</td><td><code>PIE2bits.TMR3IE</code> (bit 1)</td><td><code>TMR3IE = 1</code>, <strong><code>PEIE = 1</code></strong>, <code>GIE = 1</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>O Timer0 fica em <code>INTCON</code>, junto das habilitações gerais. Os outros são periféricos e precisam também de <code>PEIE</code> (<code>INTCON</code> bit 6). Esquecer esse bit é o motivo mais comum de "a interrupção do Timer1 nunca acontece".</p>
+    </section>
+
+    <section>
+      <h2>Receitas prontas (F<sub>OSC</sub> = 16 MHz)</h2>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Objetivo</th><th>Temporizador</th><th class="num">Controle</th><th class="num">Carga</th><th>Bits</th></tr></thead>
+        <tbody>
+          <tr><td>Intervalo de 10 ms</td><td>Timer0, 16 bits</td><td class="num"><code>T0CON = 0x88</code></td><td class="num"><code>0x63C0</code></td><td class="num"><code>1000 1000</code></td></tr>
+          <tr><td>Intervalo de 1 s</td><td>Timer0, 16 bits</td><td class="num"><code>T0CON = 0x87</code></td><td class="num"><code>0xC2F7</code></td><td class="num"><code>1000 0111</code></td></tr>
+          <tr><td>Contar subidas em RA4</td><td>Timer0, 8 bits</td><td class="num"><code>T0CON = 0xE8</code></td><td class="num"><code>0x00</code></td><td class="num"><code>1110 1000</code></td></tr>
+          <tr><td>Contar descidas em RA4</td><td>Timer0, 8 bits</td><td class="num"><code>T0CON = 0xF8</code></td><td class="num"><code>0x00</code></td><td class="num"><code>1111 1000</code></td></tr>
+          <tr><td>Contar subidas em RA4</td><td>Timer0, 16 bits</td><td class="num"><code>T0CON = 0xA8</code></td><td class="num"><code>0x0000</code></td><td class="num"><code>1010 1000</code></td></tr>
+          <tr><td>Uma contagem a cada 4 subidas em RA4</td><td>Timer0, 8 bits</td><td class="num"><code>T0CON = 0xE1</code></td><td class="num"><code>0x00</code></td><td class="num"><code>1110 0001</code></td></tr>
+          <tr><td>Intervalo de 10 ms</td><td>Timer1, 16 bits</td><td class="num"><code>T1CON = 0x81</code></td><td class="num"><code>0x63C0</code></td><td class="num"><code>1000 0001</code></td></tr>
+          <tr><td>Contar subidas em RC0 (tacômetro)</td><td>Timer1, 16 bits</td><td class="num"><code>T1CON = 0x83</code></td><td class="num"><code>0x0000</code></td><td class="num"><code>1000 0011</code></td></tr>
+          <tr><td>Indicador a cada 10 ms, sem recarga</td><td>Timer2</td><td class="num"><code>T2CON = 0x4E</code></td><td class="num"><code>PR2 = 249</code></td><td class="num"><code>0100 1110</code></td></tr>
+          <tr><td>Base do PWM, 976,6 Hz, 10 bits</td><td>Timer2</td><td class="num"><code>T2CON = 0x06</code></td><td class="num"><code>PR2 = 255</code></td><td class="num"><code>0000 0110</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">Timer2 a cada 10 ms: 250 contagens (PR2 = 249) · 250 ns · 16 (divisor) · 10 (pós-divisor, <code>1001</code>) = 10 ms.</p>
+    </section>
+
+    <section>
+      <h2>Código de referência</h2>
+
+      <h3>Intervalo fixo com Timer0, consultando o indicador</h3>
+      <pre><code>#define PRECARGA  25536u              // 65536 - 40000: 10 ms a 250 ns
+
+static void t0_recarregar(void)
+{
+    TMR0H = (uint8_t)(PRECARGA &gt;&gt; 8);    // alto vai para o buffer
+    TMR0L = (uint8_t)(PRECARGA &amp; 0xFF);  // esta escrita transfere os dois
+}
+
+void t0_iniciar(void)
+{
+    t0_recarregar();
+    T0CON = 0x88;                 // ligado, 16 bits, interno, sem divisor
+    INTCONbits.TMR0IF = 0;
+}
+
+// no laco principal:
+if (INTCONbits.TMR0IF) {          // passaram 10 ms?
+    INTCONbits.TMR0IF = 0;        // o hardware nao zera
+    t0_recarregar();
+    /* ... */
+}</code></pre>
+
+      <h3>Contador de eventos em RA4 (8 bits)</h3>
+      <pre><code>TRISAbits.TRISA4 = 1;             // RA4 = T0CKI: entrada
+TMR0L = 0;
+T0CON = 0xE8;                     // ligado, 8 bits, pino T0CKI, subida, sem divisor
+
+for (;;) {
+    LATD = (uint8_t)~TMR0L;       // o processador so mostra; quem conta e o hardware
+}</code></pre>
+
+      <h3>Rotação do cooler: Timer1 conta, Timer0 marca 1 s</h3>
+      <pre><code>#define PRECARGA_1S  49911u           // 1 s com divisor 1:256
+
+TRISCbits.TRISC0 = 1;             // RC0 = T13CKI (SPEED): entrada
+TMR1H = 0; TMR1L = 0;
+T1CON = 0x83;                     // RD16, 1:1, sem oscilador, sincronizado, externo, ligado
+
+TMR0H = (uint8_t)(PRECARGA_1S &gt;&gt; 8);
+TMR0L = (uint8_t)(PRECARGA_1S &amp; 0xFF);
+T0CON = 0x87;                     // ligado, 16 bits, interno, 1:256
+INTCONbits.TMR0IF = 0;
+
+for (;;) {
+    if (INTCONbits.TMR0IF) {      // fechou a janela de 1 s
+        INTCONbits.TMR0IF = 0;
+        TMR0H = (uint8_t)(PRECARGA_1S &gt;&gt; 8);
+        TMR0L = (uint8_t)(PRECARGA_1S &amp; 0xFF);
+
+        uint8_t  lo = TMR1L;      // baixo primeiro: congela o alto
+        uint16_t pulsos = ((uint16_t)TMR1H &lt;&lt; 8) | lo;
+        TMR1H = 0; TMR1L = 0;     // nova janela
+
+        /* pulsos por segundo; rpm = pulsos * 60 / pulsos_por_volta */
+    }
+}</code></pre>
+
+      <h3>Indicador periódico com Timer2, sem recarga</h3>
+      <pre><code>PR2   = 249;                      // 250 contagens por volta
+TMR2  = 0;
+T2CON = 0x4E;                     // pos-divisor 1:10, ligado, divisor 1:16
+PIR1bits.TMR2IF = 0;
+
+// no laco principal:
+if (PIR1bits.TMR2IF) {            // a cada 10 ms, exatos
+    PIR1bits.TMR2IF = 0;          // nao ha pre-carga para refazer
+    /* ... */
+}</code></pre>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>Raoni F. S. Teixeira</span>
+    <span>DENE/UFMT</span>
+  </footer>
+
+</div>
+</body>
+</html>
