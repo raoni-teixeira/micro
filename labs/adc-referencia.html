@@ -19,16 +19,35 @@
   .formula { font-family: var(--mono); font-size: 0.95rem; background: var(--papel-2); padding: 0.4rem 0.6rem; }
   pre { background: var(--papel-2); padding: 0.8rem 1rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
 
+  .ref table th { vertical-align: bottom; }
+
+  /* Tabelas largas ocupam também a coluna de notas (texto + margem). */
+  .larga table { min-width: 38rem; }
+  @media (min-width: 58rem) {
+    .larga { width: calc(var(--col) + var(--mg-dx) + var(--mg-larg)); }
+  }
+
+  /* Diagrama de registrador: oito células de largura igual, com filete. */
+  .ref table.registrador { table-layout: fixed; font-size: 0.85rem; }
+  .ref table.registrador th, .ref table.registrador td {
+    text-align: center; padding: 0.3rem 0.2rem; border: 1px solid var(--regra); }
+  .ref table.registrador th { border-bottom-color: var(--tinta); color: var(--cinza-c); font-weight: 500; }
+  .ref table.registrador td { border-bottom: 1px solid var(--tinta); }
+  .registrador .nada { color: var(--cinza-c); }
+  .registrador small { display: block; font-size: 0.8rem; color: var(--cinza); }
+
   /* Células de analógico e digital */
-  .an { font-weight: 700; color: #9B1C1C; text-align: center; }
+  .an { font-weight: 700; color: var(--vermelho); text-align: center; }
   .dig { color: var(--cinza-c); text-align: center; }
-  .linha-destaque { background-color: var(--papel-2); font-weight: 600; }
-  .badge { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.1rem 0.3rem; border-radius: 2px; }
-  .badge-reset { background: #e2e8f0; color: #334155; }
-  .badge-padrao { background: #e0f2fe; color: #0369a1; }
-  
+  .linha-destaque { background-color: var(--papel-2); }
+  .badge { display: block; width: fit-content; margin-top: 0.1rem; font-size: 0.68rem; text-transform: uppercase;
+           letter-spacing: 0.05em; padding: 0 0.3rem; border: 1px solid var(--regra); color: var(--cinza);
+           white-space: nowrap; }
+
   @media print {
     .pagina { padding-top: 0; }
+    .pagina > main { max-width: none; }
+    .larga { width: auto; }
     h2 { margin-top: 1rem; }
     .naoimprime { display: none; }
   }
@@ -74,7 +93,7 @@
       <h2>Tensões de referência e degrau de quantização</h2>
       <p>As referências de tensão superior (V<sub>REF+</sub>) e inferior (V<sub>REF-</sub>) determinam os extremos da régua de medição. Elas são selecionadas pelos bits <strong><code>VCFG0</code></strong> (bit 4) e <strong><code>VCFG1</code></strong> (bit 5) de <code>ADCON1</code>:</p>
 
-      <div class="tabela-rolavel">
+      <div class="tabela-rolavel larga">
       <table>
         <thead>
           <tr>
@@ -131,10 +150,10 @@
     <section>
       <h2>Tabela de configuração de portas: <code>PCFG&lt;3:0&gt;</code></h2>
       <p>Estado de cada pino segundo o valor gravado nos bits <code>PCFG3:PCFG0</code> de <code>ADCON1</code>. <br>
-      <strong style="color: #9B1C1C;">A</strong> = Entrada analógica (buffer digital desconectado; leitura em <code>PORTx</code> retorna 0). <br>
+      <strong class="an">A</strong> = Entrada analógica (buffer digital desconectado; leitura em <code>PORTx</code> retorna 0). <br>
       <strong>D</strong> = Entrada/saída digital comum.</p>
 
-      <div class="tabela-rolavel">
+      <div class="tabela-rolavel larga">
       <table>
         <thead>
           <tr>
@@ -163,7 +182,7 @@
             <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
             <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
             <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
-            <td><strong>Tudo digital</strong> <span class="badge badge-padrao">Padrão R0–R4</span></td>
+            <td><strong>Tudo digital</strong> <span class="badge">Padrão R0–R4</span></td>
           </tr>
           <tr class="linha-destaque">
             <td><code>1110</code></td>
@@ -171,7 +190,7 @@
             <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
             <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
             <td class="dig">D</td><td class="dig">D</td><td class="an">A</td>
-            <td><strong>Só AN0 analógico</strong> <span class="badge badge-padrao">Uso no R5 (LM35)</span></td>
+            <td><strong>Só AN0 analógico</strong> <span class="badge">Uso no R5 (LM35)</span></td>
           </tr>
           <tr>
             <td><code>1101</code></td>
@@ -227,7 +246,7 @@
             <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
             <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
             <td class="an">A</td><td class="an">A</td><td class="an">A</td>
-            <td><strong>Reset com PBADEN = 0</strong> <span class="badge badge-reset">Bootloader do kit</span></td>
+            <td><strong>Reset com PBADEN = 0</strong> <span class="badge">Bootloader do kit</span></td>
           </tr>
           <tr>
             <td><code>0110</code></td>
@@ -283,7 +302,7 @@
             <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
             <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
             <td class="an">A</td><td class="an">A</td><td class="an">A</td>
-            <td><strong>Reset com PBADEN = 1</strong> <span class="badge badge-reset">Chip virgem de fábrica</span></td>
+            <td><strong>Reset com PBADEN = 1</strong> <span class="badge">Chip virgem de fábrica</span></td>
           </tr>
         </tbody>
       </table>
@@ -295,7 +314,7 @@
 
       <h3>1. <code>ADCON0</code> — Seleção de canal e disparo</h3>
       <div class="tabela-rolavel">
-      <table>
+      <table class="registrador">
         <thead>
           <tr>
             <th class="num">b7</th><th class="num">b6</th>
@@ -305,8 +324,8 @@
         </thead>
         <tbody>
           <tr>
-            <td class="num">—</td><td class="num">—</td>
-            <td class="num" colspan="4"><code>CHS3:CHS0</code> (Canal analógico)</td>
+            <td class="nada">—</td><td class="nada">—</td>
+            <td class="num" colspan="4"><code>CHS3:CHS0</code><small>Canal analógico</small></td>
             <td class="num"><code>GO/DONE</code></td>
             <td class="num"><code>ADON</code></td>
           </tr>
@@ -321,7 +340,7 @@
 
       <h3>2. <code>ADCON1</code> — Referências e portas</h3>
       <div class="tabela-rolavel">
-      <table>
+      <table class="registrador">
         <thead>
           <tr>
             <th class="num">b7</th><th class="num">b6</th>
@@ -331,9 +350,9 @@
         </thead>
         <tbody>
           <tr>
-            <td class="num">—</td><td class="num">—</td>
+            <td class="nada">—</td><td class="nada">—</td>
             <td class="num"><code>VCFG1</code></td><td class="num"><code>VCFG0</code></td>
-            <td class="num" colspan="4"><code>PCFG3:PCFG0</code> (Fronteira de portas)</td>
+            <td class="num" colspan="4"><code>PCFG3:PCFG0</code><small>Fronteira de portas</small></td>
           </tr>
         </tbody>
       </table>
@@ -345,7 +364,7 @@
 
       <h3>3. <code>ADCON2</code> — Formatação de resultado, aquisição e relógio</h3>
       <div class="tabela-rolavel">
-      <table>
+      <table class="registrador">
         <thead>
           <tr>
             <th class="num">b7</th><th class="num">b6</th>
@@ -356,9 +375,9 @@
         <tbody>
           <tr>
             <td class="num"><code>ADFM</code></td>
-            <td class="num">—</td>
-            <td class="num" colspan="3"><code>ACQT2:ACQT0</code> (Tempo de aquisição)</td>
-            <td class="num" colspan="3"><code>ADCS2:ADCS0</code> (Divisor de clock)</td>
+            <td class="nada">—</td>
+            <td class="num" colspan="3"><code>ACQT2:ACQT0</code><small>Tempo de aquisição</small></td>
+            <td class="num" colspan="3"><code>ADCS2:ADCS0</code><small>Divisor de clock</small></td>
           </tr>
         </tbody>
       </table>
@@ -381,7 +400,7 @@
       <h2>Mapeamento de pinos físicos e canais analógicos (DIP 40)</h2>
       <p>Correspondência entre o número do pino físico no encapsulamento DIP de 40 pinos, a porta digital correspondente e o canal analógico. Repare no salto de pinos e na ordem invertida do PORTB:</p>
 
-      <div class="tabela-rolavel">
+      <div class="tabela-rolavel larga">
       <table>
         <thead>
           <tr>
