@@ -13,10 +13,12 @@
   .ref table td { border-bottom: 1px solid var(--regra); padding: 0.25rem 0.4rem 0.25rem 0; vertical-align: middle; }
   .ref table tr:last-child td { border-bottom: 1px solid var(--tinta); }
   .ref table thead tr th:first-child, .ref table td:first-child { padding-left: 0; }
-  .ref code { background: none; padding: 0; font-size: 0.88em; white-space: nowrap; }
+  .ref code:not(pre code) { background: none; padding: 0; font-size: 0.88em; white-space: nowrap; }
   .num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: center; }
   .tabela-rolavel { overflow-x: auto; margin-bottom: 1rem; }
-  
+  .formula { font-family: var(--mono); font-size: 0.95rem; background: var(--papel-2); padding: 0.4rem 0.6rem; }
+  pre { background: var(--papel-2); padding: 0.8rem 1rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+
   /* Células de analógico e digital */
   .an { font-weight: 700; color: #9B1C1C; text-align: center; }
   .dig { color: var(--cinza-c); text-align: center; }
@@ -48,7 +50,7 @@
       <h2>A ideia dos projetistas: 13 pinos, 4 bits e o deslizamento</h2>
       <p>O PIC18F4550 possui <strong>13 canais analógicos</strong> (AN0 a AN12) multiplexados com pinos de entrada e saída digital de PORTA, PORTE e PORTB. Para permitir que cada pino fosse configurado individualmente de forma independente (como fazem microcontroladores modernos através de registradores como o <code>ANSEL</code>), seriam necessários 13 bits dedicados — quase dois bytes inteiros de controle só para essa função.</p>
       
-      <p>Na arquitetura herdada do PIC16, os projetistas da Microchip reservaram apenas <strong>4 bits</strong> em <code>ADCON1</code> (<code>PCFG3:PCFG0</code>). Com 4 bits, existem exatamente 16 combinações possíveis ($2^4 = 16$), incapazes de cobrir as 8.192 combinações de 13 pinos independentes ($2^{13}$).</p>
+      <p>Na arquitetura herdada do PIC16, os projetistas da Microchip reservaram apenas <strong>4 bits</strong> em <code>ADCON1</code> (<code>PCFG3:PCFG0</code>). Com 4 bits, existem exatamente 16 combinações possíveis (2<sup>4</sup> = 16), incapazes de cobrir as 8.192 combinações de 13 pinos independentes (2<sup>13</sup>).</p>
 
       <p>A solução adotada foi a <strong>fronteira de deslizamento</strong> (ou escada cumulativa): o valor de <code>PCFG</code> não funciona como uma máscara individual de pinos, mas como uma fronteira contínua. À medida que o valor numérico de <code>PCFG</code> decresce de <code>1111</code> (15) para <code>0000</code> (0), mais pinos vão virando analógicos, sempre em ordem cumulativa a partir de AN0:</p>
 
@@ -70,7 +72,7 @@
 
     <section>
       <h2>Tensões de referência e degrau de quantização</h2>
-      <p>As referências de tensão superior ($V_{\text{REF+}}$) e inferior ($V_{\text{REF-}}$) determinam os extremos da régua de medição. Elas são selecionadas pelos bits <strong><code>VCFG0</code></strong> (bit 4) e <strong><code>VCFG1</code></strong> (bit 5) de <code>ADCON1</code>:</p>
+      <p>As referências de tensão superior (V<sub>REF+</sub>) e inferior (V<sub>REF-</sub>) determinam os extremos da régua de medição. Elas são selecionadas pelos bits <strong><code>VCFG0</code></strong> (bit 4) e <strong><code>VCFG1</code></strong> (bit 5) de <code>ADCON1</code>:</p>
 
       <div class="tabela-rolavel">
       <table>
@@ -78,8 +80,8 @@
           <tr>
             <th>Configuração</th>
             <th><code>VCFG1:VCFG0</code></th>
-            <th>$V_{\text{REF+}}$ (Fundo de escala)</th>
-            <th>$V_{\text{REF-}}$ (Zero da escala)</th>
+            <th>V<sub>REF+</sub> (Fundo de escala)</th>
+            <th>V<sub>REF-</sub> (Zero da escala)</th>
             <th>Observação</th>
           </tr>
         </thead>
@@ -87,21 +89,21 @@
           <tr class="linha-destaque">
             <td><strong>Padrão do curso</strong></td>
             <td class="num"><code>00</code></td>
-            <td>$V_{DD}$ (Alimentação / VCC, ~5 V)</td>
-            <td>$V_{SS}$ (Terra / GND, 0 V)</td>
+            <td>V<sub>DD</sub> (Alimentação / VCC, ~5 V)</td>
+            <td>V<sub>SS</sub> (Terra / GND, 0 V)</td>
             <td>A própria alimentação do kit serve de referência</td>
           </tr>
           <tr>
             <td>Referência externa positiva</td>
             <td class="num"><code>01</code></td>
             <td>Pino <strong>AN3 / RA3</strong></td>
-            <td>$V_{SS}$ (Terra / GND)</td>
+            <td>V<sub>SS</sub> (Terra / GND)</td>
             <td>Permite fundo de escala menor (ex.: 2,5 V ou 3,3 V)</td>
           </tr>
           <tr>
             <td>Referência externa negativa</td>
             <td class="num"><code>10</code></td>
-            <td>$V_{DD}$ (Alimentação)</td>
+            <td>V<sub>DD</sub> (Alimentação)</td>
             <td>Pino <strong>AN2 / RA2</strong></td>
             <td>Desloca o zero da escala para cima</td>
           </tr>
@@ -116,17 +118,13 @@
       </table>
       </div>
 
-      <p>Com o conversor de 10 bits ($2^{10} = 1024$ códigos possíveis de 0 a 1023), o degrau correspondente a 1 bit menos significativo (1 LSB) vale:</p>
-      
-      <p class="margem" style="font-family: var(--mono); font-size: 0.95rem;">
-        1 LSB = (V<sub>REF+</sub> - V<sub>REF-</sub>) / 1024
-      </p>
+      <p>Com o conversor de 10 bits (2<sup>10</sup> = 1024 códigos possíveis de 0 a 1023), o degrau correspondente a 1 bit menos significativo (1 LSB) vale:</p>
 
-      <p>Com alimentação nominal de 5,00 V e referências em $V_{DD}$ e $V_{SS}$ (<code>00</code>):</p>
-      <p class="margem" style="font-family: var(--mono); font-size: 0.95rem;">
-        1 LSB = 5000 mV / 1024 ≈ 4,8828 mV
-      </p>
-      
+      <p class="formula">1 LSB = (V<sub>REF+</sub> - V<sub>REF-</sub>) / 1024</p>
+
+      <p>Com alimentação nominal de 5,00 V e referências em V<sub>DD</sub> e V<sub>SS</sub> (<code>00</code>):</p>
+      <p class="formula">1 LSB = 5000 mV / 1024 ≈ 4,8828 mV</p>
+
       <p class="margem"><strong>Atenção na bancada:</strong> Se a fonte do kit alimentar o microcontrolador com 4,80 V, o valor de 1 LSB cai para 4,6875 mV. Se o cálculo no código assumir 5,00 V fixos, a conversão resultará em uma leitura aproximadamente 4% acima do valor real.</p>
     </section>
 
@@ -341,7 +339,7 @@
       </table>
       </div>
       <ul>
-        <li><code>VCFG1:VCFG0</code>: <code>00</code> seleciona $V_{DD}$ e $V_{SS}$ como referências.</li>
+        <li><code>VCFG1:VCFG0</code>: <code>00</code> seleciona V<sub>DD</sub> e V<sub>SS</sub> como referências.</li>
         <li><code>PCFG3:PCFG0</code>: Define a fronteira entre canais analógicos e digitais (veja a tabela acima).</li>
       </ul>
 
@@ -373,9 +371,9 @@
           </ul>
         </li>
         <li><code>ACQT2:ACQT0</code>: Tempo que o hardware aguarda o capacitor de amostragem carregar após o <code>GO = 1</code> antes de iniciar a conversão sucessiva.
-          <code>000</code> = 0 $T_{\text{AD}}$, <code>001</code> = 2 $T_{\text{AD}}$, <code>010</code> = 4 $T_{\text{AD}}$, <code>011</code> = 6 $T_{\text{AD}}$, <code>100</code> = 8 $T_{\text{AD}}$, <code>101</code> = 12 $T_{\text{AD}}$, <code>110</code> = 16 $T_{\text{AD}}$, <code>111</code> = 20 $T_{\text{AD}}$. O padrão do curso é <code>010</code> (4 $T_{\text{AD}}$).</li>
-        <li><code>ADCS2:ADCS0</code>: Divisor do oscilador do sistema para gerar o período de conversão $T_{\text{AD}}$. Para $F_{\text{OSC}} = 16\text{ MHz}$, a folha de dados exige $T_{\text{AD}} \ge 0{,}7\,\mu\text{s}$.
-          O valor <code>101</code> seleciona $F_{\text{OSC}} / 16$, resultando em $T_{\text{AD}} = 1{,}0\,\mu\text{s}$.</li>
+          <code>000</code> = 0 T<sub>AD</sub>, <code>001</code> = 2 T<sub>AD</sub>, <code>010</code> = 4 T<sub>AD</sub>, <code>011</code> = 6 T<sub>AD</sub>, <code>100</code> = 8 T<sub>AD</sub>, <code>101</code> = 12 T<sub>AD</sub>, <code>110</code> = 16 T<sub>AD</sub>, <code>111</code> = 20 T<sub>AD</sub>. O padrão do curso é <code>010</code> (4 T<sub>AD</sub>).</li>
+        <li><code>ADCS2:ADCS0</code>: Divisor do oscilador do sistema para gerar o período de conversão T<sub>AD</sub>. Para F<sub>OSC</sub> = 16 MHz, a folha de dados exige T<sub>AD</sub> ≥ 0,7 µs.
+          O valor <code>101</code> seleciona F<sub>OSC</sub> / 16, resultando em T<sub>AD</sub> = 1,0 µs.</li>
       </ul>
     </section>
 
