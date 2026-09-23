@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conversor A/D (PIC18F4550) — Folha de Referência</title>
+<link rel="stylesheet" href="../estilo.css">
+<style>
+  /* Folha de consulta: densa, tipografia precisa, ideal para tela e impressão. */
+  .ref table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin-bottom: 0.8rem; }
+  .ref table th { text-align: left; font-weight: 700; font-size: 0.78rem;
+                  letter-spacing: 0.04em; border-bottom: 1px solid var(--tinta); padding: 0.3rem 0.4rem 0.3rem 0; }
+  .ref table td { border-bottom: 1px solid var(--regra); padding: 0.25rem 0.4rem 0.25rem 0; vertical-align: middle; }
+  .ref table tr:last-child td { border-bottom: 1px solid var(--tinta); }
+  .ref table thead tr th:first-child, .ref table td:first-child { padding-left: 0; }
+  .ref code { background: none; padding: 0; font-size: 0.88em; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: center; }
+  .tabela-rolavel { overflow-x: auto; margin-bottom: 1rem; }
+  
+  /* Células de analógico e digital */
+  .an { font-weight: 700; color: #9B1C1C; text-align: center; }
+  .dig { color: var(--cinza-c); text-align: center; }
+  .linha-destaque { background-color: var(--papel-2); font-weight: 600; }
+  .badge { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.1rem 0.3rem; border-radius: 2px; }
+  .badge-reset { background: #e2e8f0; color: #334155; }
+  .badge-padrao { background: #e0f2fe; color: #0369a1; }
+  
+  @media print {
+    .pagina { padding-top: 0; }
+    h2 { margin-top: 1rem; }
+    .naoimprime { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="pagina ref">
+
+  <header>
+    <p class="corrente naoimprime"><a href="./index.html">← Laboratório</a><span>Folha de referência</span></p>
+    <h1>Conversor A/D (PIC18F4550) — Folha de Referência</h1>
+    <p class="subtitulo">A fronteira de deslizamento de PCFG, registradores e tensões de referência</p>
+    <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Consulta permitida</span></p>
+  </header>
+
+  <main>
+
+    <section>
+      <h2>A ideia dos projetistas: 13 pinos, 4 bits e o deslizamento</h2>
+      <p>O PIC18F4550 possui <strong>13 canais analógicos</strong> (AN0 a AN12) multiplexados com pinos de entrada e saída digital de PORTA, PORTE e PORTB. Para permitir que cada pino fosse configurado individualmente de forma independente (como fazem microcontroladores modernos através de registradores como o <code>ANSEL</code>), seriam necessários 13 bits dedicados — quase dois bytes inteiros de controle só para essa função.</p>
+      
+      <p>Na arquitetura herdada do PIC16, os projetistas da Microchip reservaram apenas <strong>4 bits</strong> em <code>ADCON1</code> (<code>PCFG3:PCFG0</code>). Com 4 bits, existem exatamente 16 combinações possíveis ($2^4 = 16$), incapazes de cobrir as 8.192 combinações de 13 pinos independentes ($2^{13}$).</p>
+
+      <p>A solução adotada foi a <strong>fronteira de deslizamento</strong> (ou escada cumulativa): o valor de <code>PCFG</code> não funciona como uma máscara individual de pinos, mas como uma fronteira contínua. À medida que o valor numérico de <code>PCFG</code> decresce de <code>1111</code> (15) para <code>0000</code> (0), mais pinos vão virando analógicos, sempre em ordem cumulativa a partir de AN0:</p>
+
+      <p class="passagem">
+        <span class="rotulo">Regra de ouro</span>
+        <strong>Não é possível habilitar um canal isolado sem habilitar todos os anteriores.</strong> Se um projeto precisa ler um sensor analógico em AN4, os canais AN0, AN1, AN2 e AN3 tornam-se compulsoriamente analógicos, e seus buffers de entrada digital são desligados.
+      </p>
+
+      <p><strong>A ordem não-linear do PORTB:</strong> Enquanto nos conectores de PORTA e PORTE os canais seguem a numeração física, no PORTB a ordem foi definida por razões de traçado interno de silício:</p>
+      <ul>
+        <li><code>RB0 = AN12</code> (o último canal analógico da escala de deslizamento)</li>
+        <li><code>RB1 = AN10</code></li>
+        <li><code>RB2 = AN8</code></li>
+        <li><code>RB3 = AN9</code></li>
+        <li><code>RB4 = AN11</code></li>
+      </ul>
+      <p>É por isso que na configuração herdada do bootloader (<code>PCFG = 0111</code>), AN0 a AN7 são analógicos, mas AN8 a AN12 (todo o PORTB) continuam como entradas digitais funcionais.</p>
+    </section>
+
+    <section>
+      <h2>Tensões de referência e degrau de quantização</h2>
+      <p>As referências de tensão superior ($V_{\text{REF+}}$) e inferior ($V_{\text{REF-}}$) determinam os extremos da régua de medição. Elas são selecionadas pelos bits <strong><code>VCFG0</code></strong> (bit 4) e <strong><code>VCFG1</code></strong> (bit 5) de <code>ADCON1</code>:</p>
+
+      <div class="tabela-rolavel">
+      <table>
+        <thead>
+          <tr>
+            <th>Configuração</th>
+            <th><code>VCFG1:VCFG0</code></th>
+            <th>$V_{\text{REF+}}$ (Fundo de escala)</th>
+            <th>$V_{\text{REF-}}$ (Zero da escala)</th>
+            <th>Observação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="linha-destaque">
+            <td><strong>Padrão do curso</strong></td>
+            <td class="num"><code>00</code></td>
+            <td>$V_{DD}$ (Alimentação / VCC, ~5 V)</td>
+            <td>$V_{SS}$ (Terra / GND, 0 V)</td>
+            <td>A própria alimentação do kit serve de referência</td>
+          </tr>
+          <tr>
+            <td>Referência externa positiva</td>
+            <td class="num"><code>01</code></td>
+            <td>Pino <strong>AN3 / RA3</strong></td>
+            <td>$V_{SS}$ (Terra / GND)</td>
+            <td>Permite fundo de escala menor (ex.: 2,5 V ou 3,3 V)</td>
+          </tr>
+          <tr>
+            <td>Referência externa negativa</td>
+            <td class="num"><code>10</code></td>
+            <td>$V_{DD}$ (Alimentação)</td>
+            <td>Pino <strong>AN2 / RA2</strong></td>
+            <td>Desloca o zero da escala para cima</td>
+          </tr>
+          <tr>
+            <td>Ambas externas</td>
+            <td class="num"><code>11</code></td>
+            <td>Pino <strong>AN3 / RA3</strong></td>
+            <td>Pino <strong>AN2 / RA2</strong></td>
+            <td>Janela de conversão flutuante</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+
+      <p>Com o conversor de 10 bits ($2^{10} = 1024$ códigos possíveis de 0 a 1023), o degrau correspondente a 1 bit menos significativo (1 LSB) vale:</p>
+      
+      <p class="margem" style="font-family: var(--mono); font-size: 0.95rem;">
+        1 LSB = (V<sub>REF+</sub> - V<sub>REF-</sub>) / 1024
+      </p>
+
+      <p>Com alimentação nominal de 5,00 V e referências em $V_{DD}$ e $V_{SS}$ (<code>00</code>):</p>
+      <p class="margem" style="font-family: var(--mono); font-size: 0.95rem;">
+        1 LSB = 5000 mV / 1024 ≈ 4,8828 mV
+      </p>
+      
+      <p class="margem"><strong>Atenção na bancada:</strong> Se a fonte do kit alimentar o microcontrolador com 4,80 V, o valor de 1 LSB cai para 4,6875 mV. Se o cálculo no código assumir 5,00 V fixos, a conversão resultará em uma leitura aproximadamente 4% acima do valor real.</p>
+    </section>
+
+    <section>
+      <h2>Tabela de configuração de portas: <code>PCFG&lt;3:0&gt;</code></h2>
+      <p>Estado de cada pino segundo o valor gravado nos bits <code>PCFG3:PCFG0</code> de <code>ADCON1</code>. <br>
+      <strong style="color: #9B1C1C;">A</strong> = Entrada analógica (buffer digital desconectado; leitura em <code>PORTx</code> retorna 0). <br>
+      <strong>D</strong> = Entrada/saída digital comum.</p>
+
+      <div class="tabela-rolavel">
+      <table>
+        <thead>
+          <tr>
+            <th><code>PCFG</code></th>
+            <th class="num">Hex</th>
+            <th class="num">AN12<br><code>RB0</code></th>
+            <th class="num">AN11<br><code>RB4</code></th>
+            <th class="num">AN10<br><code>RB1</code></th>
+            <th class="num">AN9<br><code>RB3</code></th>
+            <th class="num">AN8<br><code>RB2</code></th>
+            <th class="num">AN7<br><code>RE2</code></th>
+            <th class="num">AN6<br><code>RE1</code></th>
+            <th class="num">AN5<br><code>RE0</code></th>
+            <th class="num">AN4<br><code>RA5</code></th>
+            <th class="num">AN3<br><code>RA3</code></th>
+            <th class="num">AN2<br><code>RA2</code></th>
+            <th class="num">AN1<br><code>RA1</code></th>
+            <th class="num">AN0<br><code>RA0</code></th>
+            <th>Aplicação / Significado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="linha-destaque">
+            <td><code>1111</code></td>
+            <td class="num"><code>0x0F</code></td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td><strong>Tudo digital</strong> <span class="badge badge-padrao">Padrão R0–R4</span></td>
+          </tr>
+          <tr class="linha-destaque">
+            <td><code>1110</code></td>
+            <td class="num"><code>0x0E</code></td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="dig">D</td><td class="dig">D</td><td class="an">A</td>
+            <td><strong>Só AN0 analógico</strong> <span class="badge badge-padrao">Uso no R5 (LM35)</span></td>
+          </tr>
+          <tr>
+            <td><code>1101</code></td>
+            <td class="num"><code>0x0D</code></td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="dig">D</td><td class="an">A</td><td class="an">A</td>
+            <td>AN0 e AN1 analógicos</td>
+          </tr>
+          <tr>
+            <td><code>1100</code></td>
+            <td class="num"><code>0x0C</code></td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td>AN0 a AN2 analógicos</td>
+          </tr>
+          <tr>
+            <td><code>1011</code></td>
+            <td class="num"><code>0x0B</code></td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td>AN0 a AN3 analógicos</td>
+          </tr>
+          <tr>
+            <td><code>1010</code></td>
+            <td class="num"><code>0x0A</code></td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td>AN0 a AN4 analógicos</td>
+          </tr>
+          <tr>
+            <td><code>1001</code></td>
+            <td class="num"><code>0x09</code></td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="dig">D</td><td class="dig">D</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td>AN0 a AN5 analógicos</td>
+          </tr>
+          <tr>
+            <td><code>1000</code></td>
+            <td class="num"><code>0x08</code></td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="dig">D</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td>AN0 a AN6 analógicos</td>
+          </tr>
+          <tr class="linha-destaque">
+            <td><code>0111</code></td>
+            <td class="num"><code>0x07</code></td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td><strong>Reset com PBADEN = 0</strong> <span class="badge badge-reset">Bootloader do kit</span></td>
+          </tr>
+          <tr>
+            <td><code>0110</code></td>
+            <td class="num"><code>0x06</code></td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td>AN0 a AN8 analógicos</td>
+          </tr>
+          <tr>
+            <td><code>0101</code></td>
+            <td class="num"><code>0x05</code></td>
+            <td class="dig">D</td><td class="dig">D</td><td class="dig">D</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td>AN0 a AN9 analógicos</td>
+          </tr>
+          <tr>
+            <td><code>0100</code></td>
+            <td class="num"><code>0x04</code></td>
+            <td class="dig">D</td><td class="dig">D</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td>AN0 a AN10 analógicos</td>
+          </tr>
+          <tr>
+            <td><code>0011</code></td>
+            <td class="num"><code>0x03</code></td>
+            <td class="dig">D</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td>AN0 a AN11 analógicos</td>
+          </tr>
+          <tr>
+            <td><code>0010</code></td>
+            <td class="num"><code>0x02</code></td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td>Todos os 13 canais analógicos</td>
+          </tr>
+          <tr>
+            <td><code>0001</code></td>
+            <td class="num"><code>0x01</code></td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td>Todos os 13 canais analógicos</td>
+          </tr>
+          <tr class="linha-destaque">
+            <td><code>0000</code></td>
+            <td class="num"><code>0x00</code></td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td class="an">A</td><td class="an">A</td><td class="an">A</td>
+            <td><strong>Reset com PBADEN = 1</strong> <span class="badge badge-reset">Chip virgem de fábrica</span></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Registradores de controle do conversor A/D</h2>
+
+      <h3>1. <code>ADCON0</code> — Seleção de canal e disparo</h3>
+      <div class="tabela-rolavel">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">b7</th><th class="num">b6</th>
+            <th class="num">b5</th><th class="num">b4</th><th class="num">b3</th><th class="num">b2</th>
+            <th class="num">b1</th><th class="num">b0</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="num">—</td><td class="num">—</td>
+            <td class="num" colspan="4"><code>CHS3:CHS0</code> (Canal analógico)</td>
+            <td class="num"><code>GO/DONE</code></td>
+            <td class="num"><code>ADON</code></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <ul>
+        <li><code>CHS3:CHS0</code>: Seleciona o canal a ser medido. <code>0000</code> = AN0, <code>0001</code> = AN1, ..., <code>1100</code> = AN12. (Valores <code>1101</code> a <code>1111</code> não implementados).</li>
+        <li><code>GO/DONE</code>: Escrita de <code>1</code> inicia a conversão. O hardware zera este bit automaticamente ao terminar.</li>
+        <li><code>ADON</code>: <code>1</code> liga o circuito interno do módulo A/D; <code>0</code> desliga (economiza energia).</li>
+      </ul>
+
+      <h3>2. <code>ADCON1</code> — Referências e portas</h3>
+      <div class="tabela-rolavel">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">b7</th><th class="num">b6</th>
+            <th class="num">b5</th><th class="num">b4</th>
+            <th class="num">b3</th><th class="num">b2</th><th class="num">b1</th><th class="num">b0</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="num">—</td><td class="num">—</td>
+            <td class="num"><code>VCFG1</code></td><td class="num"><code>VCFG0</code></td>
+            <td class="num" colspan="4"><code>PCFG3:PCFG0</code> (Fronteira de portas)</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <ul>
+        <li><code>VCFG1:VCFG0</code>: <code>00</code> seleciona $V_{DD}$ e $V_{SS}$ como referências.</li>
+        <li><code>PCFG3:PCFG0</code>: Define a fronteira entre canais analógicos e digitais (veja a tabela acima).</li>
+      </ul>
+
+      <h3>3. <code>ADCON2</code> — Formatação de resultado, aquisição e relógio</h3>
+      <div class="tabela-rolavel">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">b7</th><th class="num">b6</th>
+            <th class="num">b5</th><th class="num">b4</th><th class="num">b3</th>
+            <th class="num">b2</th><th class="num">b1</th><th class="num">b0</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="num"><code>ADFM</code></td>
+            <td class="num">—</td>
+            <td class="num" colspan="3"><code>ACQT2:ACQT0</code> (Tempo de aquisição)</td>
+            <td class="num" colspan="3"><code>ADCS2:ADCS0</code> (Divisor de clock)</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <ul>
+        <li><code>ADFM</code>: Alinhamento do resultado de 10 bits no par <code>ADRESH:ADRESL</code>.
+          <ul>
+            <li><code>1</code> = <strong>Alinhado à direita</strong>: <code>ADRESH</code> contém os 2 bits superiores (bits 9 e 8) e <code>ADRESL</code> contém os 8 bits inferiores. Leitura direta como <code>uint16_t</code>: <code>((uint16_t)ADRESH &lt;&lt; 8) | ADRESL</code>.</li>
+            <li><code>0</code> = <strong>Alinhado à esquerda</strong>: Útil para truncar a leitura para 8 bits rápidos apenas lendo <code>ADRESH</code>.</li>
+          </ul>
+        </li>
+        <li><code>ACQT2:ACQT0</code>: Tempo que o hardware aguarda o capacitor de amostragem carregar após o <code>GO = 1</code> antes de iniciar a conversão sucessiva.
+          <code>000</code> = 0 $T_{\text{AD}}$, <code>001</code> = 2 $T_{\text{AD}}$, <code>010</code> = 4 $T_{\text{AD}}$, <code>011</code> = 6 $T_{\text{AD}}$, <code>100</code> = 8 $T_{\text{AD}}$, <code>101</code> = 12 $T_{\text{AD}}$, <code>110</code> = 16 $T_{\text{AD}}$, <code>111</code> = 20 $T_{\text{AD}}$. O padrão do curso é <code>010</code> (4 $T_{\text{AD}}$).</li>
+        <li><code>ADCS2:ADCS0</code>: Divisor do oscilador do sistema para gerar o período de conversão $T_{\text{AD}}$. Para $F_{\text{OSC}} = 16\text{ MHz}$, a folha de dados exige $T_{\text{AD}} \ge 0{,}7\,\mu\text{s}$.
+          O valor <code>101</code> seleciona $F_{\text{OSC}} / 16$, resultando em $T_{\text{AD}} = 1{,}0\,\mu\text{s}$.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Mapeamento de pinos físicos e canais analógicos (DIP 40)</h2>
+      <p>Correspondência entre o número do pino físico no encapsulamento DIP de 40 pinos, a porta digital correspondente e o canal analógico. Repare no salto de pinos e na ordem invertida do PORTB:</p>
+
+      <div class="tabela-rolavel">
+      <table>
+        <thead>
+          <tr>
+            <th>Canal</th>
+            <th class="num">Pino DIP</th>
+            <th>Porta I/O</th>
+            <th>Outras funções multiplexadas</th>
+            <th>Conexão no kit didático</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>AN0</code></td><td class="num">2</td><td><code>RA0</code></td><td>—</td><td>Sensor de temperatura <strong>LM35</strong> (chave <code>CH1-7</code>)</td></tr>
+          <tr><td><code>AN1</code></td><td class="num">3</td><td><code>RA1</code></td><td>—</td><td>Potenciômetro P1 (chave <code>CH1-1</code>)</td></tr>
+          <tr><td><code>AN2</code></td><td class="num">4</td><td><code>RA2</code></td><td><code>VREF-</code>, <code>CVREF</code></td><td>Referência negativa externa</td></tr>
+          <tr><td><code>AN3</code></td><td class="num">5</td><td><code>RA3</code></td><td><code>VREF+</code></td><td>Referência positiva externa</td></tr>
+          <tr><td><code>AN4</code></td><td class="num">7</td><td><code>RA5</code></td><td>—</td><td>—</td></tr>
+          <tr><td><code>AN5</code></td><td class="num">8</td><td><code>RE0</code></td><td><code>RD</code>, <code>CK1SPP</code></td><td>Linha de controle do LCD (se em modo paralelo)</td></tr>
+          <tr><td><code>AN6</code></td><td class="num">9</td><td><code>RE1</code></td><td><code>WR</code>, <code>CK2SPP</code></td><td>Linha de controle do LCD</td></tr>
+          <tr><td><code>AN7</code></td><td class="num">10</td><td><code>RE2</code></td><td><code>CS</code>, <code>OESPP</code></td><td>Linha de controle do LCD</td></tr>
+          <tr><td><code>AN8</code></td><td class="num">35</td><td><code>RB2</code></td><td><code>INT2</code>, <code>VMO</code></td><td>Chave SWITCH / Teclado matricial</td></tr>
+          <tr><td><code>AN9</code></td><td class="num">36</td><td><code>RB3</code></td><td><code>CCP2</code>, <code>VPO</code></td><td>Chave SWITCH / Teclado matricial</td></tr>
+          <tr><td><code>AN10</code></td><td class="num">34</td><td><code>RB1</code></td><td><code>INT1</code>, <code>SCK/SCL</code></td><td>Chave SWITCH / Teclado matricial</td></tr>
+          <tr><td><code>AN11</code></td><td class="num">37</td><td><code>RB4</code></td><td><code>KBI0</code>, <code>CSSPP</code></td><td>Chave SWITCH</td></tr>
+          <tr class="linha-destaque">
+            <td><code>AN12</code></td><td class="num">33</td><td><code>RB0</code></td><td><code>INT0</code>, <code>FLT0</code></td>
+            <td><strong>Botão SW12 (INT0)</strong> — vizinho do RESET</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">Quando um pino está em modo analógico, o circuito desconecta internamente a entrada Schmitt Trigger para evitar corrente de fuga espúria quando a tensão transita na região intermediária (entre 0,8 V e 2,0 V). Por isso, qualquer leitura via registrador <code>PORTx</code> devolve 0 fixo.</p>
+    </section>
+
+    <section>
+      <h2>Código de inicialização e leitura recomendado</h2>
+      <pre><code>// 1. Configurar o pino como entrada no TRIS
+TRISAbits.TRISA0 = 1;
+
+// 2. Definir referências em VDD/VSS e habilitar apenas o canal AN0
+ADCON1 = 0b00001110;  // VCFG = 00, PCFG = 1110 (0x0E)
+
+// 3. Resultado à direita (ADFM=1), 4 TAD de aquisição, FOSC/16
+ADCON2 = 0b10010101;  // ADFM=1, ACQT=010 (4 TAD), ADCS=101 (FOSC/16)
+
+// 4. Selecionar canal AN0 e ligar o módulo
+ADCON0 = 0b00000001;  // CHS = 0000 (AN0), ADON = 1
+
+// 5. Função de leitura de 10 bits (0 a 1023)
+uint16_t adc_ler(void) {
+    ADCON0bits.GO = 1;          // Dispara conversão
+    while (ADCON0bits.GO);      // Espera hardware concluir
+    return ((uint16_t)ADRESH &lt;&lt; 8) | ADRESL;
+}</code></pre>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>Raoni F. S. Teixeira</span>
+    <span>DENE/UFMT</span>
+  </footer>
+
+</div>
+</body>
+</html>
