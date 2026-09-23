@@ -74,7 +74,7 @@ Um MOSFET comutando, com $R_"DS(on)"$ da ordem de 22 m#sym.Omega, dissipa:
 #align(center)[$P = I^2 R = (0,255)^2 dot.c 0,022 = 1,4$ mW]
 
 Mil vezes menos. Esta é a razão de o mundo inteiro comutar em vez de regular, e é
-o que dá sentido ao PWM do encontro 5: a razão cíclica não é uma conveniência de
+o que dá sentido ao PWM do encontro 6: a razão cíclica não é uma conveniência de
 software, é o que permite controlar potência sem dissipá-la.
 ]
 

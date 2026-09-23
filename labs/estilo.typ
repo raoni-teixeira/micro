@@ -126,6 +126,9 @@
 // `nota` é a pontuação da tarefa, escrita na margem logo abaixo do rótulo:
 //   #tarefa(nota: "1,5 pontos")[...]
 #let tarefa(c, nota: none) = _sel("Tarefa", navy, c, selo: nota)
+// Pergunta da folha de previsões reproduzida no roteiro, com a sua nota:
+//   #prevista(nota: "0,4 pt")[*P1.* ...]
+#let prevista(c, nota: none) = _sel("Previsão", roxo, c, selo: nota)
 #let atencao(c)     = _sel("Atenção", ambar, c, tamanho: 9.6pt)
 #let nota(c)        = _sel("Nota", cinza, c, tamanho: 9.6pt)
 #let divergencia(c) = _sel("Divergência", roxo, c, tamanho: 9.6pt)

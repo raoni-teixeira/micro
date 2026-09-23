@@ -28,7 +28,7 @@
   [4], [O programa espera o conversor sem ter o que fazer], [60 ciclos],
   [5], [O recarregamento do Timer0 atrasa o intervalo seguinte], [acumulativo],
   [5], [Estouros são perdidos se o laço demorar mais que o intervalo], [silencioso],
-  [5], [O CCP não alcança 440 Hz; o software alcança e bloqueia], [—],
+  [6], [O CCP não alcança 440 Hz; o software alcança e bloqueia], [—],
 )
 
 Cinco problemas, uma forma só: *o processador precisa aparecer num instante
@@ -360,7 +360,7 @@ estilo: foi orçamento.
 com folga para os outros.
 
 O Timer0 dispara a cada 5 ms — 20#h(1pt)000 ciclos. Parece muito. Mas se o buzzer
-do encontro 5 estiver no mesmo programa, ele precisa de uma inversão a cada
+do encontro 6 estiver no mesmo programa, ele precisa de uma inversão a cada
 1136 µs, ou *4545 ciclos*. Esse é o número que manda, e ele é o menor intervalo
 entre dois eventos que o programa precisa atender.
 
@@ -614,7 +614,7 @@ porque o registro do tempo não depende de o programa chegar a tempo.
 #docente[
 Este exercício abre a porta do modo de captura, que não tem encontro próprio.
 Dependendo do ritmo da turma, vale gastar quinze minutos com ele aqui — é o dual
-do PWM do encontro 5 e serve diretamente ao aluno de Sistemas de Potência, que
+do PWM do encontro 6 e serve diretamente ao aluno de Sistemas de Potência, que
 vai medir frequência e período em algum momento da vida.
 ]
 ]

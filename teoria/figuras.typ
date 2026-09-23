@@ -781,6 +781,111 @@
     w: larg, al: center, fonte: 6.8pt)
 })
 
+// PWM por dentro: TMR2 sobe até PR2 e recomeça; o comparador derruba a saída
+// quando a contagem alcança a razão cíclica.
+#let fig_pwm_ccp(razao: 0.35, nper: 3) = block(breakable: false, width: 14cm, height: 5.0cm, {
+  let xl = 2.4cm
+  let u = 3.0cm
+  let y0 = 0.3cm
+  let alt = 2.0cm
+  let y1 = y0 + alt + 0.55cm
+  let h = 0.75cm
+  let larg = nper * u
+
+  // topo (PR2) e nível da razão cíclica
+  place(dy: y0, line(start: (xl, 0pt), end: (xl + larg, 0pt),
+    stroke: (thickness: 0.4pt, dash: "dashed", paint: _claro)))
+  place(dy: y0 + alt * (1 - razao), line(start: (xl, 0pt), end: (xl + larg, 0pt),
+    stroke: (thickness: 0.6pt, dash: "dashed", paint: _cinza)))
+  place(dy: y0 + alt, line(start: (xl, 0pt), end: (xl + larg, 0pt), stroke: 0.4pt + _claro))
+  _txt(0cm, y0 - 0.12cm, _m("PR2", t: 6.6pt), w: 2.2cm, al: right)
+  _txt(0cm, y0 + alt * (1 - razao) - 0.14cm, _m("CCPR1L:DC1B", t: 6.2pt), w: 2.2cm, al: right)
+  _txt(0cm, y0 + alt - 0.12cm, _m("0", t: 6.6pt), w: 2.2cm, al: right)
+  _txt(0cm, y0 + alt * 0.28, [TMR2], w: 2.2cm, al: right, fonte: 7pt)
+
+  // rampas do Timer2
+  let pts = ()
+  for i in range(nper) {
+    pts.push((xl + i * u, y0 + alt))
+    pts.push((xl + (i + 1) * u, y0))
+    if i < nper - 1 { pts.push((xl + (i + 1) * u, y0 + alt)) }
+  }
+  place(curve(stroke: 0.9pt, curve.move(pts.first()),
+    ..pts.slice(1).map(p => curve.line(p))))
+
+  // saída
+  _txt(0cm, y1 + 0.25cm, [saída (RC2)], w: 2.2cm, al: right, fonte: 7pt)
+  let niveis = ()
+  for i in range(nper) {
+    niveis.push((i, 1))
+    niveis.push((i + razao, 0))
+  }
+  _onda(xl, y1, h, u, niveis, nper)
+
+  // ligações: início do período e instante da comparação
+  for i in range(nper) {
+    let xc = xl + (i + razao) * u
+    place(dx: xc, dy: y0 + alt * (1 - razao),
+      line(start: (0pt, 0pt), end: (0pt, y1 - y0 - alt * (1 - razao)),
+        stroke: (thickness: 0.4pt, dash: "dotted", paint: _cinza)))
+  }
+
+  _txt(xl, y1 + h + 0.25cm,
+    [No recomeço, a saída sobe e a razão escrita é copiada para o comparador. Quando
+     a contagem alcança essa cópia, a saída desce. `PR2` fixa o período; a razão
+     fixa onde cai a descida.],
+    w: larg, al: center, fonte: 6.8pt)
+})
+
+// PWM filtrado por RC: a média passa, a ondulação fica pequena.
+#let fig_pwm_rc(razao: 0.5, nper: 4) = block(breakable: false, width: 14cm, height: 3.6cm, {
+  let xl = 2.0cm
+  let u = 2.4cm
+  let y0 = 0.3cm
+  let h = 1.6cm
+  let a = 0.22cm          // ondulação, exagerada para ser visível
+  let larg = nper * u
+  let ym = y0 + h * (1 - razao)
+
+  _txt(0cm, y0 - 0.1cm, [PWM], w: 1.8cm, al: right, fonte: 7pt)
+  let niveis = ()
+  for i in range(nper) {
+    niveis.push((i, 1))
+    niveis.push((i + razao, 0))
+  }
+  place(dx: 0pt, dy: 0pt, block({
+    let pts = ()
+    let ant = 1
+    pts.push((xl, y0))
+    for (t, n) in niveis.slice(1) {
+      pts.push((xl + t * u, y0 + h * (1 - ant)))
+      pts.push((xl + t * u, y0 + h * (1 - n)))
+      ant = n
+    }
+    pts.push((xl + nper * u, y0 + h * (1 - ant)))
+    place(curve(stroke: 0.5pt + _claro, curve.move(pts.first()),
+      ..pts.slice(1).map(p => curve.line(p))))
+  }))
+
+  // saída do filtro: sobe durante t_on, desce durante t_off
+  let pts = ()
+  for i in range(nper) {
+    pts.push((xl + i * u, ym + a / 2))
+    pts.push((xl + (i + razao) * u, ym - a / 2))
+  }
+  pts.push((xl + nper * u, ym + a / 2))
+  place(curve(stroke: 1.1pt, curve.move(pts.first()),
+    ..pts.slice(1).map(p => curve.line(p))))
+  _txt(xl + larg + 0.15cm, ym - 0.2cm, [saída do RC], w: 2.2cm, fonte: 6.8pt)
+  _txt(xl + larg + 0.15cm, ym + 0.1cm, [$Delta V$ exagerado], w: 2.2cm, fonte: 6.2pt)
+
+  _txt(xl, y0 + h + 0.35cm,
+    [O capacitor carrega durante $t_"on"$ e descarrega durante $t_"off"$. Com
+     $T << R C$, a saída fica perto da média, e o que sobra do chaveamento é a
+     ondulação $Delta V$.],
+    w: larg, al: center, fonte: 6.8pt)
+})
+
 // ===========================================================================
 // 16. O CONTADOR QUE ANDA SOZINHO
 // ===========================================================================

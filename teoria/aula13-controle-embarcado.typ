@@ -51,7 +51,7 @@ compensa a perda de calor — porque não sabe aplicar valores intermediários.
 #conceito[
 A mudança que torna tudo o resto possível não é de software: é de acionamento. O
 relé sai, entra o estágio eletrônico do encontro 8, comandado pelo PWM do
-encontro 5.
+encontro 6.
 
 A saída deixa de ser um bit e passa a ser um número de 0 a 1023. E, com isso,
 passa a existir um valor de saída em que a temperatura simplesmente *fica parada*
@@ -69,7 +69,7 @@ problema — o MOSFET não tem contato mecânico.
 
 E a frequência de comutação passa a ser a do PWM, na casa do quilohertz, muito
 acima de qualquer coisa que a inércia térmica perceba. A planta vê apenas a média,
-como o encontro 5 estabeleceu.
+como o encontro 6 estabeleceu.
 ]
 
 = Proporcional
@@ -491,7 +491,7 @@ compilação, é um número que dá a volta. A verificação obrigatória depois
 é olhar o maior peso em módulo e confirmar que ele cabe no formato escolhido.
 
 É a terceira vez que este curso encontra exatamente este compromisso: `PR2` contra
-resolução do PWM no encontro 5, histerese contra acionamentos no encontro 9, e
+resolução do PWM no encontro 6, histerese contra acionamentos no encontro 9, e
 agora faixa contra resolução na vírgula. A forma é sempre a mesma.
 ]
 

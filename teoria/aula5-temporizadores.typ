@@ -1,10 +1,11 @@
-// Aula 5 — Temporizadores e razão cíclica
+// Aula 5 — Temporizadores
+// O PWM, terceiro uso do contador, é o assunto da aula 6.
 // Microcontroladores — DENE/UFMT — Raoni F. S. Teixeira
 
 #import "estilo.typ": *
 #import "figuras.typ": *
 #show: conf.with(
-  titulo: "Aula 5 — Temporizadores e razão cíclica",
+  titulo: "Aula 5 — Temporizadores",
   subtitulo: "Quando o processador deixa de ser o relógio",
 )
 
@@ -13,7 +14,6 @@
 - Calcular pré-carga e divisor para um intervalo dado, a partir de $T_"cy"$, e dizer o papel de cada um.
 - Comparar a contagem por instrução, por consulta ao indicador e por interrupção pelo erro que cada uma produz quando o processador tem outra tarefa.
 - Reconhecer o temporizador como contador de eventos, cuja fonte pode ser o relógio interno ou um pino.
-- Derivar período e resolução de um sinal modulado por largura de pulso a partir de `PR2` e do divisor do Timer2, e escolher a frequência pela constante de tempo da carga.
 ]
 
 = O relógio que atrasa
@@ -96,8 +96,8 @@ tempos, olhar o indicador.
 ]
 
 O PIC18F4550 tem quatro: Timer0 e Timer1 (16 bits), Timer2 (8 bits, com
-comparador de período) e Timer3 (16 bits). Nesta aula interessam dois — Timer0
-para contar, Timer2 porque é ele que sustenta o PWM.
+comparador de período) e Timer3 (16 bits). Nesta aula interessa o Timer0. O
+Timer2, que sustenta o PWM, é o assunto do encontro 6.
 
 == A conta do pré-carregamento
 
@@ -417,273 +417,46 @@ número medido depende do botão, e anotar quanto deu.
 avulso na protoboard, entre RA4 e o terra, com pull-up de 10 kΩ para 5 V.
 ]
 
-= Gerar em vez de contar: razão cíclica
-
-O terceiro uso do contador inverte o sentido. Até aqui ele *recebia* pulsos e o
-processador lia o resultado. O Timer2, acoplado a um comparador, *produz* um sinal
-no pino — de novo sem o processador.
-
-#conceito[
-O Timer2 conta até o valor de `PR2` e recomeça. Um comparador liga o pino no
-recomeço e o desliga quando a contagem alcança o valor de `CCPR1L`.
-
-O resultado é uma onda quadrada de período fixo, dado por `PR2`, e tempo ligado
-ajustável, dado por `CCPR1L`. Mudar o tempo ligado é uma escrita num registrador;
-depois disso, o hardware repete a forma de onda sozinho, para sempre.
-]
-
-#fig(
-  fig_pwm(),
-  [A razão cíclica é a única grandeza que muda. Frequência e amplitude ficam
-  fixas.],
-)
-
-Ligar e desligar uma carga rápido o bastante entrega a ela uma fração da
-energia, sem nenhum componente analógico no caminho.
-
-#conceito[
-*A razão cíclica só equivale a uma tensão média se a carga for lenta comparada
-ao período.*
-
-O que integra o sinal não é o microcontrolador: é a carga. A inércia mecânica da
-ventoinha, a inércia térmica do aquecedor e a persistência da retina fazem o
-trabalho. Se a carga responder mais rápido que o período, ela não vê uma média —
-vê exatamente o que existe, um interruptor batendo.
-]
-
-#tab(
-  columns: (auto, auto, 1fr),
-  [Carga], [Constante de tempo], [Frequência mínima razoável],
-  [LED], [olho: ≈ 20 ms], [acima de 100 Hz, ou se vê a cintilação],
-  [Ventoinha], [inércia do rotor: ≈ 100 ms], [algumas centenas de Hz bastam],
-  [Aquecedor], [inércia térmica: dezenas de segundos], [qualquer coisa acima de 1 Hz],
-  [Relé], [contato mecânico: ms, e desgasta], [*nunca*],
-)
-
-#atencao[
-Relé não faz PWM. Cada comutação é um evento mecânico com vida útil contada, e
-comutar a 1 kHz destrói o contato em minutos. O aquecedor acionado por relé é uma
-saída de duas posições — e a oscilação que o R9 vai medir é consequência direta
-disso.
-]
-
-== Período e resolução saem do mesmo registrador
-
-#conceito[
-#align(center)[$T_"PWM" = ("PR2" + 1) dot.c 4 dot.c T_"osc" dot.c "divisor"$]
-
-A 16 MHz, $4 dot.c T_"osc" = 250$ ns. Com `PR2` = 255 e divisor 16:
-
-#align(center)[$T_"PWM" = 256 dot.c 250 "ns" dot.c 16 = 1024$ µs $arrow.r 976,6$ Hz]
-
-E a resolução da razão cíclica, em bits, é
-
-#align(center)[$log_2 (4 dot.c ("PR2" + 1)) = log_2 1024 = 10$ bits]
-]
-
-#conceito[
-*Período e resolução são o mesmo botão.* Aumentar a frequência exige diminuir
-`PR2`, e diminuir `PR2` corta bits de razão cíclica.
-
-Com `PR2` = 124 e o mesmo divisor, o período cai para 500 µs — 2 kHz —, e a
-resolução cai para $log_2 500 approx 8,97$ bits. Não existe escolha que dê as
-duas coisas.
-]
-
-```c
-void pwm_iniciar(void)
-{
-    PR2     = 255;             /* 256 contagens por periodo   */
-    T2CON   = 0x06;            /* Timer2 ligado, divisor 1:16 */
-    CCP1CON = 0x0C;            /* modo PWM                    */
-
-    LATCbits.LATC2   = 0;      /* LAT antes de TRIS: encontro 2 */
-    TRISCbits.TRISC2 = 0;      /* RC2 = CCP1                    */
-}
-
-/* razao: 0 a 1023. Com estes ajustes, o valor tambem e o tempo
-   ligado em microssegundos. */
-void pwm_razao(uint16_t razao)
-{
-    if (razao > 1023u) {
-        razao = 1023u;
-    }
-    CCPR1L  = (uint8_t)(razao >> 2);                         /* 8 bits altos  */
-    CCP1CON = (uint8_t)((CCP1CON & 0xCF)
-                        | (uint8_t)((razao & 0x03u) << 4));  /* 2 bits baixos */
-}
-```
-
-#nota[
-Com esses valores sai uma coincidência conveniente: o valor de dez bits da razão
-cíclica vale exatamente o tempo ligado *em microssegundos*, porque cada unidade
-dura $T_"osc" dot.c 16 = 62,5 "ns" dot.c 16 = 1$ µs. Razão 512 é meio período, e
-é 512 µs.
-
-Vale usar isso em aula e vale desconfiar depois: a coincidência morre se alguém
-mexer no divisor.
-]
-
-#nota[
-Os dois bits menos significativos da razão cíclica não moram em `CCPR1L`: moram
-em `CCP1CON`, misturados com os bits que selecionam o modo. Daí a máscara `0xCF`,
-que preserva tudo menos esses dois.
-
-É a mesma situação da instrução do encontro 2 e do `ADCON0` do encontro 4 — uma
-palavra repartida em campos de significados diferentes.
-]
-
-== O brilho que sobe e desce
-
-```c
-#define _XTAL_FREQ 16000000UL
-#include <xc.h>
-#include <stdint.h>
-
-/* pwm_iniciar() e pwm_razao() como acima */
-
-void main(void)
-{
-    uint16_t r;
-
-    pwm_iniciar();
-
-    for (;;) {
-        for (r = 0; r < 1020u; r += 4u) {     /* sobe */
-            pwm_razao(r);
-            __delay_ms(10);
-        }
-        for (r = 1020u; r > 0u; r -= 4u) {    /* desce */
-            pwm_razao(r);
-            __delay_ms(10);
-        }
-    }
-}
-```
-
-Cada rampa tem 255 passos de 10 ms: 2,55 s para subir, o mesmo para descer.
-
-#nota[
-A rampa é linear na razão cíclica, mas não parece linear no brilho: o olho
-responde muito à variação perto do apagado e quase nada perto do máximo. O brilho
-dispara no começo da subida e estaciona no fim. Corrigir isso é trocar a rampa
-por uma tabela — mas não é assunto desta aula.
-]
-
-#kit[
-Em RC2 está a *ventoinha*, não um LED. Para ver brilho, um LED com resistor ligado
-a RC2 pelo conector de expansão, com a chave da ventoinha desligada — *verificar
-o conector antes da aula*. Com a ventoinha ligada, a mesma rampa aparece como
-rotação que sobe e desce.
-]
-
-E aqui a aula tropeça no próprio argumento. O PWM roda sozinho, mas a *rampa*
-é feita com `__delay_ms` — a técnica que a primeira seção condenou. Se o
-laço principal tivesse outra tarefa, a rampa engasgaria.
-
-A saída é a mesma do relógio: um intervalo de 10 ms no Timer0 (a pré-carga
-`0x63C0`, sem divisor) e a rampa dentro da função que o hardware chama.
-
-```c
-#define _XTAL_FREQ 16000000UL
-#include <xc.h>
-#include <stdint.h>
-
-#define TAREFA()  __delay_ms(300)
-#define PRECARGA  25536u              /* 65536 - 40000: 10 ms a 250 ns */
-
-/* pwm_iniciar() e pwm_razao() como acima */
-
-void __interrupt() tratar(void)
-{
-    static int16_t r     = 0;
-    static int16_t passo = 4;
-
-    if (INTCONbits.TMR0IF) {
-        INTCONbits.TMR0IF = 0;
-        TMR0H = (uint8_t)(PRECARGA >> 8);
-        TMR0L = (uint8_t)(PRECARGA & 0xFF);
-
-        r += passo;
-        if (r >= 1020) {
-            passo = -4;
-        } else if (r <= 0) {
-            passo = 4;
-        }
-        pwm_razao((uint16_t)r);
-    }
-}
-
-void main(void)
-{
-    pwm_iniciar();
-
-    TMR0H = (uint8_t)(PRECARGA >> 8);
-    TMR0L = (uint8_t)(PRECARGA & 0xFF);
-    T0CON = 0x88;              /* ligado, 16 bits, relogio interno, sem divisor */
-    INTCONbits.TMR0IF = 0;
-    INTCONbits.TMR0IE = 1;
-    INTCONbits.GIE    = 1;
-
-    for (;;) {
-        TAREFA();              /* o laco principal nao sabe que a rampa existe */
-    }
-}
-```
-
-O laço principal passa 100% do tempo bloqueado, e a rampa não engasga. Três
-peças trabalham sem o processador: o Timer2 gera a onda, o Timer0 marca os passos,
-e a interrupção faz a única coisa que exige instrução — escrever o novo valor.
-
-#divergencia[
-Circula a afirmação de que a ventoinha "não responde à frequência de comutação"
-porque a inércia do rotor filtra tudo. A parte mecânica sim; o resto não. O
-enrolamento sofre magnetostrição na frequência de chaveamento, e uma ventoinha em
-PWM a 1 kHz apita a 1 kHz, com rotação perfeitamente estável.
-
-A frequência é escolhida também por critério acústico. É o que a P5 do R6 vai
-medir.
-]
-
-#nota[
-O Timer2 é um só, e os dois módulos CCP dividem ele. Se ventoinha e aquecedor
-forem acionados por PWM, terão a mesma frequência de comutação — restrição que
-volta no encontro 8.
-]
-
-= Três usos, um contador
+= Dois usos, e um terceiro
 
 #tab(
   columns: (auto, auto, 1fr),
   [Uso], [Fonte], [O que o processador faz],
   [Medir tempo], [Relógio interno], [Olha o indicador — ou é chamado quando ele sobe],
   [Contar eventos], [Pino T0CKI], [Lê o resultado quando quiser],
-  [Gerar forma de onda], [Relógio interno, via `PR2` e `CCPR1L`], [Escreve a razão cíclica e esquece],
 )
+
+O terceiro uso inverte o sentido: em vez de receber pulsos, o contador *produz*
+uma forma de onda no pino, e o processador só diz a largura do pulso. É a
+modulação por largura de pulso, e é o encontro 6 inteiro.
 
 = Previsão para o R6
 
 #previsao[
-*P1.* Com `PR2` = 255 e divisor 16, qual frequência você espera medir no pino do
-cooler? Escreva o número antes de ligar o osciloscópio.
+*P1.* O Timer0 vai marcar 10 ms, e um pino vai ser invertido a cada estouro.
+Que período você espera medir nesse pino?
 
-*P2.* Você vai variar a razão cíclica de 0 a 100% em passos de 10%. Em qual passo
-espera que o rotor comece a girar? Justifique com o que sabe sobre torque de
-partida.
+*P2.* O laço que consulta o indicador vai ganhar uma tarefa de 3 ms. O período
+do pino muda? E com uma tarefa de 7 ms?
 
-*P3.* Depois de partir, você vai *reduzir* a razão cíclica. O rotor para no mesmo
-valor em que partiu? Diga sim ou não e por quê.
+*P3.* Um botão com pull-up (solto = 1) em RC0, e o Timer1 contando bordas de
+subida. O contador incrementa ao apertar ou ao soltar? Depois de dez apertos,
+quanto ele mostra?
 
-*P4.* Meça a frequência com o osciloscópio e compare com P1. Se divergir, o erro
-está em `PR2`, no divisor, ou na sua hipótese sobre $F_"osc"$?
+*P4.* A ventoinha gira a cerca de 3000 rpm e o tacômetro dá dois pulsos por
+volta. Quantos pulsos o Timer1 conta numa janela de 1 s?
 
-*P5.* Com razão cíclica em 50%, aproxime o ouvido do cooler. Descreva o que ouve
-e diga em que frequência.
+*P5.* O mesmo programa conta os pulsos duas vezes: pelo Timer1 e por software,
+olhando RC0 a cada volta do laço. O laço vai ganhar uma tarefa de 20 ms. Qual
+das duas contagens muda, e para mais ou para menos?
+
+*P6.* Calcule `T0CON` e a pré-carga para uma janela de 1 s com divisor 1:256.
+O divisor 1:64 também serviria?
 ]
 
 #semnota[
-Leve esta folha preenchida. A previsão é avaliada pelo raciocínio, não por
-acertar o número.
+Leve esta folha preenchida. P1 a P4 valem 0,3 cada, P5 e P6 valem 0,4: 2,0 no
+total do R6, avaliados pelo raciocínio, não por acertar o número.
 ]
 
 = Exercícios
@@ -789,55 +562,11 @@ ou tratar o estouro por interrupção. A segunda é a única que sobrevive a alg
 acrescentar código ao laço depois — e é a que o encontro 7 define por completo.
 ]
 
-#tarefa[
-*Exercício 5.5.* Você precisa de PWM a 5 kHz no cooler, a 16 MHz.
-
-(a) Escolha `PR2` e o divisor do Timer2.
-
-(b) Qual resolução de razão cíclica resulta?
-
-(c) Se o projeto exigir 10 bits de resolução, qual é a maior frequência possível?
-]
-
-#resposta[
-(a) Com divisor 1: $T = 200$ µs, e $("PR2"+1) = 200 "µs" slash 250 "ns" = 800$ —
-não cabe em oito bits. Com divisor 4: $("PR2"+1) = 200$, logo `PR2` = 199. Serve.
-
-(b) $log_2 (4 dot.c 200) = log_2 800 approx 9,6$ bits — na prática, nove.
-
-(c) Dez bits exigem $4 dot.c ("PR2"+1) >= 1024$, ou seja `PR2` = 255. Com divisor
-1, $T = 256 dot.c 250 "ns" = 64$ µs, ou *15,6 kHz*. Acima disso, resolução plena
-é impossível nesta plataforma.
-
-#docente[
-15,6 kHz é audível, e fugir do ruído exigiria passar de 20 kHz — o que custaria
-resolução. É a primeira vez no curso em que dois requisitos legítimos não cabem
-juntos.
-]
-]
-
-#tarefa[
-*Exercício 5.6.* Explique por que a razão cíclica de 30% aplicada a um LED, a um
-aquecedor e a um relé produz três resultados de naturezas diferentes.
-]
-
-#resposta[
-*LED:* a persistência da retina integra, e o olho vê brilho reduzido — desde que
-a frequência passe de cerca de 100 Hz. Abaixo disso, vê-se cintilação.
-
-*Aquecedor:* a inércia térmica integra em dezenas de segundos, e qualquer
-frequência acima de fração de hertz entrega 30% da potência. É o caso em que a
-razão cíclica realmente equivale a uma tensão média.
-
-*Relé:* nada integra. O contato tenta seguir cada comutação, e o resultado é
-desgaste mecânico e possivelmente nenhuma condução estável. Não é uma média: é um
-defeito.
-]
-
 #nota[
-*No encontro 6:* avaliação integradora I, cobrindo os encontros 0 a 5. A
-interrupção aparece nela só como *efeito* — o placar do relógio —, nunca como
-mecanismo.
+*No encontro 6:* o PWM — o Timer2 gerando a forma de onda, período e
+resolução, e o filtro que transforma pulso em tensão. O encontro termina com a
+avaliação integradora I, cobrindo os encontros 0 a 5. A interrupção aparece nela
+só como *efeito* — o placar do relógio —, nunca como mecanismo.
 
 *No encontro 7:* a dívida desta aula é paga. A função que o hardware chama,
 `GIE` e `TMR0IE`, e o porquê de `volatile` e de `uint8_t`. Junto vêm o repique

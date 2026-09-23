@@ -698,8 +698,8 @@ com o LM35 e por quê.
 ]
 
 #semnota[
-Leve esta folha preenchida. Como sempre, a previsão é avaliada pelo raciocínio, e
-não por acertar o número.
+Leve esta folha preenchida. Cada pergunta vale 0,4 — 2,0 no total do R5. Como
+sempre, a previsão é avaliada pelo raciocínio, e não por acertar o número.
 ]
 
 
@@ -880,7 +880,7 @@ software, começar do bit 5 é uma linha de código.
 ]
 
 #nota[
-*No encontro 5:* temporizadores e razão cíclica. Até aqui, todo intervalo de tempo
+*No encontro 5:* temporizadores. Até aqui, todo intervalo de tempo
 deste curso foi contado em instruções — laço vazio no encontro 0, ciclos no
 encontro 2, esperas cegas nos encontros 3 e 4. O temporizador é a primeira peça
 do chip que conta tempo *sem* o processador, e ele existe exatamente para

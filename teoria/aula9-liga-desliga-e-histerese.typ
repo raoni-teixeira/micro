@@ -506,7 +506,7 @@ produto real entraria.
 
 Em várias famílias ARM Cortex-M essa camada fica ainda mais limpa: a saída do
 comparador pode ser ligada internamente à entrada de desligamento de emergência do
-temporizador que gera o PWM do encontro 5. Ao ultrapassar o limiar, o acionamento
+temporizador que gera o PWM do encontro 6. Ao ultrapassar o limiar, o acionamento
 é cortado *em hardware*, em nanossegundos, sem executar uma instrução — e a
 proteção continua válida com o firmware travado. É bom tema de seminário.
 ]

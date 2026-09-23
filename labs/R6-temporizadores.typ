@@ -1,371 +1,461 @@
-#import "@preview/fletcher:0.5.1" as fletcher: diagram, node, edge
+// R6 — Temporizadores: medir e contar
+// Revisão 2026/2, alinhada à aula 5 (temporizadores) e à folha de referência
+// dos temporizadores. Sem PWM: ele é o assunto da aula 6.
+//
+// Seis tarefas com nota (8,0), previsões P1–P6 da aula 5 (2,0) e três extensões
+// sem nota no fim.
+//
+// Compilação:  typst compile R6-temporizadores.typ
+//              typst compile --input gab=1 R6-temporizadores.typ
 
-// ---------- configurações de página ----------
-#set page(
-  paper: "a4",
-  margin: (top: 2.5cm, bottom: 2.5cm, left: 2.8cm, right: 2.2cm),
-  header: [
-    #set text(size: 8pt, fill: luma(120))
-    #grid(
-      columns: (1fr, 1fr),
-      align(left)[Microcontroladores — Prática],
-      align(right)[Roteiro 6],
-    )
-    #line(length: 100%, stroke: 0.4pt + luma(180))
-  ],
-  footer: [
-    #line(length: 100%, stroke: 0.4pt + luma(180))
-    #set text(size: 8pt, fill: luma(120))
-    #grid(
-      columns: (1fr, 1fr),
-      align(left)[Raoni F. S. Teixeira · Rodolfo Quadros — DENE/UFMT],
-      align(right)[#context counter(page).display("1")],
-    )
-  ],
+#import "estilo.typ": *
+
+#show: conf.with(
+  titulo: "R6 — Temporizadores: medir e contar",
+  subtitulo: "O mesmo contador marca o tempo e conta as voltas do rotor, sem o processador",
+  modo: "roteiro",
 )
 
-#show heading: set block(below: 1.4em, above: 1.8em)
+// Espaço de resposta: linhas na versão do aluno, resposta no gabarito.
+#let resp(n: 2, corpo) = if gab { resposta(corpo) } else {
+  for i in range(n) { v(0.55em); lacuna(largura: 100%) }
+}
 
-// ---------- tipografia ----------
-#set text(font: "Linux Libertine", size: 11pt, lang: "pt")
-#set par(justify: true, leading: 0.65em)
-#set heading(numbering: "1.1")
-#show raw.where(block: true): it => block(
-  width: 100%,
-  fill: luma(247),
-  stroke: 0.5pt + luma(210),
-  inset: 8pt,
-  radius: 3pt,
-)[#it]
-
-// ---------- cores ----------
-#let azul     = rgb("#003366")
-#let destaque = rgb("#1a6bad")
-#let cinza    = luma(245)
-#let vermelho = rgb("#b04020")
-#let verde    = rgb("#1a6b1a")
-#let roxo     = rgb("#5a0080")
-#let laranja  = rgb("#805000")
-
-// ---------- ambientes ----------
-#let caixa(titulo, cor-borda, cor-fundo, corpo) = block(
-  width: 100%,
-  fill: cor-fundo,
-  stroke: (left: 3pt + cor-borda),
-  inset: (left: 10pt, right: 10pt, top: 8pt, bottom: 8pt),
-  radius: (right: 3pt),
-  breakable: true,
-)[
-  #text(weight: "bold", fill: cor-borda)[#titulo] \
-  #corpo
+#objetivos[
+  - Programar um intervalo no Timer0 pela pré-carga, e medir no osciloscópio o intervalo que ele realmente produz.
+  - Medir a deriva do intervalo consultado no laço, e prevê-la pela duração da volta do laço.
+  - Contar eventos externos com o Timer1, sem o processador, e reconhecer o repique na contagem.
+  - Medir a rotação do cooler pelo tacômetro, e comparar a contagem por hardware com a contagem por software.
 ]
 
-#let conceito(corpo)   = caixa("Conceito central", azul, rgb("#eef3fa"), corpo)
-#let bancada(corpo)    = caixa("Configuração de bancada", destaque, rgb("#f0f6ff"), corpo)
-#let importante(corpo) = caixa("⚠ Atenção", vermelho, rgb("#fff5f0"), corpo)
-#let tarefa(corpo)     = caixa("Tarefa", verde, rgb("#f0faf0"), corpo)
-#let previsao(corpo)   = caixa("✎ Previsão — registre ANTES de gravar", roxo, rgb("#f5f0ff"), corpo)
-#let observacao(corpo) = caixa("Observação", laranja, rgb("#fff8ee"), corpo)
-#let manual(corpo)     = caixa("📕 Divergência do manual", laranja, rgb("#fff8ee"), corpo)
+#kit[
+  #tab(columns: (auto, 1fr),
+    [CH2-1 (LCD)], [ON — o display do R4 mostra as contagens],
+    [CH5-3 e CH5-4], [OFF, obrigatoriamente],
+    [Chaves SWITCHS (PORTB)], [OFF],
+    [CH3-5 (COOLER)], [OFF na Parte 2; ON nas Partes 3 e 4 — ventoinha em RC2, ligada em nível fixo],
+    [CH3-2 (SPEED)], [OFF na Parte 2; ON nas Partes 3 e 4 — tacômetro em RC0, a entrada T13CKI do Timer1],
+    [CH3-3, CH3-4, CH3-6 e CH3-7], [OFF],
+  )
 
-// ---------- utilidades ----------
-#let quadro = box(width: 9pt, height: 9pt, stroke: 0.6pt + luma(90), radius: 1pt)
-#let resposta(n: 1) = for _ in range(n) [ #v(0.9em) #line(length: 100%, stroke: 0.4pt + luma(170)) ]
-#block(width: 100%, fill: azul, inset: (x: 16pt, y: 20pt), radius: 4pt)[
-  \
-  #text(fill: white, size: 18pt, weight: "bold")[Microcontroladores]
-  \
-  #text(fill: rgb("#aaccee"), size: 12pt)[Roteiro 6 — Timers e PWM]
-  \
-  #v(4pt)
-  #text(fill: luma(200), size: 9pt)[Raoni F. S. Teixeira · Rodolfo Quadros · DENE/UFMT · 1 sessão · 1,0 ponto · grupos de 3]
+  *A verificar antes da sessão:* qual botão chega a RC0 — o O1 registrou SW2, e a
+  seção `PUSH BUTTONS` tem um botão marcado `TMR1` (SW10) —, se RC0 tem resistor de
+  pull-up com CH3-2 em OFF, e quantos pulsos por volta o tacômetro entrega
+  (ventoinhas de computador costumam dar dois). Os registradores estão na *folha
+  de referência dos temporizadores*, na página do curso.
 ]
 
-#v(0.8em)
-
-#caixa("Objetivos desta sessão", rgb("#555555"), cinza, [
-  Ao final desta sessão o grupo deve ser capaz de:
-
-  1. Configurar o Timer2 e os módulos CCP em modo PWM;
-  2. Calcular período e frequência do PWM a partir de `PR2` e do prescaler;
-  3. Medir duty cycle e frequência no osciloscópio;
-  4. Distinguir o sinal no pino do microcontrolador do sinal na carga.
-])
-
-#v(0.6em)
-
-#importante[
-  *Sessão com osciloscópio.* É uma das duas aulas do semestre com instrumentação. Reserve tempo para as medidas — elas são o centro do roteiro, não um complemento.
+#atencao[
+  Com CH3-2 em ON, *não pressione o botão de RC0*: ele aterra o sinal do
+  tacômetro.
 ]
 
-= Configuração de bancada
+*Pontuação.* As seis tarefas somam 8,0, e as previsões P1 a P6 da aula 5,
+preenchidas antes da sessão, valem 2,0. A nota de cada tarefa e de cada previsão
+está na margem, ao lado dela. A seção _Se sobrar tempo_, no fim, não vale nota:
+é para quem terminar antes.
 
 #bancada[
-  #table(
-    columns: (1.6fr, 1fr),
-    stroke: 0.5pt + luma(200),
-    inset: 6pt,
-    [CH1-7 (TEMP)], [ON],
-    [CH2-1 (LCD)], [ON],
-    [CH3-3 (AQUECEDOR)], [ON],
-    [CH3-5 (VENTILADOR)], [ON],
-    [CH3-4, CH3-6, CH3-7], [OFF],
-    [SWITCHS], [Todas em OFF],
-  )
-
-  *Osciloscópio:* ponta de prova em 10#sym.times, *acoplamento DC*, escala vertical em 1 ou 2 V/div, filtro de largura de banda *desligado*. Terra em qualquer GND dos conectores de porta. Compense a ponta antes de começar.
-
-  Em acoplamento AC a onda quadrada vira dente de serra; em 100 mV/div o sinal sai da tela.
+  *Osciloscópio:* ponta de prova em 10#sym.times e compensada, *acoplamento DC*,
+  disparo na borda de subida do canal 1.
 ]
 
-= Fundamento
+= Previsões — entregues no início da sessão
 
-== Meia potência com um pino digital
+As mesmas perguntas do fim da aula 5. Quem trouxe a folha preenchida copia aqui
+as respostas; a nota é do raciocínio, não do número.
 
-O pino só assume 0 V ou 5 V. Não existe valor intermediário.
-
-A solução é *chavear rápido*: se o pino fica metade do tempo em 5 V e metade em 0 V, e o chaveamento é muito mais rápido que a resposta da carga, a carga se comporta como se recebesse metade da potência.
-
-A fração de tempo em nível alto chama-se *duty cycle*.
-
-#conceito[
-  O PWM não gera tensão intermediária. Ele explora o fato de que a carga — um motor com inércia mecânica, uma resistência com inércia térmica — não consegue responder a cada pulso individualmente e reage à média.
-
-  Se a carga fosse rápida o bastante para seguir os pulsos, o PWM não funcionaria.
+#prevista(nota: "0,3 pt")[
+  *P1.* O Timer0 vai marcar 10 ms, e um pino vai ser invertido a cada estouro.
+  Que período você espera medir nesse pino?
+  #resp(n: 1)[20 ms, ou 50 Hz: cada estouro é meia onda.]
 ]
 
-== Período do PWM
-
-Com o Timer2 como base de tempo:
-
-$ T_"PWM" = ("PR2" + 1) times 4 times T_"osc" times "prescaler" $
-
-Com $F_"osc" = 16$ MHz e $"PR2" = 255$:
-
-#figure(
-  table(
-    columns: (auto, 1fr, 1fr),
-    fill: (col, row) => if row == 0 { azul } else if calc.odd(row) { cinza } else { white },
-    stroke: 0.5pt + luma(200),
-    inset: 7pt,
-    table.header(
-      text(fill: white, weight: "bold")[Prescaler],
-      text(fill: white, weight: "bold")[Período],
-      text(fill: white, weight: "bold")[Frequência],
-    ),
-    [1:1],  [64,0 #sym.mu s],   [15,6 kHz],
-    [1:4],  [256,0 #sym.mu s],  [3,9 kHz],
-    [1:16], [1024,0 #sym.mu s], [977 Hz],
-  ),
-  caption: [Frequências de PWM disponíveis com `PR2` = 255.],
-) <tab-pwm-freq>
-
-#manual[
-  *O clock da CPU é 16 MHz, não 48 MHz.*
-
-  Os config bits gravados junto com o bootloader definem uma árvore
-  de clock em que o periférico USB recebe 48 MHz e a CPU recebe
-  16 MHz. Os `#pragma config` da aplicação são ignorados.
-
-  Isso foi descoberto por medição, não por leitura de documentação:
-  uma onda quadrada programada para 300 ms mediu 375 ms no
-  osciloscópio, e o fator de 1,25 revelou o clock verdadeiro.
+#prevista(nota: "0,3 pt")[
+  *P2.* O laço que consulta o indicador vai ganhar uma tarefa de 3 ms. O período
+  do pino muda? E com uma tarefa de 7 ms?
+  #resp(n: 2)[Muda. O estouro só é visto na primeira consulta depois de 10 ms: meio período de 12 ms (período 24 ms) com 3 ms, e de 14 ms (período 28 ms) com 7 ms.]
 ]
 
-/ 6.1: Verifique a primeira linha da tabela refazendo a conta. Mostre o desenvolvimento. #resposta(n: 3)
-
-== Onde vai o duty
-
-O valor de duty tem 10 bits, repartidos entre dois registradores: os 8 bits altos em `CCPR1L` e os 2 baixos em `CCP1CON<5:4>`.
-
-Nesta sessão usaremos apenas os 8 bits altos, o que dá resolução suficiente e simplifica o código.
-
-= Parte 1 — Medidas no pino
-
-Grave o firmware `r6_pwm_osciloscopio.c`. Controles: *INT0 (SW12)* avança o duty; *INT1 (SW13)* avança a frequência. Os LEDs mostram o duty em barra.
-
-#tarefa[
-  *1.1* — Meça na *saída do microcontrolador*: conector PORTC, pino RC2.
-
-  Mantenha a frequência em 977 Hz e varie o duty.
-
-  #table(
-    columns: (auto, 1fr, 1fr, 1fr),
-    fill: (col, row) => if row == 0 { azul } else if calc.odd(row) { cinza } else { white },
-    stroke: 0.5pt + luma(200),
-    inset: 7pt,
-    table.header(
-      text(fill: white, weight: "bold")[Duty nominal],
-      text(fill: white, weight: "bold")[$t_"alto"$],
-      text(fill: white, weight: "bold")[Período],
-      text(fill: white, weight: "bold")[Duty medido],
-    ),
-    [25%],  [], [], [],
-    [50%],  [], [], [],
-    [75%],  [], [], [],
-  )
+#prevista(nota: "0,3 pt")[
+  *P3.* Um botão com pull-up (solto = 1) em RC0, e o Timer1 contando bordas de
+  subida. O contador incrementa ao apertar ou ao soltar? Depois de dez apertos,
+  quanto ele mostra?
+  #resp(n: 2)[Ao soltar: a subida é a volta a 1. E raramente dez — o contato repica, e cada repique é uma borda a mais.]
 ]
 
-/ 1.2: O período mudou quando você alterou o duty? Isso era esperado? #resposta(n: 2)
-
-#previsao[
-  *1.3* — Agora você vai mudar a *frequência*, mantendo o duty em 50%.
-
-  Antes de fazer: a fração de tempo em nível alto vai mudar? Justifique.
-
-  #resposta(n: 2)
+#prevista(nota: "0,3 pt")[
+  *P4.* A ventoinha gira a cerca de 3000 rpm e o tacômetro dá dois pulsos por
+  volta. Quantos pulsos o Timer1 conta numa janela de 1 s?
+  #resp(n: 1)[$3000 slash 60 dot.c 2 = 100$ pulsos.]
 ]
 
-#tarefa[
-  *1.4* — Meça nas três frequências, com duty fixo em 50%.
-
-  #table(
-    columns: (auto, 1fr, 1fr),
-    fill: (col, row) => if row == 0 { azul } else if calc.odd(row) { cinza } else { white },
-    stroke: 0.5pt + luma(200),
-    inset: 7pt,
-    table.header(
-      text(fill: white, weight: "bold")[Prescaler],
-      text(fill: white, weight: "bold")[Frequência medida],
-      text(fill: white, weight: "bold")[Duty medido],
-    ),
-    [1:16], [], [],
-    [1:4],  [], [],
-    [1:1],  [], [],
-  )
+#prevista(nota: "0,4 pt")[
+  *P5.* O mesmo programa conta os pulsos duas vezes: pelo Timer1 e por software,
+  olhando RC0 a cada volta do laço. O laço vai ganhar uma tarefa de 20 ms. Qual
+  das duas contagens muda, e para mais ou para menos?
+  #resp(n: 2)[Só a de software, e para menos: ela olha o pino a cada 20 ms, e pulsos de 10 ms de período passam entre duas olhadas. O Timer1 conta cada borda no hardware, qualquer que seja o laço.]
 ]
 
-/ 1.5: Compare com a @tab-pwm-freq. Os valores batem? Se houver desvio, ele é sistemático ou aleatório? #resposta(n: 2)
-
-#conceito[
-  Duty e frequência são *graus de liberdade independentes*. Um controla quanta potência chega à carga; o outro controla a granularidade do chaveamento. Confundir os dois é erro comum em projeto de acionamento.
+#prevista(nota: "0,4 pt")[
+  *P6.* Calcule `T0CON` e a pré-carga para uma janela de 1 s com divisor 1:256.
+  O divisor 1:64 também serviria?
+  #resp(n: 2)[15 625 contagens de 64 µs: pré-carga 49 911 = `0xC2F7`, `T0CON = 0x87`. Com 1:64, 62 500 contagens de 16 µs, pré-carga 3 036 = `0x0BDC`, `T0CON = 0x85` — também exata e com passo mais fino.]
 ]
 
-= Parte 2 — Pino contra carga
+= Parte 1 — o Timer0 como relógio
 
-Esta é a medida mais importante da sessão.
+Na aula 5, o relógio por consulta ao indicador marcou 50 em 60 s. Aqui o mesmo
+defeito aparece em milissegundos, e dá para medir no osciloscópio.
 
-#previsao[
-  *2.1* — Você vai medir simultaneamente o pino RC2 do PIC e a saída do driver ULN2803, que aciona a ventoinha.
-
-  Antes de ligar: as duas formas de onda serão iguais? Terão a mesma amplitude? A mesma fase?
-
-  #resposta(n: 3)
-]
-
-#tarefa[
-  *2.2* — Configure os dois canais:
-
-  - *Canal 1:* RC2 no conector PORTC
-  - *Canal 2:* test point da ventoinha, após o ULN2803
-  - Duty em 50%, frequência em 977 Hz, CH3-5 em ON
-
-  Desenhe as duas formas de onda em escala, uma sobre a outra.
-]
-
-#v(6em)
-#line(length: 100%, stroke: 0.4pt + luma(170))
-#v(6em)
-#line(length: 100%, stroke: 0.4pt + luma(170))
-
-/ 2.3: As duas ondas têm a mesma amplitude? Qual o nível de tensão de cada uma? #resposta(n: 2)
-
-/ 2.4: Estão em fase ou invertidas? Explique com base no funcionamento do ULN2803. #resposta(n: 3)
-
-#conceito[
-  O ULN2803 tem saída *open-collector*: quando a entrada está em nível alto, o transistor conduz e puxa a saída para o terra. A carga fica entre a saída e os $+12$ V.
-
-  Isso significa que "pino do microcontrolador em nível alto" e "carga energizada" são afirmações diferentes — e a diferença aparece na tela.
-
-  Todo driver de potência introduz alguma transformação desse tipo. Conhecer a do seu driver é parte do projeto, não detalhe de implementação.
-]
-
-= Parte 3 — Aplicação ao termostato
-
-#tarefa[
-  *3.1* — Substitua o controle liga/desliga do Roteiro 5 por atuação proporcional:
+#tarefa(nota: "1,0 pt")[
+  *Tarefa 1.* O programa abaixo inverte RD0 a cada estouro do Timer0. Preencha
+  `T0CON` e a pré-carga para um intervalo de *10 ms*, com fonte interna e sem
+  divisor. O display fica fora deste programa.
 
   ```c
-  erro    = setpoint - temperatura;          /* décimos de grau */
-  esforco = (erro * KP) / ESCALA_GANHO;
+  #define _XTAL_FREQ 16000000UL
+  #include <xc.h>
+  #include <stdint.h>
+
+  #define PRECARGA  ______u          /* 10 ms a 250 ns por contagem */
+  /* #define TAREFA()  __delay_ms(3)    -- Tarefa 2 */
+
+  static void t0_recarregar(void)
+  {
+      TMR0H = (uint8_t)(PRECARGA >> 8);    /* alto primeiro: vai para o buffer */
+      TMR0L = (uint8_t)(PRECARGA & 0xFF);  /* esta escrita transfere os dois   */
+  }
+
+  void main(void)
+  {
+      ADCON1 = 0x0F;                  /* R5: tudo digital na primeira linha */
+      LATDbits.LATD0   = 1;
+      TRISDbits.TRISD0 = 0;
+
+      t0_recarregar();
+      T0CON = 0b________;
+      INTCONbits.TMR0IF = 0;
+
+      for (;;) {
+          if (INTCONbits.TMR0IF) {    /* passaram 10 ms? */
+              INTCONbits.TMR0IF = 0;  /* o hardware nao zera o indicador */
+              t0_recarregar();
+              LATDbits.LATD0 ^= 1;
+          }
+          /* TAREFA(); */
+      }
+  }
   ```
 
-  com `KP = 96` e `ESCALA_GANHO = 64` como ponto de partida.
+  #tab(columns: 9,
+    [bit], [7], [6], [5], [4], [3], [2], [1], [0],
+    [nome], [`TMR0ON`], [`T08BIT`], [`T0CS`], [`T0SE`], [`PSA`], [`T0PS2`], [`T0PS1`], [`T0PS0`],
+    [valor], ..(if gab { ([1], [0], [0], [0], [1], [0], [0], [0]) } else { range(8).map(_ => []) }),
+  )
 
-  O esforço positivo aciona o aquecedor; negativo, a ventoinha. Sature em 0 e 255.
+  Pré-carga: #if gab [65 536 − 40 000 = 25 536 = `0x63C0`; `T0CON = 0x88`] else [#lacuna(largura: 6cm)]
+
+  Meça RD0 no conector de PORTD:
+
+  #tab(columns: (1fr, 3cm, 3cm),
+    [], [Previsto (P1)], [Medido],
+    [Período da onda em RD0], [#if gab [20 ms]], [],
+    [Frequência], [#if gab [50 Hz]], [],
+  )
+
+  Por que o período é o *dobro* do intervalo do temporizador?
+  #resp(n: 1)[Cada estouro inverte o pino uma vez; um período completo tem duas inversões, logo dois intervalos de 10 ms.]
 ]
 
-#previsao[
-  *3.2* — Com controle proporcional, a temperatura vai estabilizar *exatamente* no setpoint?
-
-  Responda antes de rodar, e justifique em termos do que acontece com o esforço quando o erro diminui.
-
-  #resposta(n: 3)
+#resposta[
+  O `T0CON = 0x88` se lê: ligado, 16 bits, fonte interna, divisor desviado.
+  `T0SE` e `T0PS` não importam aqui — o primeiro só vale com fonte externa, o
+  segundo só com `PSA = 0` —, e qualquer valor neles é aceito se o aluno disser
+  isso.
 ]
 
-/ 3.3: O que de fato aconteceu? Em que temperatura o sistema estabilizou? #resposta(n: 2)
+#tarefa(nota: "1,5 pt")[
+  *Tarefa 2.* Agora o laço ganha uma tarefa. Descomente as duas linhas de
+  `TAREFA()`, grave com 3 ms e depois com 7 ms, e meça.
 
-/ 3.4: Se houve diferença em relação ao setpoint, quanto foi? Aumente `KP` para 192 e repita. A diferença diminuiu? Algo piorou? #resposta(n: 3)
+  #tab(columns: (1fr, 3cm, 3cm),
+    [Tarefa no laço], [Previsto (P2)], [Período medido],
+    [3 ms], [#if gab [24 ms]], [],
+    [7 ms], [#if gab [28 ms]], [],
+  )
 
-#observacao[
-  O comportamento observado em 3.3 e 3.4 é o assunto central do Roteiro 9. Guarde os números.
+  (a) Escreva o meio período em função do intervalo programado (10 ms) e da
+  duração $L$ de uma volta do laço.
+  #resp(n: 2)[As consultas caem em múltiplos de $L$ depois da recarga, e o estouro é visto pela primeira consulta que chega em 10 ms ou depois: meio período $= ceil(10 "ms" slash L) dot.c L$. Com 3 ms, 12 ms; com 7 ms, 14 ms.]
+
+  (b) Qual duração de tarefa, entre 1 e 10 ms, faria o período voltar a 20 ms? Isso
+  corrige o programa?
+  #resp(n: 2)[Qualquer divisor de 10 ms: 1, 2, 2,5, 5 ou 10 ms. Não corrige: é coincidência, e desaparece na primeira linha acrescentada ao laço. O intervalo continua dependendo do laço.]
 ]
 
-= Teste de aceitação
+#conceito[
+  O temporizador contou 10 ms exatos. Quem errou foi a *recarga*, que acontece
+  no instante da consulta, e não no instante do estouro. O intervalo fica
+  arredondado para cima até um múltiplo da volta do laço, e o osciloscópio mostra
+  isso como um número, não como uma impressão.
 
-#quadro Tabelas 1.1 e 1.4 preenchidas com medidas do osciloscópio.
+  A saída é deixar o hardware chamar o programa no instante do estouro — a
+  interrupção, que a extensão E1 mostra funcionando e o R7 explica por inteiro.
+]
 
-#quadro Desenho 2.2 das duas formas de onda, com escalas anotadas.
+= Parte 2 — o contador que não sabe o que é tempo
 
-#quadro Termostato com atuação proporcional funcionando.
+O programa desta parte e das seguintes é um só. O Timer1 conta bordas de subida
+em RC0 e o Timer0 marca janelas de 1 s. No fim de cada janela, o display mostra
+o que o Timer1 contou (`N`), o que o software contou olhando o mesmo pino (`S`),
+o total acumulado (`T`) e o número de janelas (`J`). Compile-o junto com o
+`lcd.c` do R4.
 
-= Entrega e critério
+```c
+#define _XTAL_FREQ 16000000UL
+#include <xc.h>
+#include <stdint.h>
+#include "lcd.h"
 
-#figure(
-  table(
-    columns: (auto, 1fr),
-    fill: (col, row) => if row == 0 { azul } else if calc.odd(row) { cinza } else { white },
-    stroke: 0.5pt + luma(200),
-    inset: 7pt,
-    table.header(
-      text(fill: white, weight: "bold")[Peso],
-      text(fill: white, weight: "bold")[Item],
-    ),
-    [0,2], [Teste de aceitação aprovado],
-    [0,2], [Cálculo 6.1 e comparação 1.5 com os valores medidos],
-    [0,2], [Previsão 1.3 e previsão 2.1, registradas antes das medidas],
-    [0,2], [Respostas 2.3 e 2.4 sobre o driver],
-    [0,2], [Previsão 3.2 e respostas 3.3 e 3.4],
-  ),
-  caption: [Distribuição do ponto do Roteiro 6.],
-)
+#define JANELA  ______u               /* 1 s com divisor 1:256 -- Tarefa 6 */
+/* #define TAREFA()  __delay_ms(20)      -- Tarefa 5 */
+
+static void janela_recarregar(void)
+{
+    TMR0H = (uint8_t)(JANELA >> 8);
+    TMR0L = (uint8_t)(JANELA & 0xFF);
+}
+
+static void mostrar(uint16_t n, uint16_t s, uint16_t t, uint16_t j)
+{
+    lcd_posicao(0, 0);
+    lcd_texto("N=");  lcd_numero(n, 5);  lcd_texto(" S=");  lcd_numero(s, 5);
+    lcd_posicao(1, 0);
+    lcd_texto("T=");  lcd_numero(t, 5);  lcd_texto(" J=");  lcd_numero(j, 5);
+}
+
+void main(void)
+{
+    uint16_t n = 0, s = 0, total = 0, janelas = 0;
+    uint8_t  antes = 1;               /* nivel anterior de RC0, para o software */
+
+    ADCON1 = 0x0F;                    /* RE0-RE1 (display) digitais */
+    LATCbits.LATC2   = 1;             /* ventoinha ligada em nivel fixo (CH3-5) */
+    TRISCbits.TRISC2 = 0;
+    TRISCbits.TRISC0 = 1;             /* RC0 = T13CKI: botao ou tacometro */
+
+    lcd_iniciar();
+
+    TMR1H = 0;  TMR1L = 0;
+    T1CON = 0x83;                     /* 16 bits, 1:1, sincronizado, pino RC0 */
+
+    janela_recarregar();
+    T0CON = 0b________;               /* 16 bits, interno, 1:256 -- Tarefa 6 */
+    INTCONbits.TMR0IF = 0;
+
+    for (;;) {
+        uint8_t agora = PORTCbits.RC0;          /* contagem por software:   */
+        if (antes == 0u && agora == 1u) {       /* uma subida vista no laco */
+            s++;
+        }
+        antes = agora;
+
+        if (INTCONbits.TMR0IF) {                /* fechou a janela de 1 s */
+            INTCONbits.TMR0IF = 0;
+            janela_recarregar();
+
+            uint8_t lo = TMR1L;                 /* baixo primeiro: congela o alto */
+            n = ((uint16_t)TMR1H << 8) | lo;
+            TMR1H = 0;  TMR1L = 0;              /* nova janela */
+
+            total += n;
+            janelas++;
+            mostrar(n, s, total, janelas);
+            s = 0;
+        }
+        /* TAREFA(); */
+    }
+}
+```
+
+#tarefa(nota: "1,5 pt")[
+  *Tarefa 3.* Com CH3-2 e CH3-5 em OFF, grave o programa (a janela de 1 s é a da
+  P6). Aperte o botão de RC0 devagar, uma vez, e observe *em que momento* o `T`
+  muda. Depois aperte dez vezes e registre o total, três rodadas.
+
+  #tab(columns: (1fr, 2.4cm, 2.4cm, 2.4cm),
+    [], [Rodada 1], [Rodada 2], [Rodada 3],
+    [Apertos], [10], [10], [10],
+    [`T` contado pelo Timer1], [], [], [],
+  )
+
+  (a) O contador incrementou ao apertar ou ao soltar? Confere com a P3?
+  #resp(n: 1)[Ao soltar: o Timer1 conta bordas de subida, e com pull-up a subida é a volta a 1.]
+
+  (b) Por que o total passa de dez, e por que muda de uma rodada para outra?
+  #resp(n: 2)[O contato repica: fecha e abre várias vezes em poucos milissegundos, e o contador — fiel — conta cada subida. O número de repiques depende de como o dedo apertou, e por isso varia.]
+]
+
+#conceito[
+  O hardware não errou: o sinal é que não era o que parecia. Um contador rápido e
+  exato revela o repique que um laço lento esconderia. O tratamento do repique é
+  assunto do R7.
+]
+
+= Parte 3 — contar as voltas
+
+#tarefa(nota: "1,5 pt")[
+  *Tarefa 4.* Ligue CH3-5 e CH3-2: a ventoinha gira em plena rotação, e o
+  tacômetro chega a RC0. Espere a rotação estabilizar e meça a frequência do
+  sinal no ponto de teste `SPEED`.
+
+  #tab(columns: (1fr, 3cm),
+    [Previsão de `N` (P4)], [],
+    [Frequência em `SPEED` (osciloscópio)], [],
+    [`N` no display (pulsos em 1 s)], [],
+    [Pulsos por volta (verificado na bancada)], [],
+    [Rotação, em rpm], [],
+  )
+
+  (a) `N` e a frequência medida deveriam ser iguais. Por quê?
+  #resp(n: 1)[`N` é o número de bordas de subida contadas em 1 s, e isso é, por definição, a frequência em hertz.]
+
+  (b) Por que o Timer1, e não o Timer0, que também conta pulsos externos?
+  #resp(n: 1)[Porque o tacômetro chega a RC0, que é T13CKI, a entrada do Timer1. A entrada do Timer0 é RA4 (T0CKI). O pino decide o temporizador.]
+]
+
+= Parte 4 — hardware contra software
+
+Com o laço vazio, a contagem por software (`S`) acompanha a do Timer1 (`N`). A
+pergunta é o que acontece quando o laço tem outra coisa para fazer.
+
+#tarefa(nota: "1,5 pt")[
+  *Tarefa 5.* Com a ventoinha girando, anote `N` e `S` com o laço vazio. Depois
+  descomente as duas linhas de `TAREFA()` (20 ms) e anote de novo.
+
+  #tab(columns: (1fr, 3cm, 3cm),
+    [], [Laço vazio], [Tarefa de 20 ms],
+    [`N` (Timer1)], [], [],
+    [`S` (software)], [], [],
+  )
+
+  (a) Qual das duas mudou? Confere com a P5?
+  #resp(n: 1)[Só `S`. `N` fica igual.]
+
+  (b) Explique o valor de `S` com a tarefa, a partir do período do sinal e da
+  duração da volta do laço.
+  #resp(n: 3)[O software só vê o pino uma vez a cada ≈ 20 ms. Um sinal de ≈ 100 Hz tem período de 10 ms: entre duas olhadas passam dois pulsos, e o software só conta uma subida quando uma olhada pega nível baixo e a seguinte pega nível alto. O resultado depende da relação entre as duas frequências, e fica muito abaixo de `N` — pode até ficar perto de zero.]
+
+  (c) Com a tarefa de 20 ms, a janela de 1 s continua medindo 1 s? Por quê?
+  #resp(n: 2)[Continua, por coincidência: 20 ms divide 1000 ms, e a consulta que vê o estouro cai quase em cima dele. Com uma tarefa de 30 ms, a janela passaria a 1,02 s — a deriva da Parte 1.]
+]
+
+#conceito[
+  O Timer1 não perdeu nada porque ele não depende de o programa olhar. O
+  software perdeu porque contar, para ele, é olhar — e ele estava ocupado. É o
+  mesmo argumento do relógio da aula 5, agora com eventos no lugar de tempo:
+  o que o hardware faz sozinho não sofre com o que o laço faz.
+]
+
+#tarefa(nota: "1,0 pt")[
+  *Tarefa 6.* A janela de 1 s é o instrumento das Partes 2 a 4. Verifique-a.
+
+  (a) Escreva os valores que você usou (P6):
+
+  `JANELA` = #if gab [`49911u` (`0xC2F7`)] else [#lacuna(largura: 3cm)] #h(1fr)
+  `T0CON` = #if gab [`0b10000111` (`0x87`)] else [#lacuna(largura: 3cm)]
+
+  (b) Com o laço vazio, zere o kit, dispare um cronômetro no mesmo instante e leia
+  `J` depois de 60 s pelo cronômetro.
+
+  `J` após 60 s: #lacuna(largura: 3cm)
+
+  (c) A diferença, se houver, está dentro do que o seu tempo de reação explica?
+  #resp(n: 2)[Sim: `J` deve dar 60, com ±1 pela partida manual do cronômetro. O erro da janela é de microssegundos por segundo com o laço vazio.]
+]
 
 = Armadilhas frequentes
 
-#figure(
-  table(
-    columns: (1.1fr, 1.4fr),
-    fill: (col, row) => if row == 0 { azul } else if calc.odd(row) { cinza } else { white },
-    stroke: 0.5pt + luma(200),
-    inset: 7pt,
-    table.header(
-      text(fill: white, weight: "bold")[Sintoma],
-      text(fill: white, weight: "bold")[Causa provável],
-    ),
-    [Onda com bordas arredondadas], [Ponta de prova em 1#sym.times ou não compensada],
-    [Nenhum sinal no pino], [Timer2 desligado, ou `CCPxCON` fora do modo PWM],
-    [Duty não muda], [Escreveu em `CCPR1H` no lugar de `CCPR1L`],
-    [Sinal instável na tela], [Trigger mal ajustado; use borda de subida no canal 1],
-    [Ruído no chaveamento da carga], [Normal: é o motor. Registre como observação],
-    [Aquecedor sempre ligado], [`CCP2MX` fora de ON: CCP2 não está em RC1],
-  ),
-  caption: [Diagnóstico rápido do Roteiro 6.],
+#tab(columns: (1fr, 1.3fr),
+  [Sintoma], [Causa provável],
+  [Período em RD0 maior que o programado], [É a Tarefa 2: a recarga espera a volta do laço],
+  [Janela com duração errada], [`TMR0L` escrito antes de `TMR0H`: o byte alto vem do valor anterior],
+  [`N` sempre zero], [CH3-2 em OFF, `TRISC0` em saída, ou `TMR1CS = 0`],
+  [`N` conta sem nada ligado], [RC0 sem pull-up: pino flutuando],
+  [Display com lixo], [`ADCON1` deixa RE0/RE1 analógicos (AN5 e AN6)],
+  [Contagem cresce sem parar entre janelas], [Faltou zerar `TMR1H` e `TMR1L` no fim da janela],
 )
 
-= Para a próxima sessão
+= Entrega
 
 #tarefa[
-  Seu programa hoje usa `__delay_ms()` para esperar entre as leituras. Durante essa espera, o processador não faz absolutamente nada.
+  As tabelas das Tarefas 1 a 6.
 
-  Traga escrito: se você precisasse, ao mesmo tempo, ler o sensor a cada 200 ms, atualizar o LCD a cada 300 ms e verificar um botão a cada 10 ms — como faria isso com `__delay_ms()`?
+  Responda também:
+
+  (a) Na Parte 1, o Timer0 contou certo e o pino errou. Explique onde estava o
+  erro, em termos de *quando* a recarga acontece.
+  #resp(n: 2)[A recarga acontece na consulta, não no estouro. O tempo entre os dois é perdido a cada intervalo, e o intervalo fica arredondado para um múltiplo da volta do laço.]
+
+  (b) Neste roteiro, o Timer0 mediu tempo e o Timer1 contou eventos. O que o
+  processador fez em cada caso?
+  #resp(n: 2)[Timer0: o processador consultou o indicador e recarregou, e é aí que entra o erro. Timer1: nada durante a contagem; só leu o total no fim da janela.]
+]
+
+#criterio[
+  Previsões P1 a P4: 0,3 cada. P5 e P6: 0,4 cada. Total 2,0, pelo raciocínio.
+
+  Tarefa 1 (`T0CON`, pré-carga e medida): 1,0. Tarefa 2 (deriva prevista e
+  medida): 1,5 — a nota está na fórmula da alínea (a), não em acertar o número.
+  Tarefa 3 (botão e repique): 1,5. Tarefa 4 (tacômetro): 1,5. Tarefa 5
+  (hardware contra software): 1,5. Tarefa 6 (janela de 1 s): 1,0.
+
+  Na Tarefa 5, a resposta completa explica `S` pela amostragem — o software só
+  vê o pino uma vez por volta do laço. Dizer "o software é mais lento" vale
+  metade.
+
+  As extensões E1 a E3 não pontuam.
+]
+
+= Se sobrar tempo
+
+#opcional[
+  *E1 — a mesma deriva, por interrupção.* Refaça a Tarefa 2 com a recarga dentro
+  de uma função que o hardware chama no estouro, como na aula 5:
+
+  ```c
+  void __interrupt() tratar(void)
+  {
+      if (INTCONbits.TMR0IF) {
+          INTCONbits.TMR0IF = 0;
+          t0_recarregar();
+          LATDbits.LATD0 ^= 1;
+      }
+  }
+  ```
+
+  No `main`, antes do laço: `INTCONbits.TMR0IE = 1; INTCONbits.GIE = 1;`, e o
+  laço fica só com `TAREFA();`. Meça o período com a tarefa de 7 ms.
+  #resp(n: 1)[20 ms de novo, qualquer que seja a tarefa: a recarga acontece microssegundos depois do estouro. O mecanismo é o assunto do R7.]
+]
+
+#opcional[
+  *E2 — o Timer0 como contador.* Se algum botão alcançar RA4 (T0CKI) — ou um
+  botão avulso na protoboard, entre RA4 e o terra, com pull-up de 10 kΩ —, conte
+  os apertos com o Timer0 em 8 bits (`T0CON = 0xE8`) e mostre `TMR0L` nos LEDs.
+  Troque para a borda de descida (`T0CON = 0xF8`): o momento da contagem muda?
+  #resp(n: 1)[Muda: com `T0SE = 1` a contagem acontece ao apertar. O repique continua.]
+]
+
+#opcional[
+  *E3 — a janela com divisor 1:64.* Troque para `T0CON = 0x85` e `JANELA` =
+  `3036u`. A janela continua de 1 s? O que se ganha com o passo de 16 µs?
+  #resp(n: 1)[Continua exata. O passo menor permite ajustar a pré-carga com resolução de 16 µs em vez de 64 µs — útil para compensar os ciclos da recarga.]
+]
+
+#nota[
+  No R7: a interrupção, por inteiro. A função que o hardware chama, os bits que
+  decidem quem pode interromper, o `volatile` — e o repique que a Tarefa 3
+  mostrou, tratado de verdade.
 ]

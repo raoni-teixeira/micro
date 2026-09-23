@@ -5,7 +5,7 @@
 //     vizinho do RESET (SW9); LEDs de PORTD ativos em nível baixo.
 //
 // Focado exclusivamente no conversor e na convivência digital/analógica: sete
-// tarefas com nota (8,0) e três extensões sem nota no fim.
+// tarefas com nota (8,0) e quatro extensões sem nota no fim.
 //
 // Compilação:  typst compile R5-entrada-e-conversor.typ
 //              typst compile --input gab=1 R5-entrada-e-conversor.typ
@@ -48,9 +48,47 @@
   registradores, consulte a *folha de referência do ADC* na página do curso.
 ]
 
-*Pontuação.* As sete tarefas somam 8,0, e a folha de previsões entregue
-preenchida vale 2,0. A nota de cada tarefa está na margem, ao lado dela. A seção
+*Pontuação.* As sete tarefas somam 8,0, e as previsões P1 a P5 da aula 4,
+preenchidas antes da sessão, valem 2,0. A nota de cada tarefa e de cada previsão
+está na margem, ao lado dela. A seção
 _Se sobrar tempo_, no fim, não vale nota: é para quem terminar antes.
+
+= Previsões — entregues no início da sessão
+
+As mesmas perguntas do fim da aula 4. Quem trouxe a folha preenchida copia aqui
+as respostas; a nota é do raciocínio, não do número.
+
+#prevista(nota: "0,4 pt")[
+  *P1.* Você vai ler o pino AN0 como entrada digital, com `PORTAbits.RA0`, antes
+  de escrever qualquer coisa em `ADCON1` — e depois com o canal analógico
+  habilitado. O que cada leitura devolve?
+  #resp(n: 2)[0 nas duas. O bootloader deixa `PCFG = 0111`, e AN0 já nasce analógico: o buffer de entrada digital está desligado antes mesmo de o programa escrever `ADCON1`. Quem previu "o nível do pino, e depois 0" supôs um reset sem bootloader — é a Tarefa 2 que mostra o valor herdado.]
+]
+
+#prevista(nota: "0,4 pt")[
+  *P2.* Com o LM35 em temperatura ambiente, qual código de dez bits você espera
+  ler? Mostre a conta.
+  #resp(n: 2)[A 25 °C, 250 mV; com 1 LSB = 4,88 mV, código ≈ 51. Um pouco mais no kit, porque o sensor fica junto da resistência.]
+]
+
+#prevista(nota: "0,4 pt")[
+  *P3.* Você vai medir o mesmo ponto vinte vezes seguidas, sem tocar em nada.
+  Quantos códigos distintos espera ver?
+  #resp(n: 2)[Um ou dois adjacentes: o ruído do sistema parado é da ordem de 1 LSB, e a tensão pode estar perto da fronteira entre dois códigos.]
+]
+
+#prevista(nota: "0,4 pt")[
+  *P4.* Aqueça o sensor com o dedo e o código sobe. Quantas unidades de código
+  por grau? E qual é o menor aquecimento que a sua bancada consegue detectar?
+  #resp(n: 2)[10 mV/°C divididos por 4,88 mV/código ≈ 2 códigos por grau. O menor degrau detectável é 1 LSB ≈ 0,5 °C.]
+]
+
+#prevista(nota: "0,4 pt")[
+  *P5.* Se você trocar `ACQT` de 4 $T_"AD"$ para 0, qual dos dois erros aparece —
+  um deslocamento constante em todas as leituras, ou um espalhamento maior em
+  torno do mesmo valor? Diga qual você espera com o LM35 e por quê.
+  #resp(n: 2)[Com o LM35, quase nada: a impedância de saída dele é baixa, e o capacitor de amostragem recarrega a tempo mesmo sem aquisição programada. Com fonte de impedância alta, o erro seria um deslocamento na direção da leitura anterior. É a extensão E4.]
+]
 
 = Parte 1 — o botão que responde, e por quê
 
@@ -101,7 +139,7 @@ _Se sobrar tempo_, no fim, não vale nota: é para quem terminar antes.
   Grave, pressione o botão, e registre:
 
   #tab(columns: (1fr, 5.5cm),
-    [O que a previsão P1 dizia], [],
+    [O que você previu, antes de gravar], [],
     [O que o LED faz com o botão solto], [#if gab [apagado]],
     [O que o LED faz com o botão pressionado], [#if gab [aceso]],
   )
@@ -179,7 +217,7 @@ Alguém configurou esse pino antes de você.
   grave e registre:
 
   #tab(columns: (1fr, 5.5cm),
-    [Previsão], [],
+    [Previsão (é a P1: o que devolve um pino analógico lido como digital?)], [],
     [Botão solto], [#if gab [aceso]],
     [Botão pressionado], [#if gab [aceso]],
   )
@@ -368,7 +406,7 @@ usar. Não é superstição: é não depender do que veio antes.
 ]
 
 #criterio[
-  Previsões preenchidas *antes* da sessão: 2,0.
+  Previsões P1 a P5, preenchidas *antes* da sessão: 0,4 cada, 2,0 no total.
 
   Tarefa 1 (o botão que responde): 0,5. Tarefa 2 (o valor herdado): 1,0. Tarefas
   3 e 4 (provocar, medir e corrigir): 2,0 — é a fronteira do digital com o analógico,
@@ -380,7 +418,7 @@ usar. Não é superstição: é não depender do que veio antes.
   entrada desligado. Dizer "faltava configurar" não vale a nota: é a descrição do
   conserto, não da causa.
 
-  As extensões E1 a E3 não pontuam. Se a turma render, E3 é a que vale mais a
+  As extensões E1 a E4 não pontuam. Se a turma render, E3 é a que vale mais a
   pena puxar em voz alta — é o número que justifica a decisão do R0.
 ]
 
@@ -430,9 +468,18 @@ usar. Não é superstição: é não depender do que veio antes.
   mais natural.
 ]
 
+#opcional[
+  *E4 — o tempo de aquisição (P5).* O driver configura `ADCON2` com 4 $T_"AD"$ de
+  aquisição (`ACQT = 010`). Troque para zero (`ACQT = 000`), mantendo os outros
+  bits, e repita a observação da Tarefa 7.
+
+  O que mudou: um deslocamento constante, um espalhamento maior, ou nada? Confere
+  com a sua P5?
+  #resp[Nada perceptível. A saída do LM35 tem impedância baixa e recarrega o capacitor de amostragem quase de imediato; além disso, o intervalo entre duas chamadas no laço já dá tempo de aquisição de sobra. Com uma fonte de impedância alta — um divisor de megaohms, como no exercício 4.1 —, o erro apareceria.]
+]
+
 #nota[
-  No R6: o PWM, e o mesmo sinal com dois significados. A ventoinha vai ler a razão
-  cíclica como energia, e o buzzer vai ler a frequência como nota — com o mesmo
-  código, mudando só uma chave. E uma descoberta desconfortável: o módulo de PWM
-  do chip não alcança o lá de 440 Hz que vocês tocaram no R3.
+  No R6: o temporizador. O relógio que atrasa, medido no osciloscópio, e o
+  contador que conta as voltas do cooler sem o processador — e que, com um botão,
+  revela o repique que o laço escondia.
 ]
