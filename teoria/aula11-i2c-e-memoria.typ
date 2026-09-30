@@ -119,7 +119,7 @@ que restringe quantos dispositivos e quanto fio o barramento aceita.
 ]
 
 #kit[
-*A verificar antes do R12.* A placa já traz os resistores de elevação em SDA e
+*A verificar antes do R11.* A placa já traz os resistores de elevação em SDA e
 SCL, ou o roteiro precisa incluí-los? E qual é a peça de memória — 24C02, 24C04 ou
 24C16?
 
@@ -153,7 +153,7 @@ trafega é um byte de oito. A folha de dados de um sensor diz "endereço 0x48"; 
 que precisa ir para o barramento é 0x48 deslocado uma casa à esquerda, mais o bit
 de sentido — ou seja, 0x90 para escrever e 0x91 para ler.
 
-Quem escrever 0x48 direto está endereçando o dispositivo 0x24 em modo de leitura.
+Quem escrever 0x48 direto está endereçando o dispositivo 0x24 em modo de escrita.
 Não há dispositivo nenhum ali, ninguém responde, e o sintoma é ausência de
 reconhecimento — que se parece com fio solto, com pull-up faltando e com memória
 queimada.
@@ -346,11 +346,11 @@ botões do encontro 7;
 são canais analógicos, e portanto o `PBADEN` do encontro 4 volta a importar —
 quatro encontros depois, e pelo mesmo motivo.
 
-*A verificar antes do R12:* como o teclado matricial e a memória convivem em
+*A verificar antes do R11:* como o teclado matricial e a memória convivem em
 PORTB, e se há chaves na placa que isolem a memória do barramento.
 ]
 
-= Previsão para o R12
+= Previsão para o R11
 
 #previsao[
 *P1.* Escreva o alvo na memória, desligue a placa, ligue de novo. O que espera
@@ -370,7 +370,8 @@ externa. Qual é mais rápida, e por quê?
 ]
 
 #semnota[
-Leve esta folha preenchida. Este roteiro grava memória de verdade: use posições
+Leve esta folha preenchida. Cada pergunta vale 0,4 — 2,0 no total do R11. Este
+roteiro grava memória de verdade: use posições
 diferentes a cada tentativa e anote quais já foram usadas.
 ]
 
@@ -516,6 +517,6 @@ branco contra lixo periódico.
 uma planta que responde, um sensor que mede, uma chave que aplica potência, um
 registro que atravessa o desligamento, e um enlace que leva os dados para fora.
 
-Falta usar os números que o R10 mediu para responder à pergunta que ele levantou:
+Falta usar os números que o R9 mediu para responder à pergunta que ele levantou:
 por que a temperatura oscila, e o que se faz a respeito.
 ]

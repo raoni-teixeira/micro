@@ -29,7 +29,7 @@ empírico e medido.
 
 = O teto do liga-desliga
 
-O R10 mediu, nesta bancada, amplitude de 2,3 #sym.degree#h(0pt)C com histerese de
+O R9 mediu, nesta bancada, amplitude de 2,3 #sym.degree#h(0pt)C com histerese de
 0,5 #sym.degree#h(0pt)C, e 16 acionamentos por hora.
 
 #conceito[
@@ -217,9 +217,11 @@ O compilador na versão gratuita não tem ponto flutuante (encontro 4). Os ganho
 descem como inteiros escalados.
 
 ```c
-/* Ganhos em Q8: valor real = Kp_q8 / 256. */
-#define KP_Q8   13          /* 0,05 aproximadamente */
-#define KI_Q8    1
+/* Ganhos em Q8, em contagens de saida (0..1023) por decimo de grau:
+   valor real = KP_Q8 / 256.  Kp = 0,05 da saida por grau
+   = 0,05 * 1023 / 10 = 5,1 contagens por decimo -> 5,1 * 256 = 1309. */
+#define KP_Q8   1309
+#define KI_Q8      4        /* por decimo e por segundo: o R13 sintoniza */
 
 static int32_t integral = 0;
 
@@ -262,7 +264,7 @@ de combinações de ganhos rodam em segundos, e dá para varrer o espaço inteir
 vez de chutar duas vezes.
 
 *Confirmar na bancada, só os vencedores.* Duas ou três combinações, medidas de
-verdade, com a mesma telemetria do R11.
+verdade, com a mesma telemetria do R10.
 
 É o mesmo fio do simulador que atravessa o curso desde o encontro 0, agora usado
 para o que ele faz de melhor: repetir barato.
@@ -300,10 +302,10 @@ O fluxo fecha com o resto do curso sem inventar nada:
 
 #tab(
   columns: (auto, 1fr),
-  [De onde vêm os dados], [Telemetria do R11 — horas de temperatura, saída e alvo],
+  [De onde vêm os dados], [Telemetria do R10 — horas de temperatura, saída e alvo],
   [Onde roda o ajuste], [Python, no computador, fora do microcontrolador],
   [O que desce para o chip], [Coeficientes em ponto fixo, uma tabela, ou regras],
-  [Onde ficam guardados], [Memória não volátil do R12],
+  [Onde ficam guardados], [Memória não volátil do R11],
 )
 
 == O caso concreto: ganhos por região
@@ -546,7 +548,7 @@ encontro 4. Terceira aparição.
 #tab(
   columns: (auto, auto, 1fr),
   [Etapa], [Forma dos dados], [Observação],
-  [Registro bruto do R11], [$N times 5$, com $N approx 28#h(1pt)800$], [Oito horas a 1 Hz],
+  [Registro bruto do R10], [$N times 5$, com $N approx 28#h(1pt)800$], [Oito horas a 1 Hz],
   [Rotulagem], [$X$: $N times 2$, $Y$: $N times 1$], [Só as amostras com temperatura estável entram],
   [Treino], [13 parâmetros], [Minutos, em Python],
   [Escolha de formato], [—], [Olhar o maior peso e decidir a posição da vírgula],
@@ -557,7 +559,7 @@ encontro 4. Terceira aparição.
 #conceito[
 Duas etapas dessa tabela costumam ser esquecidas, e as duas dão trabalho.
 
-*Rotular não é gravar.* O registro do R11 tem temperatura e saída a cada segundo,
+*Rotular não é gravar.* O registro do R10 tem temperatura e saída a cada segundo,
 mas o que a rede precisa aprender é a saída *de regime* — aquela aplicada quando a
 temperatura já não muda. As amostras colhidas durante o aquecimento têm saída
 máxima e temperatura qualquer, e ensinariam exatamente a coisa errada. Filtrar por
@@ -625,11 +627,12 @@ graus. Depois meça.
 o sistema estabilizado no alvo? O que isso diz sobre derivar essa medida?
 
 *P5.* Compare a amplitude e o número de acionamentos do PI com os números que o
-R10 mediu para o liga-desliga. Qual das duas grandezas melhorou mais?
+R9 mediu para o liga-desliga. Qual das duas grandezas melhorou mais?
 ]
 
 #semnota[
-Leve esta folha, o registro de telemetria do R11 e o modelo ajustado em Python. A
+Leve esta folha e o `degrau.csv` do R10. Cada pergunta vale 0,4 — 2,0 no total do
+R13. As Tarefas 1 e 2 do R13 são feitas antes da sessão, no notebook do Colab: a
 bancada é para confirmar, não para descobrir.
 ]
 

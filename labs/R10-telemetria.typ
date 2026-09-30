@@ -1,4 +1,4 @@
-// R11 — Serial e telemetria
+// R10 — Serial e telemetria
 // Revisão 2026/2, alinhada à aula 10 (comunicação serial). Substitui o antigo
 // roteiro de serial. O arquivo gerado aqui é a matéria-prima do R13 e da aula
 // 13: o modelo da planta, e o que se aprende dele, sai destes dados.
@@ -7,13 +7,13 @@
 // extensões sem nota no fim. Sem relé: as chaves CH5 disputam RC6 e RC7 com a
 // serial, e ficam desligadas.
 //
-// Compilação:  typst compile R11-telemetria.typ
-//              typst compile --input gab=1 R11-telemetria.typ
+// Compilação:  typst compile R10-telemetria.typ
+//              typst compile --input gab=1 R10-telemetria.typ
 
 #import "estilo.typ": *
 
 #show: conf.with(
-  titulo: "R11 — Serial e telemetria",
+  titulo: "R10 — Serial e telemetria",
   subtitulo: "A placa passa a contar a sua história a um segundo computador, e a história vira dado",
   modo: "roteiro",
 )
@@ -113,8 +113,8 @@ fica ligado direto. O botão não entra: a interface agora é o computador.
 
 #define BLOQUEANTE    1               /* Tarefa 3: 1 = espera TXIF; 0 = fila */
 #define BUZZER        1               /* Parte 2: la tocado pelo laco        */
-#define PRECARGA_5MS  45536u          /* 5 ms a 250 ns (R8)                  */
-#define PRECARGA_LA   60991u          /* meio periodo de 440 Hz (R8)         */
+#define PRECARGA_5MS  45536u          /* 5 ms a 250 ns (R7)                  */
+#define PRECARGA_LA   60991u          /* meio periodo de 440 Hz (R7)         */
 #define H             5               /* histerese: 0,5 grau para cada lado  */
 
 /* ------------------------------------------------ interrupcao */
@@ -306,10 +306,10 @@ with serial.Serial(porta, 9600, timeout=2) as s, open(nome, "w") as f:
 ```
 
 #nota[
-  O programa junta o que o curso já tem: a base de 5 ms do R8, o conversor do
+  O programa junta o que o curso já tem: a base de 5 ms do R7, o conversor do
   R5, a histerese da aula 9 e a fila da aula 10. O buzzer é tocado *pelo laço*,
   consultando o Timer1, de propósito: ele é o instrumento que mede o bloqueio da
-  Parte 2. No R8 ele era tocado por interrupção, e nenhum bloqueio o afetaria.
+  Parte 2. No R7 ele era tocado por interrupção, e nenhum bloqueio o afetaria.
 ]
 
 = Parte 1 — o quadro no fio
@@ -375,7 +375,7 @@ with serial.Serial(porta, 9600, timeout=2) as s, open(nome, "w") as f:
   A 9600 bit/s, a linha leva 25 ms para sair, e isso não muda. O que muda é *quem
   espera*. Na versão bloqueante, o processador fica parado olhando o
   transmissor; na versão com fila, ele entrega a linha e segue. É o mesmo
-  argumento do Timer1 no R6 e da nota no R8: o que o hardware faz sozinho não
+  argumento do Timer1 no R6 e da nota no R7: o que o hardware faz sozinho não
   deveria custar processador.
 ]
 
@@ -522,7 +522,7 @@ with serial.Serial(porta, 9600, timeout=2) as s, open(nome, "w") as f:
 ]
 
 #nota[
-  No R12: guardar o alvo e os parâmetros na memória que sobrevive a desligar a
+  No R11: guardar o alvo e os parâmetros na memória que sobrevive a desligar a
   placa. No R13, os arquivos de hoje viram modelo, sintonia e os coeficientes que
   descem para o chip.
 ]

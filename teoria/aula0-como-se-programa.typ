@@ -51,12 +51,13 @@ quem tropeçou numa semana não fica travado na seguinte.
   [R4], [Uma tela que mostra números],
   [R5], [Uma temperatura lida do mundo real],
   [R6], [Um relógio que não depende do laço, e um contador de eventos],
-  [R7], [Uma saída proporcional, não apenas ligada ou desligada],
-  [R9], [Um atuador de potência de verdade, isolado do micro],
-  [R10], [Uma decisão automática: o termostato liga-desliga completo],
-  [R11], [Um registro do que aconteceu, enviado para fora],
-  [R12], [Uma memória que sobrevive a desligar a placa],
+  [R7], [Um programa que atende eventos na hora certa, sem esperar],
+  [R8], [Uma saída proporcional, não apenas ligada ou desligada],
+  [R9], [Uma decisão automática, e um vigia em silício que não depende dela],
+  [R10], [Um registro do que aconteceu, enviado para fora],
+  [R11], [Uma memória que sobrevive a desligar a placa],
   [R13], [Um controle que não fica oscilando em torno do alvo],
+  [TP], [O termostato inteiro, com aquecedor e cooler por PWM, apresentado e defendido],
 )
 
 Ao final, o objeto na sua bancada é o mesmo que existe dentro de uma estufa, de
@@ -76,20 +77,22 @@ uma incubadora ou de um #box[ar-condicionado] inverter. Não é um modelo reduzi
   [4],  [Aquisição analógica: ADC e LM35], [R4 — display HD44780 em quatro bits], [M4],
   [5],  [Temporizadores], [R5 — entrada digital, ADC e LM35 no display], [M5],
   [6],  [*Avaliação integradora I*], [R6 — temporizadores: medir e contar], [—],
-  [7],  [Interrupções e ruído de contato], [*Avaliação prática I*], [M7],
-  [8],  [PWM e estágio de potência], [R7 — PWM na ventoinha e no buzzer], [M8],
-  [9],  [Controle liga-desliga, histerese e comparação analógica], [R8 — botões, repique e teclado matricial], [M9],
-  [10], [Comunicação serial], [R9 — aquecedor, estágio de potência e reset], [M10],
-  [11], [Barramento serial síncrono: I#super[2]C e memória não volátil], [R10 — termostato liga-desliga completo], [M11],
-  [12], [*Avaliação integradora II*], [R11 — telemetria por UART], [—],
-  [13], [Controle embarcado na prática: do liga-desliga ao PI], [*Avaliação prática II*], [—],
-  [14], [*Seminários comparativos*], [R12 — setpoint em EEPROM], [—],
-  [15], [*Seminários comparativos* e encerramento], [R13 — sintonia contra planta simulada], [—],
+  [7],  [Interrupções e ruído de contato], [*TP, parte 1 — o painel*], [M7],
+  [8],  [PWM e estágio de potência], [R7 — interrupções, botões e repique], [M8],
+  [9],  [Controle liga-desliga, histerese e comparação analógica], [R8 — PWM na ventoinha e no buzzer], [M9],
+  [10], [Comunicação serial], [R9 — liga-desliga, histerese e comparador], [M10],
+  [11], [Barramento serial síncrono: I#super[2]C e memória não volátil], [R10 — telemetria por UART], [M11],
+  [12], [*Avaliação integradora II*], [R11 — setpoint em memória não volátil], [—],
+  [13], [Controle embarcado na prática: do liga-desliga ao PI], [*Avaliação prática*], [—],
+  [14], [*Seminários comparativos*], [R13 — sintonia contra planta simulada], [—],
+  [15], [*Seminários comparativos* e encerramento], [*TP, parte 2 — o termostato*], [—],
 )
 ]
 
-O laboratório não tem semana de folga: o PWM ganhou roteiro próprio, o R7, e o
-último roteiro ocupa o encontro 15. Se o termostato atrasar, o R13 é o que cede.
+Cada roteiro acompanha a aula de mesmo número; os encontros 6 e 12 são provas e
+não têm roteiro próprio. O encontro 15 é a apresentação do TP, o termostato que
+junta todos os roteiros. Não há semana de folga: se o semestre atrasar, o R13 é o
+que cede.
 
 == Como se avalia
 
@@ -118,18 +121,21 @@ uma questão parece pedir conteúdo futuro, é erro meu, e vale reclamar na hora
     #tab(
       columns: (1fr, auto),
       [Instrumento], [Peso],
-      [Roteiros R2–R13 (12, sem descarte)], [40%],
-      [Avaliação prática I], [25%],
-      [Avaliação prática II], [35%],
+      [Roteiros R2–R11 e R13 (11, sem descarte)], [40%],
+      [TP, parte 1 — o painel], [15%],
+      [TP, parte 2 — o termostato], [15%],
+      [Avaliação prática], [30%],
       [R0 e R1], [sem nota],
     )]
   ],
 )
 
-As duas avaliações práticas são novidade. Metade do curso acontece na bancada, e
-até agora só a metade teórica era avaliada diretamente. Elas caem uma semana
-depois das integradoras teóricas, com tarefa fechada e tempo contado: ler um
-valor, mostrar, acionar uma saída.
+A avaliação prática e o TP são novidade. Metade do curso acontece na bancada, e
+até agora só a metade teórica era avaliada diretamente. O TP é um termostato
+construído em duas partes, uma depois do R6 e outra no fim, apresentado e
+defendido por cada integrante. A avaliação prática cai uma semana depois da
+integradora II, com tarefa fechada e tempo contado: ler um valor, mostrar,
+acionar uma saída.
 
 No seminário comparativo, a nota do grupo é ajustada por arguição individual.
 Isso não é desconfiança: é a única forma honesta de diferenciar quem estudou a

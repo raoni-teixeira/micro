@@ -111,7 +111,7 @@ Contra 36#h(1pt)000 da regra sem histerese. Um fator de *2250*, obtido com dois
 
 #kit[
 As taxas $a$ e $b$ acima são estimativas. Os valores reais desta bancada saem da
-resposta ao degrau do R10 — aquecedor a 100% a partir da temperatura ambiente — e
+resposta ao degrau do R9 — aquecedor a 100% a partir da temperatura ambiente — e
 todo número desta seção deve ser refeito com eles.
 
 O aquecedor é um resistor de cimento de 47 #sym.Omega dissipando cerca de 3 W, e
@@ -123,7 +123,7 @@ A conta de vida útil muda de escala junto: 100#h(1pt)000 operações a 16 por h
 dão 6#h(1pt)250 horas, ou cerca de *oito meses de operação contínua*.
 
 Nenhuma escolha de firmware compra tanto quanto essa. É por isso que o número de
-acionamentos por hora é uma das duas grandezas que o R10 vai medir — ele tem
+acionamentos por hora é uma das duas grandezas que o R9 vai medir — ele tem
 consequência física direta e mensurável em reais.
 ]
 
@@ -179,7 +179,7 @@ Essa assimetria não atrapalha o liga-desliga — ele não se importa. Ela vai
 importar no encontro 13, quando um controlador proporcional único tiver de servir
 aos dois sentidos com um ganho só.
 
-Registrar a assimetria agora, com o número medido no R10, é o que torna aquela
+Registrar a assimetria agora, com o número medido no R9, é o que torna aquela
 discussão concreta.
 ]
 
@@ -210,7 +210,7 @@ ainda não equalizou.
 
 static uint8_t  aquecendo  = 0;
 static uint16_t desde      = 0;
-volatile uint16_t comutacoes = 0;  /* a segunda medida do R10 */
+volatile uint16_t comutacoes = 0;  /* a segunda medida do R9 */
 
 void controlar(int16_t t_d)
 {
@@ -511,7 +511,7 @@ temporizador que gera o PWM do encontro 8. Ao ultrapassar o limiar, o acionament
 proteção continua válida com o firmware travado. É bom tema de seminário.
 ]
 
-= As duas medidas do R10
+= As duas medidas do R9
 
 #conceito[
 O roteiro não vai apenas fazer o termostato funcionar. Ele vai *medir* duas
@@ -528,7 +528,7 @@ controle do curso, e o aluno chega ao encontro 13 querendo resolver algo que ele
 mediu — não algo que lhe foi afirmado.
 ]
 
-= Previsão para o R10
+= Previsão para o R9
 
 #previsao[
 *P1.* Com o aquecedor a 100% a partir da temperatura ambiente, qual taxa de
@@ -555,8 +555,9 @@ corte do aquecedor se o firmware travar?
 ]
 
 #semnota[
-Leve esta folha preenchida. Este é o primeiro roteiro em que a medida leva mais
-tempo que a montagem — organize-se para deixar o sistema rodando enquanto
+Leve esta folha preenchida. P1 a P4 valem 0,3 cada, P5 e P6 valem 0,4: 2,0 no
+total do R9. Este é o primeiro roteiro em que a medida leva mais tempo que a
+montagem — organize-se para deixar o sistema rodando enquanto
 escreve.
 ]
 
@@ -646,7 +647,7 @@ diferença sem sinal dá 7#h(1pt)536 ms, que é o intervalo real. A soma dá
 
 #tarefa[
 *Exercício 9.4.* O termostato precisa segurar 40 #sym.degree#h(0pt)C. Discuta se
-cada mudança abaixo melhora ou piora *cada uma* das duas medidas do R10.
+cada mudança abaixo melhora ou piora *cada uma* das duas medidas do R9.
 
 (a) Aumentar $h$ de 0,5 para 1,0 #sym.degree#h(0pt)C.
 

@@ -1,4 +1,4 @@
-// R7 — PWM: o pino, a carga e o limite do módulo
+// R8 — PWM: o pino, a carga e o limite do módulo
 // Revisão 2026/2, alinhada à aula 8 (modulação por largura de pulso). Usa o
 // Timer1 e a janela de 1 s do R6 para medir a rotação.
 //
@@ -6,13 +6,13 @@
 // sem nota no fim. O aquecedor fica de fora: ele é acionado por relé, e relé não
 // faz PWM (aula 8).
 //
-// Compilação:  typst compile R7-pwm.typ
-//              typst compile --input gab=1 R7-pwm.typ
+// Compilação:  typst compile R8-pwm.typ
+//              typst compile --input gab=1 R8-pwm.typ
 
 #import "estilo.typ": *
 
 #show: conf.with(
-  titulo: "R7 — PWM: o pino, a carga e o limite do módulo",
+  titulo: "R8 — PWM: o pino, a carga e o limite do módulo",
   subtitulo: "Período, razão cíclica e resolução medidos, e o que a ventoinha e o buzzer fazem com eles",
   modo: "roteiro",
 )
@@ -427,7 +427,7 @@ void main(void)
   #resp(n: 2)[Nada, depois da configuração. Ele só escreve a razão quando o botão muda; o Timer2 e o comparador repetem a forma de onda sozinhos.]
 
   (b) Tempo, eventos, forma de onda: qual temporizador fez cada coisa entre o R6 e
-  o R7, e qual deles dependeu do laço?
+  o R8, e qual deles dependeu do laço?
   #resp(n: 2)[Timer0 mediu tempo e dependeu do laço para a recarga. Timer1 contou eventos e o Timer2 gerou a onda, os dois sem o laço.]
 ]
 
@@ -471,7 +471,7 @@ void main(void)
 ]
 
 #nota[
-  No R8: a interrupção, por inteiro — o repique que o R6 revelou, tratado de
-  verdade, e o lá de 440 Hz que o módulo não alcança, tocado por um temporizador
-  enquanto o display é atualizado.
+  No R9: o liga-desliga, medido — a regra mais simples do mundo, o que a histerese
+  cobra, e o comparador vigiando o aquecedor com o programa travado. A ventoinha
+  de hoje volta lá como parte da planta.
 ]

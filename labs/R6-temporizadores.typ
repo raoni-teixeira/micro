@@ -189,7 +189,7 @@ void main(void)
   O temporizador contou 10 ms exatos. Quem errou foi a recarga, que acontece no
   instante da consulta, e não no instante do estouro. A saída é o hardware
   chamar o programa no instante do estouro — a interrupção, que a extensão E1
-  mostra funcionando e o R8 explica por inteiro.
+  mostra funcionando e o R7 explica por inteiro.
 ]
 
 = Parte 2 — o contador que não sabe o que é tempo
@@ -392,11 +392,11 @@ void main(void)
   botão de RC0 dez vezes, devagar, e leia T depois da janela seguinte. Repita
   três vezes. O total passa de dez? Por quê? (O display só atualiza a cada
   janela: espere um segundo depois do último aperto.)
-  #resp(n: 2)[Passa, e varia: o contato repica e produz várias bordas de subida por aperto, e o Timer1 conta todas. O repique é medido e tratado no R8.]
+  #resp(n: 2)[Passa, e varia: o contato repica e produz várias bordas de subida por aperto, e o Timer1 conta todas. O repique é medido e tratado no R7.]
 ]
 
 #nota[
-  No R7: o PWM. O Timer2 gerando a onda sozinho, e a ventoinha que parte numa
+  No R7: a interrupção, por inteiro. No R8: o PWM — o Timer2 gerando a onda sozinho, e a ventoinha que parte numa
   razão cíclica e para em outra — contada pelo mesmo Timer1 de hoje. O ponto
   medido na Tarefa 4, em plena rotação, é o primeiro da curva.
 ]

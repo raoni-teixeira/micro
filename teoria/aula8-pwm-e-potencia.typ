@@ -71,7 +71,7 @@ vê exatamente o que existe, um interruptor batendo.
 #atencao[
 Relé não faz PWM. Cada comutação é um evento mecânico com vida útil contada, e
 comutar a 1 kHz destrói o contato em minutos. O aquecedor acionado por relé é uma
-saída de duas posições — e a oscilação que o R10 vai medir é consequência direta
+saída de duas posições — e a oscilação que o R9 vai medir é consequência direta
 disso. O estágio que permite PWM no aquecedor é o da segunda metade desta aula.
 ]
 
@@ -401,7 +401,7 @@ segundo a 1 kHz.
 #kit[
 No XM118 a ventoinha passa por um ULN2803: transistores em coletor aberto, com o
 diodo de retorno já embutido e ligado ao comum. O pico que sobra na borda de
-desligamento é o que o R7 mede no ponto de teste `COOLER`.
+desligamento é o que o R8 mede no ponto de teste `COOLER`.
 ]
 
 = Do pulso à tensão: o filtro RC
@@ -543,7 +543,7 @@ enrolamento sofre magnetostrição na frequência de chaveamento, e uma ventoinh
 PWM a 1 kHz apita a 1 kHz, com rotação perfeitamente estável.
 
 A frequência é escolhida também por critério acústico — e a linha de 20 kHz da
-tabela é a resposta. É o que a P4 do R7 vai medir.
+tabela é a resposta. É o que a P4 do R8 vai medir.
 ]
 
 = Três usos, um contador
@@ -556,7 +556,7 @@ tabela é a resposta. É o que a P4 do R7 vai medir.
   [Gerar forma de onda], [Relógio interno, via `PR2` e `CCPR1L`], [Escreve a razão cíclica e esquece],
 )
 
-= Previsão para o R7
+= Previsão para o R8
 
 #previsao[
 *P1.* Com `PR2` = 255 e divisor 16, qual frequência você espera medir no pino do
@@ -577,7 +577,7 @@ osciloscópio? E com `PR2` = 199?
 ]
 
 #semnota[
-Leve esta folha preenchida. Cada pergunta vale 0,4 — 2,0 no total do R7 —,
+Leve esta folha preenchida. Cada pergunta vale 0,4 — 2,0 no total do R8 —,
 avaliada pelo raciocínio, não por acertar o número.
 ]
 

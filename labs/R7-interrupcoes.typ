@@ -1,17 +1,17 @@
-// R8 — Interrupções e repique
+// R7 — Interrupções e repique
 // Revisão 2026/2, alinhada à aula 7 (interrupções e ruído de contato). Substitui
 // o antigo roteiro de interrupções, no formato novo.
 //
 // Seis tarefas com nota (8,0), previsões P1–P5 da aula 7 (2,0) e três extensões
 // sem nota no fim. Sem relé: as chaves CH5 ficam desligadas.
 //
-// Compilação:  typst compile R8-interrupcoes.typ
-//              typst compile --input gab=1 R8-interrupcoes.typ
+// Compilação:  typst compile R7-interrupcoes.typ
+//              typst compile --input gab=1 R7-interrupcoes.typ
 
 #import "estilo.typ": *
 
 #show: conf.with(
-  titulo: "R8 — Interrupções e repique",
+  titulo: "R7 — Interrupções e repique",
   subtitulo: "O hardware chama o programa, e o botão mente sobre quantas vezes foi apertado",
   modo: "roteiro",
 )
@@ -405,7 +405,7 @@ void main(void)
 ]
 
 #nota[
-  No R9: o estágio de potência, e a pergunta de por que o processador reiniciou.
-  No R11, a serial transmite pela mesma estrutura de hoje — o tratamento entrega
-  um byte, o laço prepara a linha.
+  No R8: o PWM, agora com a interrupção disponível — o Timer2 gera a onda, e o
+  tratamento só escreve a razão cíclica. No R10, a serial transmite pela mesma
+  estrutura de hoje: o tratamento entrega um byte, o laço prepara a linha.
 ]
