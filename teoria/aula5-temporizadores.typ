@@ -1,5 +1,5 @@
 // Aula 5 — Temporizadores
-// O PWM, terceiro uso do contador, é o assunto da aula 6.
+// O PWM, terceiro uso do contador, é o assunto da aula 8.
 // Microcontroladores — DENE/UFMT — Raoni F. S. Teixeira
 
 #import "estilo.typ": *
@@ -97,7 +97,7 @@ tempos, olhar o indicador.
 
 O PIC18F4550 tem quatro: Timer0 e Timer1 (16 bits), Timer2 (8 bits, com
 comparador de período) e Timer3 (16 bits). Nesta aula interessa o Timer0. O
-Timer2, que sustenta o PWM, é o assunto do encontro 6.
+Timer2, que sustenta o PWM, é o assunto do encontro 8.
 
 == A conta do pré-carregamento
 
@@ -428,7 +428,8 @@ avulso na protoboard, entre RA4 e o terra, com pull-up de 10 kΩ para 5 V.
 
 O terceiro uso inverte o sentido: em vez de receber pulsos, o contador *produz*
 uma forma de onda no pino, e o processador só diz a largura do pulso. É a
-modulação por largura de pulso, e é o encontro 6 inteiro.
+modulação por largura de pulso, e ela volta no encontro 8, depois das
+interrupções.
 
 = Previsão para o R6
 
@@ -436,27 +437,24 @@ modulação por largura de pulso, e é o encontro 6 inteiro.
 *P1.* O Timer0 vai marcar 10 ms, e um pino vai ser invertido a cada estouro.
 Que período você espera medir nesse pino?
 
-*P2.* O laço que consulta o indicador vai ganhar uma tarefa de 3 ms. O período
-do pino muda? E com uma tarefa de 7 ms?
+*P2.* O laço que consulta o indicador vai ganhar uma tarefa de 7 ms. O período
+do pino muda? Para quanto?
 
 *P3.* Um botão com pull-up (solto = 1) em RC0, e o Timer1 contando bordas de
 subida. O contador incrementa ao apertar ou ao soltar? Depois de dez apertos,
 quanto ele mostra?
 
-*P4.* A ventoinha gira a cerca de 3000 rpm e o tacômetro dá dois pulsos por
+*P4.* A ventoinha gira a cerca de 3000 rpm, e o tacômetro dá dois pulsos por
 volta. Quantos pulsos o Timer1 conta numa janela de 1 s?
 
 *P5.* O mesmo programa conta os pulsos duas vezes: pelo Timer1 e por software,
-olhando RC0 a cada volta do laço. O laço vai ganhar uma tarefa de 20 ms. Qual
+olhando RC0 a cada volta do laço. O laço vai ganhar uma tarefa de 8 ms. Qual
 das duas contagens muda, e para mais ou para menos?
-
-*P6.* Calcule `T0CON` e a pré-carga para uma janela de 1 s com divisor 1:256.
-O divisor 1:64 também serviria?
 ]
 
 #semnota[
-Leve esta folha preenchida. P1 a P4 valem 0,3 cada, P5 e P6 valem 0,4: 2,0 no
-total do R6, avaliados pelo raciocínio, não por acertar o número.
+Leve esta folha preenchida. Cada pergunta vale 0,4 — 2,0 no total do R6 —,
+avaliada pelo raciocínio, não por acertar o número.
 ]
 
 = Exercícios
@@ -563,10 +561,9 @@ acrescentar código ao laço depois — e é a que o encontro 7 define por compl
 ]
 
 #nota[
-*No encontro 6:* o PWM — o Timer2 gerando a forma de onda, período e
-resolução, e o filtro que transforma pulso em tensão. O encontro termina com a
-avaliação integradora I, cobrindo os encontros 0 a 5. A interrupção aparece nela
-só como *efeito* — o placar do relógio —, nunca como mecanismo.
+*No encontro 6:* avaliação integradora I, cobrindo os encontros 0 a 5. A
+interrupção aparece nela só como *efeito* — o placar do relógio —, nunca como
+mecanismo.
 
 *No encontro 7:* a dívida desta aula é paga. A função que o hardware chama,
 `GIE` e `TMR0IE`, e o porquê de `volatile` e de `uint8_t`. Junto vêm o repique

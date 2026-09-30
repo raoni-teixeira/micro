@@ -1,10 +1,10 @@
 // R7 — PWM: o pino, a carga e o limite do módulo
-// Revisão 2026/2, alinhada à aula 6 (modulação por largura de pulso). Usa o
+// Revisão 2026/2, alinhada à aula 8 (modulação por largura de pulso). Usa o
 // Timer1 e a janela de 1 s do R6 para medir a rotação.
 //
-// Seis tarefas com nota (8,0), previsões P1–P5 da aula 6 (2,0) e três extensões
+// Seis tarefas com nota (8,0), previsões P1–P5 da aula 8 (2,0) e três extensões
 // sem nota no fim. O aquecedor fica de fora: ele é acionado por relé, e relé não
-// faz PWM (aula 6).
+// faz PWM (aula 8).
 //
 // Compilação:  typst compile R7-pwm.typ
 //              typst compile --input gab=1 R7-pwm.typ
@@ -36,13 +36,13 @@
     [CH5-3 e CH5-4], [OFF, obrigatoriamente],
     [Chaves SWITCHS (PORTB)], [OFF],
     [CH3-5 (COOLER)], [ON — ventoinha em RC2, a saída do CCP1],
-    [CH3-2 (SPEED)], [ON — tacômetro em RC0, contado pelo Timer1 como no R6],
+    [CH3-1 (tacômetro em RC0)], [ON — contado pelo Timer1, como no R6],
     [CH3-6 (BUZZER)], [OFF — só entra na Parte 5, no lugar do cooler],
     [CH3-3, CH3-4 e CH3-7], [OFF],
     [Botões], [`INT0` (SW12, RB0) sobe 10%, `INT1` (SW13, RB1) desce 10%, `INT2` (SW14, RB2) troca a configuração],
   )
 
-  Com CH3-2 em ON, *não pressione o botão de RC0*: ele aterra o tacômetro. Os
+  Com CH3-1 em ON, *não pressione o botão de RC0*: ele aterra o tacômetro. Os
   registradores estão na *folha de referência dos temporizadores*.
 ]
 
@@ -51,7 +51,7 @@
   pontas de prova no mesmo terra do kit, e nunca a prenda no ponto de teste.
 ]
 
-*Pontuação.* As seis tarefas somam 8,0, e as previsões P1 a P5 da aula 6,
+*Pontuação.* As seis tarefas somam 8,0, e as previsões P1 a P5 da aula 8,
 preenchidas antes da sessão, valem 2,0. A nota de cada tarefa e de cada previsão
 está na margem, ao lado dela. A seção _Se sobrar tempo_, no fim, não vale nota:
 é para quem terminar antes.
@@ -64,7 +64,7 @@ está na margem, ao lado dela. A seção _Se sobrar tempo_, no fim, não vale no
 
 = Previsões — entregues no início da sessão
 
-As mesmas perguntas do fim da aula 6. Quem trouxe a folha preenchida copia aqui
+As mesmas perguntas do fim da aula 8. Quem trouxe a folha preenchida copia aqui
 as respostas; a nota é do raciocínio, não do número.
 
 #prevista(nota: "0,4 pt")[
@@ -110,7 +110,7 @@ tudo no display. `INT2` percorre quatro configurações do Timer2:
   [3], [199], [1:1], [#if gab [20,00 kHz]], [#if gab [9,6 bits]],
 )
 
-Complete as duas últimas colunas antes de gravar: é a conta da aula 6.
+Complete as duas últimas colunas antes de gravar: é a conta da aula 8.
 
 ```c
 #define _XTAL_FREQ 16000000UL
@@ -123,7 +123,7 @@ Complete as duas últimas colunas antes de gravar: é a conta da aula 6.
 static const uint8_t pr2_cfg[4]   = { 255, 255, 255, 199 };
 static const uint8_t t2con_cfg[4] = { 0x06, 0x05, 0x04, 0x04 };  /* 1:16, 1:4, 1:1, 1:1 */
 
-static void pwm_iniciar(void)         /* na ordem da folha de dados (aula 6) */
+static void pwm_iniciar(void)         /* na ordem da folha de dados (aula 8) */
 {
     PR2    = pr2_cfg[0];              /* 1. periodo */
     CCPR1L = 0;                       /* 2. razao inicial: 0 % */
@@ -290,7 +290,7 @@ void main(void)
   #resp(n: 3)[Invertidas. O ULN2803 tem saída em coletor aberto: com a entrada em nível alto, o transistor conduz e puxa a saída para perto do terra. A ventoinha fica entre a saída e os 12 V, então ela é energizada quando o ponto de teste está *baixo*.]
 
   (b) Aparece algum pico na borda em que a saída sobe? De onde ele vem?
-  #resp(n: 2)[Sim: a ventoinha é indutiva e, quando o transistor corta, a corrente não para de uma vez. O pico é limitado pelo diodo interno do ULN2803 ligado ao comum — o mesmo papel do diodo de retorno do encontro 8.]
+  #resp(n: 2)[Sim: a ventoinha é indutiva e, quando o transistor corta, a corrente não para de uma vez. O pico é limitado pelo diodo interno do ULN2803 ligado ao comum — o mesmo papel do diodo de retorno da aula 8.]
 ]
 
 #conceito[
@@ -412,7 +412,7 @@ void main(void)
   [A razão cíclica não muda], [Escreveu em `CCPR1H`, que é só leitura no modo PWM],
   [Os botões não respondem], [`ADCON1` não é `0x0F`: RB0–RB2 são AN12, AN10 e AN8 (R5)],
   [Display com lixo], [`ADCON1` deixa RE0/RE1 analógicos (AN5 e AN6)],
-  [`N` sempre zero], [CH3-2 em OFF, `TRISC0` em saída, ou `TMR1CS = 0`],
+  [`N` sempre zero], [CH3-1 em OFF, `TRISC0` em saída, ou `TMR1CS = 0`],
 )
 
 = Entrega
@@ -448,7 +448,7 @@ void main(void)
 = Se sobrar tempo
 
 #opcional[
-  *E1 — a rampa sem espera.* Troque o controle por botões pela rampa da aula 6:
+  *E1 — a rampa sem espera.* Troque o controle por botões pela rampa da aula 8:
   a cada estouro de 10 ms do Timer0 (pré-carga `0x63C0`), a razão sobe ou desce
   4 unidades. Com o buzzer desligado e o cooler ligado, observe a rotação
   acompanhando a rampa.

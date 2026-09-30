@@ -19,7 +19,7 @@
 - Estruturar um programa como tratamento curto mais trabalho diferido, e reconhecer nisso o escalonador que o laço principal já é.
 ]
 
-= Cinco dívidas com a mesma forma
+= Quatro dívidas com a mesma forma
 
 #tab(
   columns: (auto, 1fr, auto),
@@ -28,10 +28,9 @@
   [4], [O programa espera o conversor sem ter o que fazer], [60 ciclos],
   [5], [O recarregamento do Timer0 atrasa o intervalo seguinte], [acumulativo],
   [5], [Estouros são perdidos se o laço demorar mais que o intervalo], [silencioso],
-  [6], [O CCP não alcança 440 Hz; o software alcança e bloqueia], [—],
 )
 
-Cinco problemas, uma forma só: *o processador precisa aparecer num instante
+Quatro problemas, uma forma só: *o processador precisa aparecer num instante
 determinado, e a única maneira que ele tinha era ir olhar.*
 
 A Q4 da integradora pediu a descrição de um mecanismo — desvio assíncrono,
@@ -360,7 +359,7 @@ estilo: foi orçamento.
 com folga para os outros.
 
 O Timer0 dispara a cada 5 ms — 20#h(1pt)000 ciclos. Parece muito. Mas se o buzzer
-do encontro 6 estiver no mesmo programa, ele precisa de uma inversão a cada
+do encontro 3 estiver no mesmo programa, ele precisa de uma inversão a cada
 1136 µs, ou *4545 ciclos*. Esse é o número que manda, e ele é o menor intervalo
 entre dois eventos que o programa precisa atender.
 
@@ -615,7 +614,7 @@ porque o registro do tempo não depende de o programa chegar a tempo.
 #docente[
 Este exercício abre a porta do modo de captura, que não tem encontro próprio.
 Dependendo do ritmo da turma, vale gastar quinze minutos com ele aqui — é o dual
-do PWM do encontro 6 e serve diretamente ao aluno de Sistemas de Potência, que
+do PWM do encontro 8 e serve diretamente ao aluno de Sistemas de Potência, que
 vai medir frequência e período em algum momento da vida.
 ]
 ]
@@ -643,12 +642,10 @@ programa principal não tem como saber que foi interrompido.
 ]
 
 #nota[
-*No encontro 8:* estágio de potência, atuadores e fontes de reset. Até aqui os
-pinos moveram LEDs e um display, que consomem miliampères. O aquecedor e o relé
-consomem ampères, e nenhum pino do PIC18F4550 os aciona diretamente.
-
-E vem junto a pergunta que a bancada faz sozinha assim que o primeiro atuador de
-verdade comuta: *por que ele reiniciou?*
+*No encontro 8:* PWM e estágio de potência. O terceiro uso do contador — gerar
+uma forma de onda sem o processador — e a chave que a leva a uma carga de 12 V.
+Até aqui os pinos moveram LEDs e um display, que consomem miliampères; o
+aquecedor e a ventoinha consomem centenas, e nenhum pino os aciona diretamente.
 ]
 
 #tarefa[

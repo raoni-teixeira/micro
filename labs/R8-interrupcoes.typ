@@ -36,7 +36,7 @@
     [Chaves SWITCHS (PORTB)], [OFF],
     [Botões], [`INT0` (SW12, RB0) é o botão medido; `INT1` (SW13, RB1) é o segundo, só para o osciloscópio],
     [CH3-6 (BUZZER)], [OFF até a Tarefa 6; então ON],
-    [CH3-2 a CH3-5 e CH3-7], [OFF],
+    [Demais chaves de CH3], [OFF],
   )
 
   *A verificar antes da sessão:* o deslocamento de vetor que o bootloader do XM118

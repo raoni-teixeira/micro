@@ -1,14 +1,15 @@
-// Aula 6 — Modulação por largura de pulso
+// Aula 8 — PWM e estágio de potência
 // Microcontroladores — DENE/UFMT — Raoni F. S. Teixeira
 //
-// Continuação da aula 5: o terceiro uso do contador, agora por dentro.
-// O encontro termina com a avaliação integradora I (encontros 0 a 5).
+// O terceiro uso do contador (a aula 5 deixou os dois primeiros), e a chave que
+// leva a razão cíclica até uma carga de 12 V. Reúne a antiga aula 6 (PWM) e a
+// parte de comutação da antiga aula 8; as fontes de reset saíram.
 
 #import "estilo.typ": *
 #import "figuras.typ": *
 #show: conf.with(
-  titulo: "Aula 6 — Modulação por largura de pulso",
-  subtitulo: "Um pino de dois níveis entregando qualquer fração da potência",
+  titulo: "Aula 8 — PWM e estágio de potência",
+  subtitulo: "Um pino de dois níveis entregando qualquer fração da potência, e a chave que aguenta a potência",
 )
 
 #objetivos[
@@ -17,13 +18,10 @@
 - Derivar período e resolução a partir de `PR2` e do divisor, e escolher entre os dois para uma aplicação dada.
 - Configurar o módulo na ordem da folha de dados e escrever a razão cíclica nos dois registradores que a guardam.
 - Reconhecer os limites do módulo: frequência mínima, os 100% que não cabem, um Timer2 para dois canais.
+- Comparar a corrente de um pino com a exigida pelos atuadores, e escolher entre relé, transistor bipolar e MOSFET.
+- Desenhar o acionamento em lado baixo, justificando a posição da carga, do diodo de retorno e do resistor de descida.
+- Estimar a tensão gerada pela abertura de uma carga indutiva, e explicar por que ela destrói a chave e reinicia o processador.
 - Dimensionar um filtro RC que transforma PWM em tensão, pela ondulação e pelo tempo de resposta.
-]
-
-#atencao[
-*Este encontro tem duas partes.* Os primeiros 70 minutos são esta aula. Os
-últimos 50 são a *avaliação integradora I*, sobre os encontros 0 a 5, e não há
-miniteste. O PWM desta aula entra no miniteste do encontro 7.
 ]
 
 = Gerar em vez de contar
@@ -74,7 +72,7 @@ vê exatamente o que existe, um interruptor batendo.
 Relé não faz PWM. Cada comutação é um evento mecânico com vida útil contada, e
 comutar a 1 kHz destrói o contato em minutos. O aquecedor acionado por relé é uma
 saída de duas posições — e a oscilação que o R10 vai medir é consequência direta
-disso. O estágio que permite PWM no aquecedor é o do encontro 8.
+disso. O estágio que permite PWM no aquecedor é o da segunda metade desta aula.
 ]
 
 = Dentro do módulo
@@ -235,8 +233,8 @@ zero garante que o primeiro período não liga a carga por acidente.
 
 #kit[
 RC2 é o pino do CCP1, e nele chegam a ventoinha (CH3-5), o buzzer (CH3-6) e o
-DAC (CH3-7) — um de cada vez. RC1 é o CCP2, e nele chegam o aquecedor (relé) e a
-lâmpada. O `CCP2MX` pertence ao bootloader, como todo bit de configuração.
+DAC (CH3-7) — um de cada vez. RC1 é o CCP2, e nele chegam o aquecedor (CH3-3) e
+a lâmpada (CH3-4). O `CCP2MX` pertence ao bootloader, como todo bit de configuração.
 ]
 
 = Os limites do módulo
@@ -267,15 +265,14 @@ O maior `PR2` com o maior divisor dá o período mais longo:
 
 Abaixo disso, o módulo não vai. Para um aquecedor com estágio eletrônico, 1 kHz é
 mais que suficiente. Para o buzzer, é um problema: toda nota abaixo de 976 Hz
-fica fora do alcance — e o encontro 7 resolve isso com um
-temporizador e uma interrupção.
+fica fora do alcance. A interrupção do encontro 7 já resolveu isso: um
+temporizador próprio invertendo o pino do buzzer, em qualquer frequência.
 
 == Dois canais, um Timer2
 
 CCP1 e CCP2 dividem o Timer2. As duas saídas têm, obrigatoriamente, o *mesmo
 período*; cada uma tem a sua razão cíclica. Se ventoinha e aquecedor forem
-acionados por PWM, terão a mesma frequência de comutação — restrição que volta no
-encontro 8.
+acionados por PWM, terão a mesma frequência de comutação.
 
 == O Timer2 continua um temporizador
 
@@ -287,6 +284,124 @@ reescrito. O período do PWM vira a base de tempo do programa.
 #atencao[
 O preço é o acoplamento: mudar `PR2` para mudar a frequência do PWM muda também
 a base de tempo. Quem usar os dois precisa decidir primeiro qual deles manda.
+]
+
+= Nenhum pino aciona nada
+
+Até aqui todo pino moveu LEDs e um display, que consomem miliampères. Os
+atuadores do termostato não.
+
+#tab(
+  columns: (auto, auto, auto, 1fr),
+  [], [Tensão], [Corrente], [Contra o pino],
+  [Pino do PIC18F4550], [5 V], [25 mA (máximo absoluto)], [—],
+  [Aquecedor — 47 #sym.Omega], [12 V], [255 mA], [10#sym.times a corrente, e a tensão errada],
+  [Ventoinha], [12 V], [ordem de 150 mA], [6#sym.times a corrente],
+  [Bobina de relé], [12 V], [ordem de 70 mA], [3#sym.times a corrente],
+)
+
+#atencao[
+Os 25 mA são o *máximo absoluto* de um pino, e há um segundo limite que costuma
+passar despercebido: a corrente total que entra por VDD e sai por VSS, da ordem
+de 200 mA. Oito LEDs a 20 mA já consomem 160 deles.
+
+Máximo absoluto não é ponto de operação. É o valor além do qual o fabricante não
+promete nada — nem o funcionamento, nem a vida útil.
+]
+
+= Três chaves
+
+#tab(
+  columns: (auto, 1fr, 1fr, 1fr),
+  [], [Relé], [MOSFET canal N], [Bipolar NPN],
+  [Isolação], [*Sim*, galvânica], [Não], [Não],
+  [Comando], [Corrente de bobina], [Tensão de porta, quase sem corrente], [Corrente de base],
+  [Queda em condução], [Alguns mV], [$I dot.c R_"DS(on)"$], [0,2 a 0,5 V],
+  [Velocidade], [ordem de 10 ms], [ordem de µs], [ordem de µs],
+  [Aceita PWM], [*Não*], [Sim], [Sim],
+  [Vida útil], [Finita — contato mecânico], [Ilimitada], [Ilimitada],
+)
+
+#conceito[
+*Por que comutar, e não regular.* Um transistor operando na região linear
+entregaria corrente ao aquecedor dissipando a diferença de tensão. Para metade da
+potência, ele largaria 6 V:
+
+#align(center)[$P = 6 "V" dot.c 255 "mA" = 1,53$ W]
+
+Um MOSFET comutando, com $R_"DS(on)"$ da ordem de 22 m#sym.Omega, dissipa:
+
+#align(center)[$P = I^2 R = (0,255)^2 dot.c 0,022 = 1,4$ mW]
+
+Mil vezes menos. Esta é a razão de o mundo inteiro comutar em vez de regular, e é
+o que dá sentido à primeira metade desta aula: a razão cíclica não é uma
+conveniência de software, é o que permite controlar potência sem dissipá-la.
+]
+
+= O acionamento em lado baixo
+
+#fig(
+  fig_estagio(),
+  [A carga fica acima da chave, e o terra é comum ao microcontrolador — é isso
+  que permite comandar 12 V com um sinal de 5 V.],
+)
+
+#conceito[
+*Por que a carga fica em cima.* O que liga o MOSFET é a tensão entre porta e
+fonte, $V_"GS"$. Com a fonte no terra, $V_"GS"$ é simplesmente a tensão do pino:
+5 V, e acabou.
+
+Se a carga ficasse *abaixo* da chave — acionamento em lado alto —, a fonte
+flutuaria junto com a carga, e para manter $V_"GS"$ seria preciso um potencial
+acima dos 12 V da alimentação. Existem circuitos para isso, e nenhum deles é
+gratuito.
+]
+
+#nota[
+*O resistor de descida não é decoração.* Entre o reset e a primeira escrita em
+`TRIS`, o pino está em alta impedância. A porta do MOSFET é capacitiva e não tem
+para onde escoar carga; sem o resistor, ela flutua e pode ligar o aquecedor
+sozinha. É o mesmo argumento do "LAT antes de TRIS" do encontro 2, agora com uma
+carga de três watts na outra ponta.
+]
+
+== O chute indutivo
+
+Motor de ventoinha e bobina de relé são cargas indutivas, e indutor não aceita
+que a corrente mude instantaneamente.
+
+#conceito[
+#align(center)[$v = L (d i) / (d t)$]
+
+Uma bobina de 50 mH conduzindo 70 mA, interrompida em 1 µs:
+
+#align(center)[$v = 0,05 dot.c (0,07 slash 10^(-6)) = 3500$ V]
+
+Não é erro de conta. A energia armazenada no campo magnético precisa ir para
+algum lugar, e se não houver caminho ela sai como uma tensão altíssima sobre o
+que abriu o circuito.
+]
+
+O diodo de retorno é esse caminho. Ligado em antiparalelo com a carga — catodo
+para a alimentação, anodo para o dreno —, ele fica reversamente polarizado
+enquanto a chave conduz e passa a conduzir no instante em que ela abre,
+recirculando a corrente até que ela se extinga.
+
+#atencao[
+Sem o diodo, duas coisas acontecem. O MOSFET recebe milhares de volts entre dreno
+e fonte e perfura — falha permanente, em geral em curto, o que deixa a carga
+ligada para sempre. E o pulso se propaga pela alimentação, derruba VDD abaixo do
+limiar de subtensão, e *o processador reinicia* — o reset que o encontro 11 vai
+precisar sobreviver.
+
+Com PWM, isso não acontece uma vez: acontece a cada período, mil vezes por
+segundo a 1 kHz.
+]
+
+#kit[
+No XM118 a ventoinha passa por um ULN2803: transistores em coletor aberto, com o
+diodo de retorno já embutido e ligado ao comum. O pico que sobra na borda de
+desligamento é o que o R7 mede no ponto de teste `COOLER`.
 ]
 
 = Do pulso à tensão: o filtro RC
@@ -350,46 +465,52 @@ O brilho de um LED que sobe e desce é o exemplo clássico de PWM. Feito com
 `__delay_ms`, ele repete o defeito que a aula 5 condenou: a rampa engasga se o
 laço tiver outra tarefa.
 
-A marca de 10 ms vem do Timer0, pela pré-carga `0x63C0` da aula 5, e o laço
-consulta o indicador:
+Com a interrupção do encontro 7, a marca de 10 ms do Timer0 chama o programa no
+instante certo, e o passo da rampa vai para o tratamento:
 
 ```c
 #define PRECARGA  25536u              /* 65536 - 40000: 10 ms a 250 ns */
 
+void __interrupt() tratar(void)
+{
+    static int16_t r = 0, passo = 4;
+
+    if (INTCONbits.TMR0IF) {          /* passaram 10 ms */
+        INTCONbits.TMR0IF = 0;
+        TMR0H = (uint8_t)(PRECARGA >> 8);
+        TMR0L = (uint8_t)(PRECARGA & 0xFF);
+
+        r += passo;
+        if (r >= 1020) {
+            passo = -4;
+        } else if (r <= 0) {
+            passo = 4;
+        }
+        pwm_razao((uint16_t)r);       /* so o tratamento a chama */
+    }
+}
+
 void main(void)
 {
-    int16_t r = 0, passo = 4;
-
     pwm_iniciar();
     TMR0H = (uint8_t)(PRECARGA >> 8);
     TMR0L = (uint8_t)(PRECARGA & 0xFF);
     T0CON = 0x88;                     /* ligado, 16 bits, interno, sem divisor */
     INTCONbits.TMR0IF = 0;
+    INTCONbits.TMR0IE = 1;
+    INTCONbits.GIE    = 1;
 
     for (;;) {
-        if (INTCONbits.TMR0IF) {      /* passaram 10 ms */
-            INTCONbits.TMR0IF = 0;
-            TMR0H = (uint8_t)(PRECARGA >> 8);
-            TMR0L = (uint8_t)(PRECARGA & 0xFF);
-
-            r += passo;
-            if (r >= 1020) {
-                passo = -4;
-            } else if (r <= 0) {
-                passo = 4;
-            }
-            pwm_razao((uint16_t)r);
-        }
-        /* o resto do programa */
+        /* o resto do programa: a rampa nao depende dele */
     }
 }
 ```
 
 #nota[
-A aula 5 mostrou que consultar o indicador faz o intervalo derivar. Aqui a
-deriva não importa: um passo de rampa com 12 ms em vez de 10 ms não se vê. Saber
-*quando* a imprecisão é aceitável é tão parte do projeto quanto saber eliminá-la.
-Quando não for, a interrupção do encontro 7 resolve.
+Três peças trabalham sem o laço: o Timer2 gera a onda, o Timer0 marca os passos, e
+o tratamento faz a única coisa que exige instrução — escrever o valor novo.
+`pwm_razao` só é chamada pelo tratamento, pela regra do encontro 7: o que o
+tratamento chama, o principal não chama.
 ]
 
 == O olho não é linear
@@ -463,7 +584,7 @@ avaliada pelo raciocínio, não por acertar o número.
 = Exercícios
 
 #tarefa[
-*Exercício 6.1.* Você precisa de PWM a 5 kHz no cooler, a 16 MHz.
+*Exercício 8.1.* Você precisa de PWM a 5 kHz no cooler, a 16 MHz.
 
 (a) Escolha `PR2` e o divisor do Timer2.
 
@@ -490,7 +611,7 @@ juntos.
 ]
 
 #tarefa[
-*Exercício 6.2.* Explique por que a razão cíclica de 30% aplicada a um LED, a um
+*Exercício 8.2.* Explique por que a razão cíclica de 30% aplicada a um LED, a um
 aquecedor e a um relé produz três resultados de naturezas diferentes.
 ]
 
@@ -508,7 +629,7 @@ defeito.
 ]
 
 #tarefa[
-*Exercício 6.3.* O programa escreve `CCPR1L` no meio de um período, com a saída
+*Exercício 8.3.* O programa escreve `CCPR1L` no meio de um período, com a saída
 ainda alta.
 
 (a) O período em curso termina com a razão antiga ou com a nova?
@@ -527,7 +648,7 @@ valor maior esticaria o pulso — pulsos que nenhum programa pediu. O atraso má
 ]
 
 #tarefa[
-*Exercício 6.4.* Um colega quer 100% de razão cíclica na ventoinha com `PR2` =
+*Exercício 8.4.* Um colega quer 100% de razão cíclica na ventoinha com `PR2` =
 255 e escreve `pwm_razao(1023)`.
 
 (a) O que o osciloscópio mostra?
@@ -546,7 +667,7 @@ modo PWM (`CCP1CON = 0`) e fixar `LATC2 = 1`.
 ]
 
 #tarefa[
-*Exercício 6.5.* Um PWM a 976 Hz, 0 a 5 V, passa por um filtro com
+*Exercício 8.5.* Um PWM a 976 Hz, 0 a 5 V, passa por um filtro com
 $R C = 10$ ms.
 
 (a) Qual a ondulação máxima, e em que razão cíclica ela acontece?
@@ -570,7 +691,7 @@ ondulação cai para 8 mV sem mudar o filtro, e os dez bits continuam.
 ]
 
 #tarefa[
-*Exercício 6.6.* O projeto quer a ventoinha em CCP1 a 25 kHz, silenciosa, e o
+*Exercício 8.6.* O projeto quer a ventoinha em CCP1 a 25 kHz, silenciosa, e o
 buzzer em CCP2 tocando notas de 1 a 4 kHz.
 
 (a) É possível? Por quê?
@@ -587,9 +708,51 @@ temporizador próprio invertendo o pino por interrupção (encontro 7). A ventoi
 precisa de razão cíclica estável, que é exatamente o que o módulo oferece.
 ]
 
+#tarefa[
+*Exercício 8.7.* Um colega aciona a ventoinha ligando-a diretamente entre um pino
+e o terra. Ela gira devagar e o microcontrolador esquenta.
+
+(a) Que corrente o pino está fornecendo?
+
+(b) Por que a ventoinha gira devagar?
+
+(c) O circuito vai falhar imediatamente ou depois de um tempo? Justifique.
+]
+
+#resposta[
+(a) No máximo o que o pino consegue entregar, algo abaixo de 25 mA — não os
+150 mA que a ventoinha pede.
+
+(b) Porque o pino é uma fonte limitada: ele não sustenta a tensão sob essa
+corrente, e a tensão sobre a ventoinha desaba. Além disso, o pino entrega 5 V, e
+a ventoinha é de 12 V.
+
+(c) Pode funcionar por um tempo. Operar continuamente no máximo absoluto não
+provoca falha instantânea; provoca degradação — o pior tipo de defeito, que passa
+na demonstração e falha semanas depois.
+]
+
+#tarefa[
+*Exercício 8.8.* Justifique, com números, por que se comuta em vez de regular
+linearmente. Suponha a carga de 47 #sym.Omega em 12 V, operando a meia potência.
+]
+
+#resposta[
+*Linear a meia potência:* para dissipar metade, a tensão na carga cai para
+$12 slash sqrt(2) approx 8,5$ V, e a corrente para 180 mA. O transistor larga os
+3,5 V restantes: $P = 3,5 dot.c 0,18 approx 0,63$ W, dissipados nele.
+
+*Comutando a 50%:* o MOSFET conduz metade do tempo com $R_"DS(on)"$ de 22
+m#sym.Omega e 255 mA: $P = (0,255)^2 dot.c 0,022 dot.c 0,5 approx 0,7$ mW.
+
+Quase mil vezes menos, e sem dissipador. O preço é o ruído de comutação e o
+diodo, que o arranjo linear não precisa.
+]
+
 #nota[
-*No encontro 7:* a interrupção, por inteiro. A função que o hardware chama,
-`GIE` e `TMR0IE`, e o porquê de `volatile` e de `uint8_t` — a dívida da aula 5.
-Junto vêm o repique que o contador externo revelou, e as notas que o módulo de
-PWM não alcança: tocar uma melodia no buzzer e escrever na tela ao mesmo tempo.
+*No encontro 9:* controle liga-desliga e histerese. Agora existe uma chave capaz
+de aplicar três watts à planta, e um sensor capaz de medir meio grau. Falta a
+regra que liga um ao outro — e a primeira versão dela, a mais simples possível,
+já produz um comportamento que ninguém pediu: a temperatura oscila em torno do
+alvo, para sempre.
 ]

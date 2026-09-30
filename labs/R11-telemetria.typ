@@ -40,7 +40,7 @@
     [CH1-1, CH1-5 e CH1-6], [OFF — também chegam a RA0],
     [CH3-3 (HEATER)], [ON a partir da Parte 3 — aquecedor em RC1],
     [CH3-6 (BUZZER)], [ON só na Parte 2],
-    [CH3-2, CH3-4, CH3-5 e CH3-7], [OFF],
+    [Demais chaves de CH3], [OFF],
   )
 
   *Cabo:* DB9 do kit (CN4) ao computador, direto ou por adaptador USB-RS232. O
