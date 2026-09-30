@@ -440,9 +440,9 @@ Que período você espera medir nesse pino?
 *P2.* O laço que consulta o indicador vai ganhar uma tarefa de 7 ms. O período
 do pino muda? Para quanto?
 
-*P3.* Um botão com pull-up (solto = 1) em RC0, e o Timer1 contando bordas de
-subida. O contador incrementa ao apertar ou ao soltar? Depois de dez apertos,
-quanto ele mostra?
+*P3.* No R6, uma janela de 1 s é marcada pelo Timer0, consultado no laço, e o
+display soma um em J a cada janela. Em 60 s de cronômetro, quanto J deve marcar?
+Se o laço tivesse uma tarefa de 7 ms, a janela continuaria servindo?
 
 *P4.* A ventoinha gira a cerca de 3000 rpm, e o tacômetro dá dois pulsos por
 volta. Quantos pulsos o Timer1 conta numa janela de 1 s?

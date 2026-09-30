@@ -33,7 +33,7 @@
 #objetivos[
   - Programar um intervalo no Timer0 e medir no osciloscópio o intervalo que ele realmente produz.
   - Medir quanto a volta do laço atrasa um relógio feito por consulta ao indicador.
-  - Contar eventos externos com o Timer1, sem o processador, e reconhecer o repique na contagem.
+  - Contar eventos externos com o Timer1, sem o processador, numa janela de tempo conferida contra um cronômetro.
   - Medir a rotação da ventoinha e comparar a contagem por hardware com a contagem por software.
 ]
 
@@ -69,9 +69,9 @@ preenchidas antes da sessão, valem 0,4 cada e somam 2,0. A nota da previsão é
 do raciocínio, não do número. A seção _Se sobrar tempo_ não vale nota.
 
 #docente[
-  *Antes da sessão:* (1) qual botão chega a RC0 — o O1 registrou SW2, e a seção
-  PUSH BUTTONS tem um marcado TMR1 (SW10); (2) se RC0 tem pull-up com CH3-1 em
-  OFF; (3) quantos pulsos por volta o tacômetro entrega, para escrever no
+  *Antes da sessão:* (1) e (2) só para a extensão E3 — qual botão chega a RC0
+  (o O1 registrou SW2, e a seção PUSH BUTTONS tem um marcado TMR1, SW10) e se
+  RC0 tem pull-up com CH3-1 em OFF; (3) quantos pulsos por volta o tacômetro entrega, para escrever no
   quadro; (4) a frequência em SPEED e o nível mais curto do sinal. A tarefa de
   8 ms da Tarefa 5 precisa ser *maior* que esse nível; se não for, aumente-a.
   Distribua o projeto da Parte 2 já montado com `lcd.c` e `lcd.h`.
@@ -92,10 +92,10 @@ do raciocínio, não do número. A seção _Se sobrar tempo_ não vale nota.
 ]
 
 #prev_pts("0,4")[
-  *P3.* Um botão com pull-up (solto = 1) em RC0, e o Timer1 contando bordas de
-  subida. O contador incrementa ao apertar ou ao soltar? Depois de dez apertos,
-  quanto ele mostra?
-  #resp(n: 2)[Ao soltar: a subida é a volta para 1. Dez, se o contato fosse ideal; o raciocínio que antecipa o repique vale a nota cheia.]
+  *P3.* Na Parte 2, uma janela de 1 s é marcada pelo Timer0, consultado no laço,
+  e o display soma um em J a cada janela. Em 60 s de cronômetro, quanto J deve
+  marcar? Se o laço tivesse uma tarefa de 7 ms, a janela continuaria servindo?
+  #resp(n: 2)[60, com ±1 pela partida manual do cronômetro. Com 7 ms, a janela passaria a $ceil(1000 slash 7) dot.c 7 = 1001$ ms: 0,1% de erro, contra os 40% da P2. A deriva é de no máximo uma volta do laço por intervalo, e pesa pouco num intervalo longo.]
 ]
 
 #prev_pts("0,4")[
@@ -272,26 +272,30 @@ void main(void)
 ```
 
 #tarefa_pts("1,6")[
-  *Tarefa 3.* Com CH3-1 e CH3-5 em OFF, grave o programa. Aperte o botão de RC0
-  devagar, uma vez, e observe em que momento o T muda. Depois zere o kit, aperte
-  dez vezes e registre o total.
+  *Tarefa 3.* A janela de 1 s é o instrumento das Partes 3 e 4: `N` só é
+  frequência se ela durar 1 s. Com CH3-1 e CH3-5 em OFF, grave o programa,
+  aperte RESET e dispare um cronômetro no instante em que J passar de 0 para 1.
+  Leia J quando o cronômetro marcar 60 s.
 
   #tab(columns: (1fr, 3cm),
-    [Apertos], [10],
-    [T contado pelo Timer1], g[> 10, varia],
+    [Previsão (P3)], [],
+    [J após 60 s de cronômetro], g[60 (±1)],
   )
 
-  (a) O contador incrementou ao apertar ou ao soltar? Confere com a P3?
-  #resp(n: 1)[Ao soltar: é a borda de subida, com pull-up.]
+  (a) A janela também é marcada por consulta ao indicador, como o relógio da
+  Parte 1. Por que J não atrasa como o pino da Tarefa 2?
+  #resp(n: 2)[Com o laço vazio, a consulta vê o estouro poucos microssegundos depois e recarrega em seguida; o display só é escrito depois da recarga. A perda por janela é de microssegundos.]
 
-  (b) Por que o total passa de dez?
-  #resp(n: 2)[Repique: o contato ricocheteia e produz várias subidas por aperto. O Timer1 conta todas, porque é rápido e não depende do laço.]
+  (b) Na Tarefa 2, uma tarefa de 7 ms estragou o intervalo de 10 ms. Quanto ela
+  estragaria a janela de 1 s? Use a conta da P3.
+  #resp(n: 2)[A janela iria a 1001 ms: 0,1%, contra 40%. A deriva é de até uma volta do laço por intervalo; o que decide é a razão entre a volta e o intervalo.]
 ]
 
 #conceito[
-  O hardware não errou: o sinal é que não era o que parecia. Um contador rápido
-  e exato revela o repique que um laço lento esconderia. O tratamento do repique
-  é assunto do R8.
+  A deriva não some com um intervalo longo: fica proporcionalmente menor. Um
+  relógio de 10 ms não sobrevive a uma tarefa de 7 ms; uma janela de 1 s mal a
+  percebe. Saber *quanto* o instrumento erra, e decidir que não importa, é
+  diferente de não saber.
 ]
 
 = Parte 3 — contar as voltas
@@ -381,6 +385,14 @@ void main(void)
   divisor 1:64 também serviria? Se servir, troque para `T0CON = 0x85` e
   `JANELA = 3036u` e confira que J continua subindo uma vez por segundo.
   #resp(n: 2)[1:256 → 64 µs por contagem; 1 s / 64 µs = 15 625; 65 536 − 15 625 = 49 911. Com 1:64 → 16 µs; 62 500 contagens, ainda cabe em 16 bits: 65 536 − 62 500 = 3036. 1:32 não serviria (125 000 > 65 536).]
+]
+
+#semnota[
+  *E3 — o botão, e o repique.* Com CH3-1 e CH3-5 em OFF, zere o kit, aperte o
+  botão de RC0 dez vezes, devagar, e leia T depois da janela seguinte. Repita
+  três vezes. O total passa de dez? Por quê? (O display só atualiza a cada
+  janela: espere um segundo depois do último aperto.)
+  #resp(n: 2)[Passa, e varia: o contato repica e produz várias bordas de subida por aperto, e o Timer1 conta todas. O repique é medido e tratado no R8.]
 ]
 
 #nota[
