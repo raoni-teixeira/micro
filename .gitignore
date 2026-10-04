@@ -72,3 +72,4 @@ dkms.conf
 
 # Avaliações já aplicadas: publicadas com o gabarito (exceção ao *-gab.* acima)
 !teoria/I1-integradora-gab.pdf
+!teoria/M[0-9]*-gab.pdf
