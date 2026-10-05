@@ -50,7 +50,7 @@ Por isso os `#pragma config` do `main.c` ficam dentro de `#if defined(PLACA_PICS
 |---|---|
 | `main.c` | O relógio: configuração do Timer0, a interrupção e o laço principal |
 | `placa.h` | **A escolha da placa** e a frequência do cristal |
-| `lcd.c`, `lcd.h` | O driver do display (HD44780), igual para as duas placas |
+| `lcd.c`, `lcd.h` | O driver do display (HD44780), igual para as duas placas — cópia de [`code/lcd`](../lcd), que tem a explicação completa |
 | `lcd_port.h` | Escolhe os pinos da placa certa |
 | `lcd_port_picsimlab.*` | Pinos e acesso ao display no simulador |
 | `lcd_port_xm118.*` | Pinos e acesso ao display no kit |
