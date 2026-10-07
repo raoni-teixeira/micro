@@ -183,7 +183,7 @@ if (PIR1bits.RCIF) {
     /* guardar c num buffer; o laço processa a linha */
 }</code></pre>
       <p class="margem">A transmissão bloqueante prende o processador ~1 ms por caractere a 9600 bit/s: uma linha de 30 caracteres custa 31 ms. Com fila em RAM e <code>TXIE</code>, o laço só deposita os bytes, e o tratamento os envia (R10).</p>
-      <p class="margem">No kit: CH4-6 (RS232_TX) e CH4-8 (RS232_RX) em ON, CH4-5 e CH4-7 (RS-485) em OFF, e os relés (CH5) em OFF, porque estão ligados a RC6 e RC7. Cabo DB9 de extensão (CN4), não <em>null-modem</em>.</p>
+      <p class="passagem"><span class="rotulo">No kit</span>CH4-6 (RS232_TX) e CH4-8 (RS232_RX) em ON, CH4-5 e CH4-7 (RS-485) em OFF, e os relés (CH5) em OFF, porque estão ligados a RC6 e RC7. Cabo DB9 de extensão (CN4), não <em>null-modem</em>.</p>
     </section>
 
   </main>
