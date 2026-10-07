@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comunicação serial — EUSART (PIC18F4550) — Folha de Referência</title>
+<link rel="stylesheet" href="../estilo.css">
+<style>
+  /* Folha de consulta: densa, tipografia precisa, ideal para tela e impressão. */
+  .ref table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin-bottom: 0.8rem; }
+  .ref table th { text-align: left; font-weight: 700; font-size: 0.78rem; vertical-align: bottom;
+                  letter-spacing: 0.04em; border-bottom: 1px solid var(--tinta); padding: 0.3rem 0.5rem 0.3rem 0; }
+  .ref table td { border-bottom: 1px solid var(--regra); padding: 0.28rem 0.5rem 0.28rem 0; vertical-align: top; }
+  .ref table tr:last-child td { border-bottom: 1px solid var(--tinta); }
+  .ref code:not(pre code) { background: none; padding: 0; font-size: 0.88em; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tabela-rolavel { overflow-x: auto; margin-bottom: 1rem; }
+  .formula { font-family: var(--mono); font-size: 0.92rem; background: var(--papel-2); padding: 0.4rem 0.6rem; }
+  pre { background: var(--papel-2); padding: 0.8rem 1rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+  .linha-destaque { background-color: var(--papel-2); }
+
+  /* Tabelas e figuras largas ocupam também a coluna de notas. */
+  .larga table { min-width: 36rem; }
+  @media (min-width: 58rem) {
+    .larga { width: calc(var(--col) + var(--mg-dx) + var(--mg-larg)); }
+  }
+
+  /* Diagrama de registrador: oito células de largura igual, com filete. */
+  .ref table.registrador { table-layout: fixed; font-size: 0.85rem; }
+  .ref table.registrador th, .ref table.registrador td {
+    text-align: center; vertical-align: middle; padding: 0.3rem 0.2rem; border: 1px solid var(--regra); }
+  .ref table.registrador th { border-bottom-color: var(--tinta); color: var(--cinza-c); font-weight: 500; }
+  .ref table.registrador td { border-bottom: 1px solid var(--tinta); }
+  .registrador .nada { color: var(--cinza-c); }
+  .registrador small { display: block; font-size: 0.75rem; color: var(--cinza); }
+  .reinicio { font-size: 0.85rem; color: var(--cinza); margin-top: -0.4rem; }
+
+  /* Diagrama de blocos do Timer0 */
+  .diagrama { overflow-x: auto; margin: 1rem 0 1.2rem; }
+  .diagrama svg { display: block; width: 100%; min-width: 40rem; height: auto; }
+  .diagrama .tr { stroke: var(--tinta); stroke-width: 1.2; fill: none; }
+  .diagrama .cx { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); }
+  .diagrama .cx2 { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); stroke-dasharray: 4 3; }
+  .diagrama .pont { stroke: var(--cinza-c); stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
+  .diagrama .seta { fill: var(--tinta); }
+  .diagrama text { fill: var(--tinta); font-family: var(--serifa); font-size: 13px; }
+  .diagrama text.m { font-family: var(--mono); font-size: 11.5px; }
+  .diagrama text.c { fill: var(--cinza-c); font-size: 11.5px; }
+  .diagrama text.v { fill: var(--vermelho); font-family: var(--mono); font-size: 11.5px; font-weight: 700; }
+  .legenda { font-size: 0.85rem; font-style: italic; color: var(--cinza); margin-top: 0.3rem; }
+
+  @media print {
+    .pagina { padding-top: 0; }
+    .pagina > main { max-width: none; }
+    .larga { width: auto; }
+    h2 { margin-top: 1rem; }
+    pre, table, .diagrama { break-inside: avoid; }
+    .naoimprime { display: none; }
+  }
+</style>
+
+</head>
+<body>
+<div class="pagina ref">
+  <header>
+    <p class="corrente naoimprime"><a href="./index.html">← Laboratório</a><span>Folha de referência</span></p>
+    <h1>Comunicação serial — EUSART (PIC18F4550) — Folha de Referência</h1>
+    <p class="subtitulo">Taxa, quadro, divisor e os dois erros que param a recepção</p>
+    <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Consulta permitida</span></p>
+  </header>
+  <main>
+
+    <section>
+      <h2>A ideia: um fio, um combinado de tempo</h2>
+      <p>Na comunicação serial assíncrona não há fio de relógio. Transmissor e receptor combinam a <strong>taxa</strong> (bits por segundo) e o <strong>formato</strong>, e o receptor se sincroniza a cada quadro pela borda de descida do bit de partida.</p>
+      <p>Formato do curso, <strong>8N1</strong>: 8 bits de dado, sem paridade, 1 bit de parada. O quadro tem 10 bits:</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>repouso</th><th>partida</th><th>b0</th><th>b1</th><th>b2</th><th>b3</th><th>b4</th><th>b5</th><th>b6</th><th>b7</th><th>parada</th><th>repouso</th></tr></thead>
+        <tbody><tr><td class="num">1</td><td class="num"><strong>0</strong></td><td class="num" colspan="8">dado, <strong>bit menos significativo primeiro</strong></td><td class="num"><strong>1</strong></td><td class="num">1</td></tr></tbody>
+      </table>
+      </div>
+      <p class="formula">largura de um bit = 1 / taxa<br>tempo de um byte = 10 / taxa &nbsp;&nbsp;&nbsp; (9600 bit/s → 104,2 µs por bit, 1,042 ms por byte)<br>vazão útil = taxa / 10 bytes por segundo</p>
+      <p class="passagem"><span class="rotulo">Regra de ouro</span>
+        <strong>Os dois lados precisam do mesmo relógio, dentro de ~2 %.</strong> O receptor amostra cada bit no meio; o erro acumula ao longo do quadro, e no décimo bit a amostra já caiu no bit vizinho. Taxa diferente não dá "nada": dá caracteres errados.</p>
+      <p class="margem">Na linha TTL do pino, repouso é nível alto (5 V). No conector DB9, depois do conversor RS-232 do kit, os níveis são invertidos e maiores (cerca de ±10 V). Meça no pino, não no conector.</p>
+    </section>
+
+    <section>
+      <h2>Gerador de taxa</h2>
+      <p>O divisor n é um registrador de 8 bits (<code>SPBRG</code>) ou de 16 bits (<code>SPBRGH:SPBRG</code>, com <code>BRG16 = 1</code>).</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th><code>BRG16</code></th><th><code>BRGH</code></th><th>Taxa</th><th>Divisor</th><th>Faixa de n</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0</td><td class="num">0</td><td class="num">F<sub>OSC</sub> / (64 · (n + 1))</td><td class="num">n = F<sub>OSC</sub> / (64 · taxa) − 1</td><td class="num">0 … 255</td></tr>
+          <tr><td class="num">0</td><td class="num">1</td><td class="num">F<sub>OSC</sub> / (16 · (n + 1))</td><td class="num">n = F<sub>OSC</sub> / (16 · taxa) − 1</td><td class="num">0 … 255</td></tr>
+          <tr><td class="num">1</td><td class="num">0</td><td class="num">F<sub>OSC</sub> / (16 · (n + 1))</td><td class="num">n = F<sub>OSC</sub> / (16 · taxa) − 1</td><td class="num">0 … 65 535</td></tr>
+          <tr class="linha-destaque"><td class="num">1</td><td class="num">1</td><td class="num">F<sub>OSC</sub> / (4 · (n + 1))</td><td class="num">n = F<sub>OSC</sub> / (4 · taxa) − 1</td><td class="num">0 … 65 535</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Procedimento: calcule n, <strong>arredonde para o inteiro mais próximo</strong>, recalcule a taxa real com o n inteiro e o erro relativo. Exemplo, 19 200 bit/s com <code>BRG16 = 1</code> e <code>BRGH = 1</code>:</p>
+      <p class="formula">n = 16 000 000 / (4 · 19 200) − 1 = 207,33 → 207<br>taxa real = 16 000 000 / (4 · 208) = 19 230,8 bit/s &nbsp;&nbsp;&nbsp; erro = +0,16 %</p>
+      <p class="margem">O cálculo usa F<sub>OSC</sub> = 16 MHz. Usar 48 MHz (o relógio do USB) dá um n três vezes maior, e a taxa real sai um terço da pretendida.</p>
+    </section>
+
+    <section>
+      <h2>Registradores da EUSART</h2>
+      <h3><code>TXSTA</code> — transmissão</h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>CSRC</code><small>só síncrono</small></td><td><code>TX9</code><small>9 bits</small></td><td><code>TXEN</code><small>liga TX</small></td><td><code>SYNC</code><small>0 = assíncrono</small></td><td><code>SENDB</code><small>break</small></td><td><code>BRGH</code><small>alta velocidade</small></td><td><code>TRMT</code><small>1 = vazio</small></td><td><code>TX9D</code></td></tr></tbody>
+</table>
+      <h3><code>RCSTA</code> — recepção</h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>SPEN</code><small>liga a porta</small></td><td><code>RX9</code><small>9 bits</small></td><td><code>SREN</code><small>só síncrono</small></td><td><code>CREN</code><small>liga RX</small></td><td><code>ADDEN</code></td><td><code>FERR</code><small>erro de quadro</small></td><td><code>OERR</code><small>estouro</small></td><td><code>RX9D</code></td></tr></tbody>
+</table>
+      <h3><code>BAUDCON</code> — controle de taxa</h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>ABDOVF</code></td><td><code>RCIDL</code></td><td><code>RXDTP</code><small>inverte RX</small></td><td><code>TXCKP</code><small>inverte TX</small></td><td><code>BRG16</code><small>divisor de 16 bits</small></td><td class="nada">—</td><td><code>WUE</code></td><td><code>ABDEN</code></td></tr></tbody>
+</table>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Registrador / bit</th><th>Papel</th></tr></thead>
+        <tbody>
+          <tr><td><code>TXREG</code></td><td>escrever aqui envia um byte; liga o transmissor e apaga <code>TXIF</code></td></tr>
+          <tr><td><code>PIR1.TXIF</code></td><td>1 = <code>TXREG</code> livre para o próximo byte (o anterior pode ainda estar saindo; para isso, <code>TRMT</code>)</td></tr>
+          <tr><td><code>RCREG</code></td><td>ler aqui retira um byte da fila de recepção; apaga <code>RCIF</code> quando a fila esvazia</td></tr>
+          <tr><td><code>PIR1.RCIF</code></td><td>1 = há byte esperando em <code>RCREG</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Erros de recepção</h2>
+      <p>A recepção tem uma fila de <strong>2 bytes</strong>, mais o registrador de deslocamento que monta o byte que está chegando.</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Erro</th><th>Causa</th><th>Consequência</th><th>Como sair</th></tr></thead>
+        <tbody>
+          <tr><td><code>OERR</code> (estouro)</td><td>terceiro byte termina de chegar com a fila cheia</td><td>o byte se perde e <strong>a recepção para</strong>: nenhum byte novo entra até o programa agir</td><td>zerar e religar <code>CREN</code></td></tr>
+          <tr><td><code>FERR</code> (quadro)</td><td>bit de parada lido como 0: taxa errada, ruído ou linha em curto</td><td>o byte provavelmente está errado</td><td>ler <code>RCREG</code> (o bit acompanha o byte)</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="formula">tempo até o estouro, a partir da fila vazia ≈ 3 bytes · 10 / taxa</p>
+      <p class="margem">Se a recepção for por consulta, todo trecho do laço principal mais longo que esse tempo pode perder bytes. A recepção por interrupção resolve: o tratamento esvazia a fila a cada byte.</p>
+    </section>
+
+    <section>
+      <h2>Código recomendado</h2>
+      <h3>Inicialização</h3>
+      <pre><code>TRISCbits.TRISC6 = 0;           // TX
+TRISCbits.TRISC7 = 1;           // RX
+BAUDCONbits.BRG16 = 1;
+TXSTAbits.BRGH    = 1;
+SPBRGH = (uint8_t)(N &gt;&gt; 8);     // N calculado pela tabela, arredondado
+SPBRG  = (uint8_t)(N &amp; 0xFF);
+TXSTAbits.SYNC = 0;             // assíncrono
+RCSTAbits.SPEN = 1;             // liga a porta: RC6 e RC7 passam ao módulo
+TXSTAbits.TXEN = 1;
+RCSTAbits.CREN = 1;
+PIE1bits.RCIE = 1;              // recepção por interrupção
+INTCONbits.PEIE = 1; INTCONbits.GIE = 1;</code></pre>
+      <h3>Transmissão por consulta (bloqueante) e recepção por interrupção</h3>
+      <pre><code>void uart_byte(uint8_t b)
+{
+    while (!PIR1bits.TXIF) { }  // espera TXREG livre: ~1 ms por byte a 9600
+    TXREG = b;
+}
+
+/* no tratamento: */
+if (PIR1bits.RCIF) {
+    if (RCSTAbits.OERR) {       // estouro: a recepção PAROU
+        RCSTAbits.CREN = 0;
+        RCSTAbits.CREN = 1;
+    }
+    char c = RCREG;             // ler RCREG apaga RCIF
+    /* guardar c num buffer; o laço processa a linha */
+}</code></pre>
+      <p class="margem">A transmissão bloqueante prende o processador ~1 ms por caractere a 9600 bit/s: uma linha de 30 caracteres custa 31 ms. Com fila em RAM e <code>TXIE</code>, o laço só deposita os bytes, e o tratamento os envia (R10).</p>
+      <p class="margem">No kit: CH4-6 (RS232_TX) e CH4-8 (RS232_RX) em ON, CH4-5 e CH4-7 (RS-485) em OFF, e os relés (CH5) em OFF, porque estão ligados a RC6 e RC7. Cabo DB9 de extensão (CN4), não <em>null-modem</em>.</p>
+    </section>
+
+  </main>
+  <footer>
+    <span>Raoni F. S. Teixeira</span>
+    <span>DENE/UFMT</span>
+  </footer>
+</div>
+</body>
+</html>

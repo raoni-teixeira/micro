@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PWM e estágio de potência (PIC18F4550) — Folha de Referência</title>
+<link rel="stylesheet" href="../estilo.css">
+<style>
+  /* Folha de consulta: densa, tipografia precisa, ideal para tela e impressão. */
+  .ref table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin-bottom: 0.8rem; }
+  .ref table th { text-align: left; font-weight: 700; font-size: 0.78rem; vertical-align: bottom;
+                  letter-spacing: 0.04em; border-bottom: 1px solid var(--tinta); padding: 0.3rem 0.5rem 0.3rem 0; }
+  .ref table td { border-bottom: 1px solid var(--regra); padding: 0.28rem 0.5rem 0.28rem 0; vertical-align: top; }
+  .ref table tr:last-child td { border-bottom: 1px solid var(--tinta); }
+  .ref code:not(pre code) { background: none; padding: 0; font-size: 0.88em; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tabela-rolavel { overflow-x: auto; margin-bottom: 1rem; }
+  .formula { font-family: var(--mono); font-size: 0.92rem; background: var(--papel-2); padding: 0.4rem 0.6rem; }
+  pre { background: var(--papel-2); padding: 0.8rem 1rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+  .linha-destaque { background-color: var(--papel-2); }
+
+  /* Tabelas e figuras largas ocupam também a coluna de notas. */
+  .larga table { min-width: 36rem; }
+  @media (min-width: 58rem) {
+    .larga { width: calc(var(--col) + var(--mg-dx) + var(--mg-larg)); }
+  }
+
+  /* Diagrama de registrador: oito células de largura igual, com filete. */
+  .ref table.registrador { table-layout: fixed; font-size: 0.85rem; }
+  .ref table.registrador th, .ref table.registrador td {
+    text-align: center; vertical-align: middle; padding: 0.3rem 0.2rem; border: 1px solid var(--regra); }
+  .ref table.registrador th { border-bottom-color: var(--tinta); color: var(--cinza-c); font-weight: 500; }
+  .ref table.registrador td { border-bottom: 1px solid var(--tinta); }
+  .registrador .nada { color: var(--cinza-c); }
+  .registrador small { display: block; font-size: 0.75rem; color: var(--cinza); }
+  .reinicio { font-size: 0.85rem; color: var(--cinza); margin-top: -0.4rem; }
+
+  /* Diagrama de blocos do Timer0 */
+  .diagrama { overflow-x: auto; margin: 1rem 0 1.2rem; }
+  .diagrama svg { display: block; width: 100%; min-width: 40rem; height: auto; }
+  .diagrama .tr { stroke: var(--tinta); stroke-width: 1.2; fill: none; }
+  .diagrama .cx { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); }
+  .diagrama .cx2 { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); stroke-dasharray: 4 3; }
+  .diagrama .pont { stroke: var(--cinza-c); stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
+  .diagrama .seta { fill: var(--tinta); }
+  .diagrama text { fill: var(--tinta); font-family: var(--serifa); font-size: 13px; }
+  .diagrama text.m { font-family: var(--mono); font-size: 11.5px; }
+  .diagrama text.c { fill: var(--cinza-c); font-size: 11.5px; }
+  .diagrama text.v { fill: var(--vermelho); font-family: var(--mono); font-size: 11.5px; font-weight: 700; }
+  .legenda { font-size: 0.85rem; font-style: italic; color: var(--cinza); margin-top: 0.3rem; }
+
+  @media print {
+    .pagina { padding-top: 0; }
+    .pagina > main { max-width: none; }
+    .larga { width: auto; }
+    h2 { margin-top: 1rem; }
+    pre, table, .diagrama { break-inside: avoid; }
+    .naoimprime { display: none; }
+  }
+</style>
+
+</head>
+<body>
+<div class="pagina ref">
+  <header>
+    <p class="corrente naoimprime"><a href="./index.html">← Laboratório</a><span>Folha de referência</span></p>
+    <h1>PWM e estágio de potência (PIC18F4550) — Folha de Referência</h1>
+    <p class="subtitulo">Timer2 dá o período, CCP1 dá a largura, e a chave dá a corrente</p>
+    <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Consulta permitida</span></p>
+  </header>
+  <main>
+
+    <section>
+      <h2>A ideia: o Timer2 dá o ritmo, o CCP1 decide a largura</h2>
+      <p>O PWM do PIC18F4550 é feito por dois módulos que trabalham juntos. O <strong>Timer2</strong> conta de 0 até <code>PR2</code> e volta: isso fixa o <strong>período</strong>. O <strong>CCP1</strong> compara a contagem com um valor de 10 bits: o pino fica em nível alto do início do período até a contagem alcançar esse valor. Isso fixa a <strong>largura do pulso</strong>.</p>
+      <p>O pino é <code>RC2/CCP1</code> (pino 17). O <code>CCP2</code>, segundo módulo, sai em <code>RC1</code> na configuração padrão (<code>CCP2MX = 1</code>).</p>
+      <p class="formula">T<sub>PWM</sub> = (PR2 + 1) · 4 · T<sub>OSC</sub> · divisor &nbsp;&nbsp; = (PR2 + 1) · T<sub>CY</sub> · divisor<br>
+      t<sub>alto</sub> = D · T<sub>OSC</sub> · divisor &nbsp;&nbsp;&nbsp; (D = valor de 10 bits, <code>CCPR1L:DC1B1:DC1B0</code>)<br>
+      razão cíclica = D / (4 · (PR2 + 1))<br>
+      resolução = log<sub>2</sub>(4 · (PR2 + 1)) bits</p>
+      <p class="passagem"><span class="rotulo">Regra de ouro</span>
+        <strong>A razão cíclica não é D/1024.</strong> O denominador é <code>4 · (PR2 + 1)</code>, que só vale 1024 com <code>PR2 = 255</code>. Mudar <code>PR2</code> para subir a frequência muda a escala de todo valor escrito em <code>CCPR1L</code>.</p>
+      <p class="margem">T<sub>OSC</sub> = 62,5 ns e T<sub>CY</sub> = 250 ns, a 16 MHz. O PWM usa o mesmo relógio do processador, não os 48 MHz do USB.</p>
+    </section>
+
+    <section>
+      <h2>Frequência contra resolução</h2>
+      <p>Um passo de D vale um T<sub>OSC</sub> (vezes o divisor). Quanto mais curto o período, menos passos cabem nele. Exemplo, com <code>PR2 = 255</code> e divisor 1:16:</p>
+      <p class="formula">T = 256 · 250 ns · 16 = 1,024 ms → f ≈ 976,6 Hz; 4 · 256 = 1024 passos = 10 bits</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Divisor do Timer2</th><th>Frequência máxima (<code>PR2 = 0</code>)</th><th>Frequência mínima (<code>PR2 = 255</code>)</th><th>Resolução com <code>PR2 = 255</code></th></tr></thead>
+        <tbody>
+          <tr><td class="num">1:1</td><td class="num">4 MHz (2 bits)</td><td class="num">15,625 kHz</td><td class="num">10 bits</td></tr>
+          <tr><td class="num">1:4</td><td class="num">1 MHz (2 bits)</td><td class="num">3,906 kHz</td><td class="num">10 bits</td></tr>
+          <tr><td class="num">1:16</td><td class="num">250 kHz (2 bits)</td><td class="num">976,6 Hz</td><td class="num">10 bits</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">Abaixo de 976,6 Hz o módulo não chega: é preciso gerar o sinal por software, com um temporizador. Acima de 20 kHz o chaveamento deixa de ser audível no motor; abaixo disso, a carga pode "cantar" na frequência do PWM.</p>
+      <h3>Casos de borda</h3>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Valor de D</th><th>Saída</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0</td><td>sempre em nível baixo (0 %)</td></tr>
+          <tr><td class="num">D ≥ 4 · (PR2 + 1)</td><td>sempre em nível alto (100 %): o pino nunca desce</td></tr>
+          <tr><td class="num"><code>PR2 = 255</code>, D = 1023</td><td>99,9 %: o 100 % exato não cabe em 10 bits</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Registradores</h2>
+      <h3><code>T2CON</code> — Timer2</h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td class="nada">—</td><td colspan="4"><code>T2OUTPS3:0</code><small>pós-divisor (não afeta o PWM)</small></td><td><code>TMR2ON</code><small>liga</small></td><td colspan="2"><code>T2CKPS1:0</code><small>divisor</small></td></tr></tbody>
+</table>
+      <ul>
+        <li><code>T2CKPS1:T2CKPS0</code>: <code>00</code> = 1:1, <code>01</code> = 1:4, <code>1x</code> = 1:16.</li>
+        <li>Valores do curso: <code>0x04</code> = ligado 1:1, <code>0x05</code> = ligado 1:4, <code>0x06</code> = ligado 1:16.</li>
+      </ul>
+      <h3><code>CCP1CON</code> — modo e os 2 bits baixos da largura</h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td colspan="2"><code>P1M1:0</code><small>saídas do ECCP</small></td><td colspan="2"><code>DC1B1:0</code><small>bits 1 e 0 de D</small></td><td colspan="4"><code>CCP1M3:0</code><small>modo</small></td></tr></tbody>
+</table>
+      <ul>
+        <li><code>CCP1M3:CCP1M0 = 1100</code>: PWM com saídas ativas em nível alto. Com <code>P1M = 00</code>, só <code>RC2</code> é usado. Valor do curso: <code>CCP1CON = 0x0C</code>.</li>
+        <li><code>CCPR1L</code>: os 8 bits altos de D. Escrito a qualquer momento, só vale no próximo período (o módulo copia para <code>CCPR1H</code>).</li>
+        <li><code>PR2</code>: o fim do período, 8 bits.</li>
+      </ul>
+      <p class="margem">Ao escrever os bits baixos, preserve o resto de <code>CCP1CON</code> com a máscara <code>0xCF</code> (<code>1100 1111</code>). Sem ela, o modo é apagado e o pino volta a ser porta comum.</p>
+    </section>
+
+    <section>
+      <h2>Código de inicialização e de ajuste recomendado</h2>
+      <pre><code>/* Na ordem da folha de dados */
+PR2    = 255;                 // 1. período
+CCPR1L = 0;                   // 2. largura inicial: 0 %
+LATCbits.LATC2   = 0;         // 3. LAT antes de TRIS: a carga nasce desligada
+TRISCbits.TRISC2 = 0;
+T2CON   = 0x06;               // 4. Timer2 ligado, divisor 1:16
+CCP1CON = 0x0C;               // 5. modo PWM
+
+/* D de 0 a 4*(PR2+1); os 8 bits altos em CCPR1L, os 2 baixos em DC1B */
+void pwm_largura(uint16_t d)
+{
+    CCPR1L  = (uint8_t)(d &gt;&gt; 2);
+    CCP1CON = (uint8_t)((CCP1CON &amp; 0xCF) | (uint8_t)((d &amp; 0x03u) &lt;&lt; 4));
+}</code></pre>
+      <p>Os operadores: <code>d &gt;&gt; 2</code> descarta os 2 bits baixos; <code>d &amp; 0x03</code> guarda só eles; <code>&lt;&lt; 4</code> os leva às posições 5 e 4; <code>&amp; 0xCF</code> apaga essas posições sem tocar nas outras; <code>|</code> junta.</p>
+    </section>
+
+    <section>
+      <h2>O estágio de potência</h2>
+      <p>O pino entrega no máximo 25 mA, a 5 V. Motor, ventoinha, lâmpada e resistência pedem mais corrente, e às vezes 12 V. O pino só comanda: quem conduz é um transistor ou um relé.</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Chave</th><th>Velocidade</th><th>Serve para PWM?</th><th>Cuidado</th></tr></thead>
+        <tbody>
+          <tr><td>MOSFET de nível lógico</td><td>dezenas de kHz</td><td>sim</td><td>escolher um que conduza plenamente com 5 V no gate</td></tr>
+          <tr><td>CI driver (como no kit)</td><td>dezenas de kHz</td><td>sim</td><td>o sinal na carga é invertido ou atrasado em relação ao pino; meça os dois</td></tr>
+          <tr><td>Relé</td><td>milissegundos por manobra</td><td><strong>não</strong></td><td>vida mecânica limitada (da ordem de 10<sup>5</sup> manobras); bom para liga-desliga raro</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">Carga indutiva (motor, relé) precisa de diodo de roda-livre: ao desligar, a corrente da bobina continua e, sem caminho, gera um pico de tensão que destrói a chave.</p>
+      <p class="margem">No kit, a ventoinha (COOLER) está em RC2, pela chave CH3-5; o aquecedor (HEATER) em RC1, pela CH3-3. Os pontos de teste COOLER, HEATER e LAMP chegam a 12 V: nunca prenda a garra de terra neles.</p>
+    </section>
+
+  </main>
+  <footer>
+    <span>Raoni F. S. Teixeira</span>
+    <span>DENE/UFMT</span>
+  </footer>
+</div>
+</body>
+</html>

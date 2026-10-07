@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I²C e memória não volátil (PIC18F4550) — Folha de Referência</title>
+<link rel="stylesheet" href="../estilo.css">
+<style>
+  /* Folha de consulta: densa, tipografia precisa, ideal para tela e impressão. */
+  .ref table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin-bottom: 0.8rem; }
+  .ref table th { text-align: left; font-weight: 700; font-size: 0.78rem; vertical-align: bottom;
+                  letter-spacing: 0.04em; border-bottom: 1px solid var(--tinta); padding: 0.3rem 0.5rem 0.3rem 0; }
+  .ref table td { border-bottom: 1px solid var(--regra); padding: 0.28rem 0.5rem 0.28rem 0; vertical-align: top; }
+  .ref table tr:last-child td { border-bottom: 1px solid var(--tinta); }
+  .ref code:not(pre code) { background: none; padding: 0; font-size: 0.88em; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tabela-rolavel { overflow-x: auto; margin-bottom: 1rem; }
+  .formula { font-family: var(--mono); font-size: 0.92rem; background: var(--papel-2); padding: 0.4rem 0.6rem; }
+  pre { background: var(--papel-2); padding: 0.8rem 1rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+  .linha-destaque { background-color: var(--papel-2); }
+
+  /* Tabelas e figuras largas ocupam também a coluna de notas. */
+  .larga table { min-width: 36rem; }
+  @media (min-width: 58rem) {
+    .larga { width: calc(var(--col) + var(--mg-dx) + var(--mg-larg)); }
+  }
+
+  /* Diagrama de registrador: oito células de largura igual, com filete. */
+  .ref table.registrador { table-layout: fixed; font-size: 0.85rem; }
+  .ref table.registrador th, .ref table.registrador td {
+    text-align: center; vertical-align: middle; padding: 0.3rem 0.2rem; border: 1px solid var(--regra); }
+  .ref table.registrador th { border-bottom-color: var(--tinta); color: var(--cinza-c); font-weight: 500; }
+  .ref table.registrador td { border-bottom: 1px solid var(--tinta); }
+  .registrador .nada { color: var(--cinza-c); }
+  .registrador small { display: block; font-size: 0.75rem; color: var(--cinza); }
+  .reinicio { font-size: 0.85rem; color: var(--cinza); margin-top: -0.4rem; }
+
+  /* Diagrama de blocos do Timer0 */
+  .diagrama { overflow-x: auto; margin: 1rem 0 1.2rem; }
+  .diagrama svg { display: block; width: 100%; min-width: 40rem; height: auto; }
+  .diagrama .tr { stroke: var(--tinta); stroke-width: 1.2; fill: none; }
+  .diagrama .cx { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); }
+  .diagrama .cx2 { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); stroke-dasharray: 4 3; }
+  .diagrama .pont { stroke: var(--cinza-c); stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
+  .diagrama .seta { fill: var(--tinta); }
+  .diagrama text { fill: var(--tinta); font-family: var(--serifa); font-size: 13px; }
+  .diagrama text.m { font-family: var(--mono); font-size: 11.5px; }
+  .diagrama text.c { fill: var(--cinza-c); font-size: 11.5px; }
+  .diagrama text.v { fill: var(--vermelho); font-family: var(--mono); font-size: 11.5px; font-weight: 700; }
+  .legenda { font-size: 0.85rem; font-style: italic; color: var(--cinza); margin-top: 0.3rem; }
+
+  @media print {
+    .pagina { padding-top: 0; }
+    .pagina > main { max-width: none; }
+    .larga { width: auto; }
+    h2 { margin-top: 1rem; }
+    pre, table, .diagrama { break-inside: avoid; }
+    .naoimprime { display: none; }
+  }
+</style>
+
+</head>
+<body>
+<div class="pagina ref">
+  <header>
+    <p class="corrente naoimprime"><a href="./index.html">← Laboratório</a><span>Folha de referência</span></p>
+    <h1>I²C e memória não volátil (PIC18F4550) — Folha de Referência</h1>
+    <p class="subtitulo">Dois fios, endereço no barramento, e a memória que avisa quando terminou</p>
+    <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Consulta permitida</span></p>
+  </header>
+  <main>
+
+    <section>
+      <h2>A ideia: dois fios, endereço no próprio barramento</h2>
+      <p>O I²C usa só dois fios, compartilhados por todos os dispositivos: <strong>SDA</strong> (dado) e <strong>SCL</strong> (relógio, gerado pelo mestre). Não há fio de seleção: o primeiro byte de cada transação carrega o <strong>endereço</strong> do dispositivo, e só ele responde.</p>
+      <p>As linhas são de <strong>dreno aberto</strong>: os dispositivos só sabem puxar para 0. O nível 1 vem de resistores de <em>pull-up</em>. Por isso a descida é rápida e a subida é lenta, uma carga RC:</p>
+      <p class="formula">t<sub>subida</sub> (de 30 % a 70 % de V<sub>DD</sub>) ≈ 0,85 · R<sub>pull-up</sub> · C<sub>barramento</sub> &nbsp;&nbsp;&nbsp; (limite a 100 kHz: 1000 ns)</p>
+      <p>Cada byte ocupa <strong>9 pulsos de relógio</strong>: 8 de dado, mais significativo primeiro, e 1 de <strong>reconhecimento</strong>, em que quem recebe puxa SDA para 0 (ACK) ou deixa em 1 (NACK).</p>
+      <p class="formula">tempo de um byte = 9 / f<sub>SCL</sub> &nbsp;&nbsp;&nbsp; (100 kHz → 90 µs por byte)</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Condição</th><th>O que acontece nas linhas</th><th>Quem gera</th></tr></thead>
+        <tbody>
+          <tr><td>Partida (S)</td><td>SDA desce com SCL em 1</td><td>mestre</td></tr>
+          <tr><td>Parada (P)</td><td>SDA sobe com SCL em 1</td><td>mestre</td></tr>
+          <tr><td>Partida repetida (Sr)</td><td>nova partida sem parada antes: o mestre não solta o barramento</td><td>mestre</td></tr>
+          <tr><td>Dado</td><td>SDA só muda com SCL em 0</td><td>quem transmite</td></tr>
+          <tr><td>ACK / NACK</td><td>9.º pulso: 0 = recebido, 1 = não recebido</td><td>quem recebe</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="passagem"><span class="rotulo">Regra de ouro</span>
+        <strong>NACK depois do endereço quer dizer "ninguém respondeu"</strong>: endereço errado, memória desligada da linha, ou a memória ocupada no ciclo interno de escrita. O barramento não diferencia os três casos.</p>
+      <p class="margem">No PIC18F4550, o módulo MSSP usa <strong>RB0 = SDA</strong> e <strong>RB1 = SCL</strong>, os mesmos pinos dos botões INT0 e INT1. Com o I²C ligado, não aperte os botões. Os dois pinos são configurados como entrada (<code>TRIS = 1</code>): o módulo assume o controle.</p>
+    </section>
+
+    <section>
+      <h2>A memória 24Cxx</h2>
+      <p>Byte de controle, o primeiro de toda transação:</p>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>1</code></td><td><code>0</code></td><td><code>1</code></td><td><code>0</code></td><td><code>A2</code></td><td><code>A1</code></td><td><code>A0</code></td><td><code>R/W</code><small>0 = escrita</small></td></tr></tbody>
+</table>
+      <p><code>1010</code> identifica a família de memórias. <code>A2 A1 A0</code> são os pinos de endereço do chip (no kit, todos em 0), o que dá <code>0xA0</code> para escrita e <code>0xA1</code> para leitura. Nas versões maiores, parte desses bits vira número do bloco de 256 bytes.</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Memória</th><th>Tamanho</th><th>Página</th><th>Bits A2 A1 A0</th></tr></thead>
+        <tbody>
+          <tr><td>24C02</td><td class="num">256 bytes</td><td class="num">8 bytes</td><td>endereço do chip</td></tr>
+          <tr><td>24C04</td><td class="num">512 bytes</td><td class="num">16 bytes</td><td>A0 = bloco</td></tr>
+          <tr><td>24C08</td><td class="num">1 KB</td><td class="num">16 bytes</td><td>A1 A0 = bloco</td></tr>
+          <tr><td>24C16</td><td class="num">2 KB</td><td class="num">16 bytes</td><td>A2 A1 A0 = bloco</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">Confira a marcação do chip no seu kit: ela decide o tamanho da página.</p>
+      <h3>As três transações</h3>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Operação</th><th>Sequência no barramento</th><th>Bytes</th></tr></thead>
+        <tbody>
+          <tr><td>Escrita de um byte</td><td>S · <code>0xA0</code> · endereço · dado · P</td><td class="num">3</td></tr>
+          <tr><td>Escrita por página</td><td>S · <code>0xA0</code> · endereço · dado<sub>1</sub> … dado<sub>k</sub> · P &nbsp; (k ≤ página)</td><td class="num">2 + k</td></tr>
+          <tr><td>Leitura aleatória</td><td>S · <code>0xA0</code> · endereço · <strong>Sr</strong> · <code>0xA1</code> · dado (mestre responde NACK) · P</td><td class="num">4</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>A leitura começa como uma escrita: o mestre escreve o endereço interno, e com a partida repetida inverte o sentido sem soltar o barramento. Escrita e leitura são fases de uma mesma transação.</p>
+    </section>
+
+    <section>
+      <h2>O ciclo interno de escrita</h2>
+      <p>A parada (P) de uma escrita dispara a gravação dentro da memória, que leva <strong>até 5 ms</strong>. Durante esse tempo a memória <strong>não responde</strong>: qualquer transação recebe NACK no byte de controle.</p>
+      <p class="formula">escrita de N bytes, um a um: N · (3 · 9 / f<sub>SCL</sub> + t<sub>WR</sub>)<br>escrita de N bytes por página (página P): ⌈N / P⌉ · ((2 + P) · 9 / f<sub>SCL</sub> + t<sub>WR</sub>)</p>
+      <p class="formula">exemplo, 8 bytes a 100 kHz: um a um ≈ 8 · 5,27 ms = 42,2 ms; por página ≈ 0,9 ms + 5 ms = 5,9 ms</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Como esperar o fim da gravação</th><th>Custo</th></tr></thead>
+        <tbody>
+          <tr><td>Espera fixa de 5 ms</td><td>sempre o pior caso</td></tr>
+          <tr><td><strong>Consulta por ACK</strong>: repetir S · <code>0xA0</code> até a memória responder ACK</td><td>espera só o necessário; a memória avisa quando terminou</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">Dentro da página, o endereço dá a volta: gravar além do fim da página sobrescreve o início dela, sem aviso. Alinhe os blocos grandes ao começo da página.</p>
+    </section>
+
+    <section>
+      <h2>Registradores do MSSP em modo mestre I²C</h2>
+      <h3><code>SSPCON1</code></h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>WCOL</code><small>colisão de escrita</small></td><td><code>SSPOV</code></td><td><code>SSPEN</code><small>liga o módulo</small></td><td><code>CKP</code></td><td colspan="4"><code>SSPM3:0</code><small>1000 = mestre I²C</small></td></tr></tbody>
+</table>
+      <h3><code>SSPCON2</code> — os comandos do mestre</h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>GCEN</code></td><td><code>ACKSTAT</code><small>0 = recebeu ACK</small></td><td><code>ACKDT</code><small>ACK a enviar</small></td><td><code>ACKEN</code><small>envia ACKDT</small></td><td><code>RCEN</code><small>recebe byte</small></td><td><code>PEN</code><small>parada</small></td><td><code>RSEN</code><small>partida repetida</small></td><td><code>SEN</code><small>partida</small></td></tr></tbody>
+</table>
+      <p>Cada comando (<code>SEN</code>, <code>RSEN</code>, <code>PEN</code>, <code>RCEN</code>, <code>ACKEN</code>) é um bit que o programa liga e o hardware apaga ao terminar.</p>
+      <h3><code>SSPSTAT</code></h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>SMP</code><small>1 = 100 kHz</small></td><td><code>CKE</code></td><td><code>D/A</code></td><td><code>P</code></td><td><code>S</code></td><td><code>R/W</code><small>1 = transmitindo</small></td><td><code>UA</code></td><td><code>BF</code><small>buffer cheio</small></td></tr></tbody>
+</table>
+      <p class="formula">f<sub>SCL</sub> = F<sub>OSC</sub> / (4 · (SSPADD + 1)) &nbsp;&nbsp;&nbsp; 100 kHz a 16 MHz → <code>SSPADD = 39</code></p>
+    </section>
+
+    <section>
+      <h2>Código recomendado (R11)</h2>
+      <pre><code>#define MEM 0xA0u                  /* 1010 000 0: família, chip 000, escrita */
+
+void i2c_iniciar(void)
+{
+    TRISBbits.TRISB0 = 1; TRISBbits.TRISB1 = 1;   /* o módulo assume SDA e SCL */
+    SSPSTAT = 0x80;                /* SMP = 1: 100 kHz              */
+    SSPADD  = 39;                  /* 16 MHz / (4 x 100 kHz) - 1    */
+    SSPCON1 = 0x28;                /* SSPEN = 1, mestre I2C         */
+    SSPCON2 = 0x00;
+}
+static void i2c_ocioso(void) { while ((SSPCON2 &amp; 0x1F) || (SSPSTAT &amp; 0x04)) { } }
+void i2c_start(void)   { i2c_ocioso(); SSPCON2bits.SEN  = 1; while (SSPCON2bits.SEN)  { } }
+void i2c_restart(void) { i2c_ocioso(); SSPCON2bits.RSEN = 1; while (SSPCON2bits.RSEN) { } }
+void i2c_stop(void)    { i2c_ocioso(); SSPCON2bits.PEN  = 1; while (SSPCON2bits.PEN)  { } }
+uint8_t i2c_escrever(uint8_t b)    /* devolve 1 se houve ACK */
+{
+    i2c_ocioso(); SSPBUF = b;
+    while (SSPSTAT &amp; 0x01) { }     /* BF: espera o byte sair */
+    i2c_ocioso();
+    return (uint8_t)!SSPCON2bits.ACKSTAT;
+}
+
+/* escreve k bytes numa página e espera o ciclo interno por consulta de ACK */
+void mem_pagina(uint8_t end, const uint8_t *d, uint8_t k)
+{
+    i2c_start(); i2c_escrever(MEM); i2c_escrever(end);
+    for (uint8_t i = 0; i &lt; k; i++) i2c_escrever(d[i]);
+    i2c_stop();                    /* aqui começa o ciclo interno */
+    for (;;) {                     /* consulta por ACK */
+        i2c_start();
+        if (i2c_escrever(MEM)) break;   /* ACK: a gravação terminou */
+        i2c_stop();                     /* NACK: ainda gravando     */
+    }
+    i2c_stop();
+}</code></pre>
+      <p class="margem">A máscara <code>0x1F</code> em <code>SSPCON2</code> pega os 5 bits de comando (<code>ACKEN</code> a <code>SEN</code>); <code>0x04</code> em <code>SSPSTAT</code> é o bit R/W, ligado enquanto um byte é transmitido. O módulo está ocioso quando todos são 0.</p>
+    </section>
+
+    <section>
+      <h2>A memória interna do PIC18F4550</h2>
+      <p>O chip tem <strong>256 bytes</strong> de EEPROM de dados, acessados por registradores, sem barramento. Uma posição nunca gravada lê <code>0xFF</code>.</p>
+      <h3><code>EECON1</code></h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>EEPGD</code><small>0 = dados</small></td><td><code>CFGS</code><small>0 = dados</small></td><td class="nada">—</td><td><code>FREE</code></td><td><code>WRERR</code></td><td><code>WREN</code><small>permite escrita</small></td><td><code>WR</code><small>inicia escrita</small></td><td><code>RD</code><small>inicia leitura</small></td></tr></tbody>
+</table>
+      <pre><code>uint8_t eeprom_ler(uint8_t end)
+{
+    EEADR = end;
+    EECON1bits.EEPGD = 0; EECON1bits.CFGS = 0;
+    EECON1bits.RD = 1;
+    return EEDATA;
+}
+void eeprom_escrever(uint8_t end, uint8_t dado)
+{
+    EEADR = end; EEDATA = dado;
+    EECON1bits.EEPGD = 0; EECON1bits.CFGS = 0;
+    EECON1bits.WREN = 1;
+    uint8_t salvo = INTCONbits.GIE;
+    INTCONbits.GIE = 0;            /* a sequência não pode ser interrompida */
+    EECON2 = 0x55;                 /* a &quot;fechadura&quot;: 0x55, 0xAA, WR       */
+    EECON2 = 0xAA;
+    EECON1bits.WR = 1;
+    INTCONbits.GIE = salvo;
+    while (EECON1bits.WR) { }      /* cerca de 4 ms */
+    EECON1bits.WREN = 0;
+}</code></pre>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th></th><th>EEPROM interna</th><th>EEPROM externa (24Cxx)</th></tr></thead>
+        <tbody>
+          <tr><td>Acesso</td><td>registradores (<code>EEADR</code>, <code>EEDATA</code>, <code>EECON1/2</code>)</td><td>transação no barramento I²C</td></tr>
+          <tr><td>Fim da escrita</td><td><code>WR</code> volta a 0, ou <code>EEIF</code></td><td>ACK depois da parada</td></tr>
+          <tr><td>Tempo de escrita</td><td class="num">≈ 4 ms por byte</td><td class="num">até 5 ms por byte ou por página</td></tr>
+          <tr><td>Vida útil</td><td colspan="2">da ordem de 10<sup>5</sup> a 10<sup>6</sup> escritas <strong>por posição</strong> (veja a folha de dados de cada uma)</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="formula">duração da memória = escritas suportadas / escritas por dia na mesma posição</p>
+      <p class="margem">Grave quando o valor parou de mudar, ou quando a energia vai faltar: nunca a cada volta do laço. Um marcador gravado por último (R11) distingue um dado válido de uma memória apagada ou de uma gravação interrompida.</p>
+    </section>
+
+  </main>
+  <footer>
+    <span>Raoni F. S. Teixeira</span>
+    <span>DENE/UFMT</span>
+  </footer>
+</div>
+</body>
+</html>

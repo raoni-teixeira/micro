@@ -73,3 +73,10 @@ dkms.conf
 # Avaliações já aplicadas: publicadas com o gabarito (exceção ao *-gab.* acima)
 !teoria/I1-integradora-gab.pdf
 !teoria/M[0-9]*-gab.pdf
+
+# Ainda não aplicados: fora do repositório público até a aplicação.
+# Depois de aplicar, apague a linha correspondente.
+teoria/M7-*
+teoria/M8-*
+teoria/M9-*
+teoria/I2-*

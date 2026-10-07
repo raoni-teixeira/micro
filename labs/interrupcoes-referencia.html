@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interrupções (PIC18F4550) — Folha de Referência</title>
+<link rel="stylesheet" href="../estilo.css">
+<style>
+  /* Folha de consulta: densa, tipografia precisa, ideal para tela e impressão. */
+  .ref table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin-bottom: 0.8rem; }
+  .ref table th { text-align: left; font-weight: 700; font-size: 0.78rem; vertical-align: bottom;
+                  letter-spacing: 0.04em; border-bottom: 1px solid var(--tinta); padding: 0.3rem 0.5rem 0.3rem 0; }
+  .ref table td { border-bottom: 1px solid var(--regra); padding: 0.28rem 0.5rem 0.28rem 0; vertical-align: top; }
+  .ref table tr:last-child td { border-bottom: 1px solid var(--tinta); }
+  .ref code:not(pre code) { background: none; padding: 0; font-size: 0.88em; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tabela-rolavel { overflow-x: auto; margin-bottom: 1rem; }
+  .formula { font-family: var(--mono); font-size: 0.92rem; background: var(--papel-2); padding: 0.4rem 0.6rem; }
+  pre { background: var(--papel-2); padding: 0.8rem 1rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+  .linha-destaque { background-color: var(--papel-2); }
+
+  /* Tabelas e figuras largas ocupam também a coluna de notas. */
+  .larga table { min-width: 36rem; }
+  @media (min-width: 58rem) {
+    .larga { width: calc(var(--col) + var(--mg-dx) + var(--mg-larg)); }
+  }
+
+  /* Diagrama de registrador: oito células de largura igual, com filete. */
+  .ref table.registrador { table-layout: fixed; font-size: 0.85rem; }
+  .ref table.registrador th, .ref table.registrador td {
+    text-align: center; vertical-align: middle; padding: 0.3rem 0.2rem; border: 1px solid var(--regra); }
+  .ref table.registrador th { border-bottom-color: var(--tinta); color: var(--cinza-c); font-weight: 500; }
+  .ref table.registrador td { border-bottom: 1px solid var(--tinta); }
+  .registrador .nada { color: var(--cinza-c); }
+  .registrador small { display: block; font-size: 0.75rem; color: var(--cinza); }
+  .reinicio { font-size: 0.85rem; color: var(--cinza); margin-top: -0.4rem; }
+
+  /* Diagrama de blocos do Timer0 */
+  .diagrama { overflow-x: auto; margin: 1rem 0 1.2rem; }
+  .diagrama svg { display: block; width: 100%; min-width: 40rem; height: auto; }
+  .diagrama .tr { stroke: var(--tinta); stroke-width: 1.2; fill: none; }
+  .diagrama .cx { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); }
+  .diagrama .cx2 { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); stroke-dasharray: 4 3; }
+  .diagrama .pont { stroke: var(--cinza-c); stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
+  .diagrama .seta { fill: var(--tinta); }
+  .diagrama text { fill: var(--tinta); font-family: var(--serifa); font-size: 13px; }
+  .diagrama text.m { font-family: var(--mono); font-size: 11.5px; }
+  .diagrama text.c { fill: var(--cinza-c); font-size: 11.5px; }
+  .diagrama text.v { fill: var(--vermelho); font-family: var(--mono); font-size: 11.5px; font-weight: 700; }
+  .legenda { font-size: 0.85rem; font-style: italic; color: var(--cinza); margin-top: 0.3rem; }
+
+  @media print {
+    .pagina { padding-top: 0; }
+    .pagina > main { max-width: none; }
+    .larga { width: auto; }
+    h2 { margin-top: 1rem; }
+    pre, table, .diagrama { break-inside: avoid; }
+    .naoimprime { display: none; }
+  }
+</style>
+
+</head>
+<body>
+<div class="pagina ref">
+  <header>
+    <p class="corrente naoimprime"><a href="./index.html">← Laboratório</a><span>Folha de referência</span></p>
+    <h1>Interrupções (PIC18F4550) — Folha de Referência</h1>
+    <p class="subtitulo">Indicador, habilitação, tratamento e o que o repique faz com eles</p>
+    <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Consulta permitida</span></p>
+  </header>
+  <main>
+
+    <section>
+      <h2>A ideia: o hardware chama o programa</h2>
+      <p>Cada periférico tem um <strong>indicador</strong> (<code>…IF</code>) que o hardware liga quando o evento acontece, <em>esteja a interrupção habilitada ou não</em>. Uma interrupção só ocorre quando três chaves estão fechadas ao mesmo tempo: o indicador, a habilitação da fonte (<code>…IE</code>) e a habilitação global.</p>
+      <p class="formula">interrompe = …IF · …IE · GIE &nbsp;&nbsp;&nbsp;(e também PEIE, se a fonte for de PIR1 ou PIR2)</p>
+      <p>Quando as três estão fechadas, o processador termina a instrução em curso, guarda o endereço de retorno na pilha, zera <code>GIE</code> e salta para o vetor. A rotina de tratamento roda, e o retorno religa <code>GIE</code>.</p>
+      <p class="passagem"><span class="rotulo">Regra de ouro</span>
+        <strong>Um indicador guarda "aconteceu", e não "quantas vezes".</strong> Se o evento ocorrer três vezes antes de o tratamento zerar o indicador, o programa vê um só. Quem precisa contar eventos rápidos conta no hardware (um temporizador como contador) ou trata cada um antes do próximo.</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Item</th><th>Valor no PIC18F4550</th><th>Observação</th></tr></thead>
+        <tbody>
+          <tr><td>Vetor de alta prioridade</td><td class="num"><code>0x0008</code></td><td>o único usado com <code>IPEN = 0</code> (padrão do curso)</td></tr>
+          <tr><td>Vetor de baixa prioridade</td><td class="num"><code>0x0018</code></td><td>só com <code>RCON.IPEN = 1</code></td></tr>
+          <tr><td>Latência do hardware</td><td class="num">3 a 4 T<sub>CY</sub></td><td>0,75 a 1 µs a 16 MHz, até a primeira instrução do vetor</td></tr>
+          <tr><td>Salvamento de contexto</td><td>automático no XC8</td><td>soma dezenas de ciclos à latência; meça no osciloscópio</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">O bootloader do kit ocupa o início da memória de programa e reencaminha os vetores para a aplicação. Use o projeto de exemplo do curso, que já traz esse deslocamento. Se a interrupção nunca executa, este é o primeiro suspeito.</p>
+    </section>
+
+    <section>
+      <h2>Fontes usadas no curso</h2>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Fonte</th><th>Evento</th><th>Indicador</th><th>Habilitação</th><th>Precisa de PEIE?</th><th>Como o indicador se apaga</th></tr></thead>
+        <tbody>
+          <tr><td>INT0 (RB0)</td><td>borda escolhida por <code>INTEDG0</code></td><td><code>INTCON.INT0IF</code></td><td><code>INTCON.INT0IE</code></td><td>não</td><td>o programa zera</td></tr>
+          <tr><td>INT1 (RB1)</td><td>borda, <code>INTEDG1</code></td><td><code>INTCON3.INT1IF</code></td><td><code>INTCON3.INT1IE</code></td><td>não</td><td>o programa zera</td></tr>
+          <tr><td>INT2 (RB2)</td><td>borda, <code>INTEDG2</code></td><td><code>INTCON3.INT2IF</code></td><td><code>INTCON3.INT2IE</code></td><td>não</td><td>o programa zera</td></tr>
+          <tr><td>Mudança em RB4–RB7</td><td>qualquer mudança de nível</td><td><code>INTCON.RBIF</code></td><td><code>INTCON.RBIE</code></td><td>não</td><td>ler <code>PORTB</code> e depois zerar</td></tr>
+          <tr><td>Timer0</td><td>estouro</td><td><code>INTCON.TMR0IF</code></td><td><code>INTCON.TMR0IE</code></td><td>não</td><td>o programa zera</td></tr>
+          <tr><td>Timer1</td><td>estouro</td><td><code>PIR1.TMR1IF</code></td><td><code>PIE1.TMR1IE</code></td><td><strong>sim</strong></td><td>o programa zera</td></tr>
+          <tr><td>Timer2</td><td><code>TMR2 = PR2</code> (após o pós-divisor)</td><td><code>PIR1.TMR2IF</code></td><td><code>PIE1.TMR2IE</code></td><td><strong>sim</strong></td><td>o programa zera</td></tr>
+          <tr><td>A/D</td><td>fim da conversão</td><td><code>PIR1.ADIF</code></td><td><code>PIE1.ADIE</code></td><td><strong>sim</strong></td><td>o programa zera</td></tr>
+          <tr><td>Recepção serial</td><td>byte em <code>RCREG</code></td><td><code>PIR1.RCIF</code></td><td><code>PIE1.RCIE</code></td><td><strong>sim</strong></td><td><strong>ler <code>RCREG</code></strong> (não dá para zerar)</td></tr>
+          <tr><td>Transmissão serial</td><td><code>TXREG</code> vazio</td><td><code>PIR1.TXIF</code></td><td><code>PIE1.TXIE</code></td><td><strong>sim</strong></td><td><strong>escrever em <code>TXREG</code></strong>; sem nada a enviar, desligue <code>TXIE</code></td></tr>
+          <tr><td>MSSP (I²C)</td><td>fim de etapa do barramento</td><td><code>PIR1.SSPIF</code></td><td><code>PIE1.SSPIE</code></td><td><strong>sim</strong></td><td>o programa zera</td></tr>
+          <tr><td>Comparador</td><td>mudança na saída</td><td><code>PIR2.CMIF</code></td><td><code>PIE2.CMIE</code></td><td><strong>sim</strong></td><td>ler <code>CMCON</code> e depois zerar</td></tr>
+          <tr><td>EEPROM interna</td><td>fim da escrita</td><td><code>PIR2.EEIF</code></td><td><code>PIE2.EEIE</code></td><td><strong>sim</strong></td><td>o programa zera</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">No kit, INT0 é o botão SW12 (RB0), INT1 o SW13 (RB1) e INT2 o SW14 (RB2). RB0 e RB1 são também SDA e SCL do I²C: os dois usos não convivem.</p>
+    </section>
+
+    <section>
+      <h2>Registradores</h2>
+      <h3><code>INTCON</code> — habilitação global e fontes principais</h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>GIE</code><small>global</small></td><td><code>PEIE</code><small>periféricos</small></td><td><code>TMR0IE</code></td><td><code>INT0IE</code></td><td><code>RBIE</code></td><td><code>TMR0IF</code></td><td><code>INT0IF</code></td><td><code>RBIF</code></td></tr></tbody>
+</table>
+      <p>Com <code>IPEN = 1</code>, os bits 7 e 6 passam a se chamar <code>GIEH</code> e <code>GIEL</code> (alta e baixa prioridade).</p>
+      <h3><code>INTCON2</code> — bordas e pull-ups</h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>RBPU</code><small>0 = liga pull-ups</small></td><td><code>INTEDG0</code><small>1 = subida</small></td><td><code>INTEDG1</code></td><td><code>INTEDG2</code></td><td class="nada">—</td><td><code>TMR0IP</code><small>prioridade</small></td><td class="nada">—</td><td><code>RBIP</code><small>prioridade</small></td></tr></tbody>
+</table>
+      <h3><code>INTCON3</code> — INT1 e INT2</h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>INT2IP</code></td><td><code>INT1IP</code></td><td class="nada">—</td><td><code>INT2IE</code></td><td><code>INT1IE</code></td><td class="nada">—</td><td><code>INT2IF</code></td><td><code>INT1IF</code></td></tr></tbody>
+</table>
+      <h3><code>PIR1</code> / <code>PIE1</code> — periféricos (indicador / habilitação, mesma posição)</h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>SPPIF</code><small>porta paralela</small></td><td><code>ADIF</code><small>A/D</small></td><td><code>RCIF</code><small>serial RX</small></td><td><code>TXIF</code><small>serial TX</small></td><td><code>SSPIF</code><small>MSSP</small></td><td><code>CCP1IF</code><small>CCP1</small></td><td><code>TMR2IF</code></td><td><code>TMR1IF</code></td></tr></tbody>
+</table>
+      <h3><code>PIR2</code> / <code>PIE2</code></h3>
+      <table class="registrador">
+<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody><tr><td><code>OSCFIF</code><small>oscilador</small></td><td><code>CMIF</code><small>comparador</small></td><td><code>USBIF</code><small>USB</small></td><td><code>EEIF</code><small>EEPROM</small></td><td><code>BCLIF</code><small>colisão I²C</small></td><td><code>HLVDIF</code><small>tensão</small></td><td><code>TMR3IF</code></td><td><code>CCP2IF</code></td></tr></tbody>
+</table>
+      <p class="margem">Ao ligar a interrupção, <strong>zere o indicador antes de habilitar</strong>. Ele pode estar ligado desde o reset ou desde o bootloader, e a interrupção dispararia na hora, sem evento nenhum.</p>
+    </section>
+
+    <section>
+      <h2>A rotina de tratamento: modelo do curso</h2>
+      <p>Um único tratamento atende todas as fontes. Ele pergunta, fonte por fonte, quem pediu, e testa também a habilitação quando ela é ligada e desligada pelo programa (como <code>TXIE</code>).</p>
+      <pre><code>volatile uint8_t  borda = 0;          // sinalizador: o tratamento liga, o laço consome
+volatile uint16_t contagem = 0;       // 16 bits: a leitura no laço NÃO é atômica
+
+void __interrupt() tratar(void)
+{
+    if (INTCONbits.INT0IF) {          // 1. quem pediu?
+        INTCONbits.INT0IF = 0;        // 2. apaga o indicador
+        contagem++;                   // 3. trabalho curto
+        borda = 1;
+    }
+    if (INTCONbits.TMR0IF) {
+        INTCONbits.TMR0IF = 0;
+        TMR0H = (uint8_t)(PRECARGA &gt;&gt; 8);   // alto primeiro
+        TMR0L = (uint8_t)(PRECARGA &amp; 0xFF);
+        /* ... */
+    }
+    if (PIE1bits.TXIE &amp;&amp; PIR1bits.TXIF) {   // fonte que liga e desliga
+        /* ... */
+    }
+}</code></pre>
+      <h3>Inicialização</h3>
+      <pre><code>ADCON1 = 0x0F;                  // RB0-RB2 digitais (veja a folha do A/D)
+TRISBbits.TRISB0 = 1;           // INT0 é entrada
+INTCON2bits.INTEDG0 = 0;        // borda de descida: o botão aterra o pino
+INTCONbits.INT0IF = 0;          // apaga ANTES de habilitar
+INTCONbits.INT0IE = 1;
+INTCONbits.PEIE   = 1;          // só se houver fonte de PIR1/PIR2
+INTCONbits.GIE    = 1;          // por último</code></pre>
+    </section>
+
+    <section>
+      <h2>Dados compartilhados: <code>volatile</code> e atomicidade</h2>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Problema</th><th>Sintoma</th><th>Solução</th></tr></thead>
+        <tbody>
+          <tr><td>Variável escrita no tratamento, lida no laço, sem <code>volatile</code></td><td>o laço nunca vê a mudança: o compilador guardou o valor num registrador</td><td>declarar <code>volatile</code></td></tr>
+          <tr><td>Variável de 16 ou 32 bits num processador de 8 bits</td><td>leitura com metade velha e metade nova: <code>0x00FF</code> → <code>0x0100</code> pode ser lido como <code>0x01FF</code> ou <code>0x0000</code></td><td>desligar a fonte durante a leitura, ou ler duas vezes até concordar</td></tr>
+          <tr><td><code>x++</code> no laço e no tratamento</td><td>incrementos perdidos de vez em quando</td><td>só um dos lados escreve; o outro só lê</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <pre><code>/* Opção 1: seção crítica curta */
+INTCONbits.INT0IE = 0;          // desliga só a fonte que escreve a variável
+uint16_t c = contagem;
+INTCONbits.INT0IE = 1;
+
+/* Opção 2: lê duas vezes até concordar (R7) */
+static uint16_t ler16(volatile uint16_t *p)
+{
+    uint16_t a, b;
+    do { a = *p; b = *p; } while (a != b);
+    return a;
+}</code></pre>
+      <p class="margem"><code>volatile</code> é necessário, mas não suficiente: ele obriga o compilador a ler a memória a cada acesso, mas não torna a leitura de dois bytes indivisível.</p>
+    </section>
+
+    <section>
+      <h2>Repique: o botão mente sobre quantas vezes foi apertado</h2>
+      <p>Um contato mecânico abre e fecha várias vezes antes de assentar. Cada transição é uma borda, e cada borda liga <code>INT0IF</code>. A duração típica é de centenas de microssegundos a alguns milissegundos, e muda de botão para botão e de toque para toque.</p>
+      <p class="formula">filtro por confirmação: aceita um novo nível depois de K amostras iguais a cada T<br>atraso de reação ≈ K · T &nbsp;&nbsp;&nbsp; (R7: T = 5 ms, K = 3 → cerca de 15 ms)</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Estratégia</th><th>Onde roda</th><th>Custo</th></tr></thead>
+        <tbody>
+          <tr><td>Interrupção de borda, sem filtro</td><td>tratamento</td><td>conta repiques como toques</td></tr>
+          <tr><td>Borda + ignorar novas bordas por um tempo</td><td>tratamento desliga <code>INT0IE</code>; o tique religa</td><td>uma janela cega após o toque</td></tr>
+          <tr><td>Amostragem periódica + confirmação</td><td>tique de temporizador (R7)</td><td>atraso K · T, nenhuma borda falsa</td></tr>
+          <tr><td><code>__delay_ms(20)</code> no laço</td><td>laço principal</td><td>bloqueia tudo durante a espera</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+  </main>
+  <footer>
+    <span>Raoni F. S. Teixeira</span>
+    <span>DENE/UFMT</span>
+  </footer>
+</div>
+</body>
+</html>

@@ -194,6 +194,9 @@
 }
 
 // ------------------------------------------------------------------ lacuna
+// Espaço em branco para a resposta: só na versão do aluno.
+#let espaco(altura) = if not gab { v(altura) }
+
 #let lacuna(largura: 3cm) = box(width: largura, baseline: 0pt,
   line(length: 100%, stroke: 0.5pt + cinza))
 
