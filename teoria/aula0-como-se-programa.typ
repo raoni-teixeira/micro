@@ -77,15 +77,15 @@ uma incubadora ou de um #box[ar-condicionado] inverter. Não é um modelo reduzi
   [4],  [Aquisição analógica: ADC e LM35], [R4 — display HD44780 em quatro bits], [M4],
   [5],  [Temporizadores], [R5 — entrada digital, ADC e LM35 no display], [M5],
   [6],  [*Avaliação integradora I*], [R6 — temporizadores: medir e contar], [—],
-  [7],  [Interrupções e ruído de contato], [*TP, parte 1 — o painel*], [M7],
+  [7],  [Interrupções e ruído de contato], [*Avaliação prática I — o painel*], [M7],
   [8],  [PWM e estágio de potência], [R7 — interrupções, botões e repique], [M8],
   [9],  [Controle liga-desliga, histerese e comparação analógica], [R8 — PWM na ventoinha e no buzzer], [M9],
   [10], [Comunicação serial], [R9 — liga-desliga, histerese e comparador], [M10],
   [11], [Barramento serial síncrono: I#super[2]C e memória não volátil], [R10 — telemetria por UART], [M11],
   [12], [*Avaliação integradora II*], [R11 — setpoint em memória não volátil], [—],
-  [13], [Controle embarcado na prática: do liga-desliga ao PI], [*Avaliação prática*], [—],
+  [13], [Controle embarcado na prática: do liga-desliga ao PI], [*Avaliação prática II*], [—],
   [14], [*Seminários comparativos*], [R13 — sintonia contra planta simulada], [—],
-  [15], [*Seminários comparativos* e encerramento], [*TP, parte 2 — o termostato*], [—],
+  [15], [*Seminários comparativos* e encerramento], [*TP — o termostato*], [—],
 )
 ]
 
@@ -122,20 +122,21 @@ uma questão parece pedir conteúdo futuro, é erro meu, e vale reclamar na hora
       columns: (1fr, auto),
       [Instrumento], [Peso],
       [Roteiros R2–R11 e R13 (11, sem descarte)], [40%],
-      [TP, parte 1 — o painel], [15%],
-      [TP, parte 2 — o termostato], [15%],
-      [Avaliação prática], [30%],
+      [Avaliação prática I — o painel], [15%],
+      [TP — o termostato], [15%],
+      [Avaliação prática II], [30%],
       [R0 e R1], [sem nota],
     )]
   ],
 )
 
-A avaliação prática e o TP são novidade. Metade do curso acontece na bancada, e
-até agora só a metade teórica era avaliada diretamente. O TP é um termostato
-construído em duas partes, uma depois do R6 e outra no fim, apresentado e
-defendido por cada integrante. A avaliação prática cai uma semana depois da
-integradora II, com tarefa fechada e tempo contado: ler um valor, mostrar,
-acionar uma saída.
+As avaliações práticas e o TP são novidade. Metade do curso acontece na bancada,
+e até agora só a metade teórica era avaliada diretamente. A avaliação prática I,
+na semana 7, é a primeira metade do termostato — medir, contar e mostrar —, feita
+em grupo na sessão e apresentada ao professor no fim. A avaliação prática II cai
+uma semana depois da integradora II, com tarefa fechada e tempo contado: ler um
+valor, mostrar, acionar uma saída. O TP é o termostato inteiro, apresentado no
+encontro 15 e defendido por cada integrante.
 
 No seminário comparativo, a nota do grupo é ajustada por arguição individual.
 Isso não é desconfiança: é a única forma honesta de diferenciar quem estudou a

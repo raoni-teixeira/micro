@@ -331,6 +331,6 @@ cabeçalho dele diz `aquecedor,comutacoes`, e o notebook renomeia as colunas.
 ]
 
 #nota[
-  No TP, parte 2, estes ganhos — e, se o grupo quiser, este modelo — controlam o
+  No TP, estes ganhos — e, se o grupo quiser, este modelo — controlam o
   termostato inteiro.
 ]

@@ -47,6 +47,11 @@
 2027-1/**/gabarito*
 2027-1/integradora*.typ
 2027-1/integracao*.typ
+# Provas de 2027/1 (minitestes e integradoras), em qualquer subpasta
+2027-1/**/M[0-9]*
+2027-1/**/I[0-9]*
+2027-1/teoria/*.pdf
+2027-1/labs/*.pdf
 
 # Material docente dos laboratorios: nunca publicar no repositorio publico.
 labs/**/gabarito/
@@ -80,3 +85,6 @@ teoria/M7-*
 teoria/M8-*
 teoria/M9-*
 teoria/I2-*
+labs/P1-*
+# O enunciado do aluno vai para a página; fonte (tem a solução) e gabarito, não.
+!labs/P1-painel.pdf

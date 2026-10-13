@@ -1,7 +1,7 @@
 // R11 — A memória que sobrevive
 // Revisão 2026/2, alinhada à aula 11 (I²C e memória não volátil). Parte 1: a
 // memória interna guarda o alvo. Parte 2: a memória externa, por I²C, medida no
-// osciloscópio. É a peça que falta para a Parte 2 do TP.
+// osciloscópio. É a peça que falta para o TP.
 //
 // Seis tarefas com nota (8,0), previsões P1–P5 da aula 11 (2,0) e duas extensões
 // sem nota no fim.
@@ -439,6 +439,6 @@ void main(void)
 ]
 
 #nota[
-  No TP, parte 2, o alvo sobrevive a desligar. No R13, a memória guarda os ganhos
+  No TP, o alvo sobrevive a desligar. No R13, a memória guarda os ganhos
   e os coeficientes que o grupo vai aprender a partir dos dados do R10.
 ]

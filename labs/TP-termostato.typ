@@ -1,8 +1,8 @@
 // TP — O termostato
-// Trabalho prático integrador de 2026/2, em duas partes. Parte 1 (semana 7,
-// depois do R6 e da integradora I): o painel, com R4 a R6. Parte 2 (encontro
-// 15): o termostato com aquecedor e cooler por PWM, com R4 a R11. Cada parte
-// vale 15% da nota de laboratório.
+// Trabalho prático integrador de 2026/2 (encontro 15): o termostato com
+// aquecedor e cooler por PWM, com R4 a R11. Vale 15% da nota de laboratório.
+// A antiga Parte 1 (o painel) virou a Avaliação prática I, feita na sessão da
+// semana 7 (labs/P1-painel.typ).
 //
 // Compilação:  typst compile TP-termostato.typ
 //              typst compile --input gab=1 TP-termostato.typ   (notas do professor)
@@ -45,7 +45,7 @@ sai pela serial para um arquivo.
     [CH2-1 (LCD)], [ON],
     [CH3-3 (HEATER, RC1 = CCP2)], [ON],
     [CH3-5 (COOLER, RC2 = CCP1)], [ON],
-    [CH3-1 (tacômetro, RC0)], [ON na Parte 1; opcional na Parte 2],
+    [CH3-1 (tacômetro, RC0)], [Opcional — a rotação do cooler na tela],
     [CH4-6 e CH4-8 (RS232)], [ON — serial em RC6/RC7],
     [CH4-5 e CH4-7 (RS485) e CH5 (relés)], [OFF — os relés disputam RC6/RC7 e PORTD],
   )
@@ -55,89 +55,17 @@ sai pela serial para um arquivo.
   PWM na frequência que o grupo escolher.
 ]
 
-= Duas partes
+= Ponto de partida
 
-#tab(columns: (auto, 1fr, auto, auto),
-  [Parte], [O que é], [Roteiros], [Apresentação],
-  [1 — o painel], [O termostato mede, mostra, conta e decide liga-desliga, sem interrupção e sem PWM], [R4 a R6], [semana 7],
-  [2 — o termostato], [A mesma base, agora com interrupção, PWM nos dois atuadores, botões, serial e memória], [R4 a R11], [encontro 15],
-)
+A primeira metade do termostato — medir, contar e mostrar — é a *Avaliação
+prática I*, feita em grupo na sessão de laboratório da semana 7, com roteiro
+próprio. O firmware que o grupo escrever na prova é a base do TP: os módulos de
+display, conversor e temporizadores são os que vão ser reaproveitados no fim.
+Código bem organizado na prova é tempo ganho aqui.
 
-A Parte 2 é construída *sobre* a Parte 1: os módulos que o grupo escrever agora
-são os que vão ser reaproveitados no fim. Código bem organizado na Parte 1 é
-tempo ganho na Parte 2.
+= O termostato
 
-= Parte 1 — o painel
-
-Com o que existe até o R6 — display, conversor e temporizadores —, o sistema já
-pode medir, mostrar e decidir. Ainda sem interrupção: tudo acontece no laço, e
-por isso o laço não pode esperar.
-
-== Requisitos da Parte 1
-
-#tab(columns: (auto, 1fr, auto),
-  [], [Requisito], [Origem],
-  [*A1*], [Medir a temperatura em décimos de grau, sem ponto flutuante, a 10 amostras por segundo], [R5],
-  [*A2*], [Mostrar no display a temperatura, a rotação do cooler em rpm e um relógio mm:ss desde a partida, com largura fixa e sem tremular], [R4],
-  [*A3*], [Base de tempo por temporizador, sem `__delay_ms` no laço. O relógio pode atrasar *no máximo 2 s em 10 min* de cronômetro], [R6],
-  [*A4*], [Rotação do cooler: o Timer1 conta o tacômetro em RC0 durante janelas de 1 s, convertida para rpm], [R6],
-  [*A5*], [Liga-desliga com um alvo fixo em `config.h`: abaixo de alvo − 1 °C liga o aquecedor, acima de alvo + 1 °C liga o cooler, entre os dois nenhum], [—],
-)
-
-#atencao[
-  *O relógio é a parte difícil.* O R6 mostrou que recarregar o Timer0 na
-  consulta faz o intervalo derivar, e o laço desta parte escreve no display. Com
-  um tique de 10 ms e uma tela de 1,3 ms, a conta ingênua dá segundos de atraso
-  em dez minutos. O grupo precisa medir o seu atraso contra um cronômetro e, se
-  passar do limite, resolver — a folha de referência dos temporizadores tem mais
-  de uma saída.
-]
-
-== Decisões da Parte 1
-
-#tab(columns: (auto, 1fr),
-  [Decisão], [O que pesa],
-  [Como o relógio evita a deriva], [Onde acontece a recarga, quanto o laço demora no pior caso, e se existe um temporizador que se recarrega sozinho],
-  [Pré-carga e divisor], [O intervalo, o passo e o maior valor que cabe em 16 bits (R6)],
-  [Janela da rotação], [Um pulso a mais ou a menos numa janela de 1 s vale quantos rpm?],
-  [Atualização do display], [A tela custa 1,3 ms; a temperatura muda em minutos. Quantas vezes por segundo vale escrever?],
-  [Aritmética], [O maior produto da conversão para décimos, e o tipo que o comporta (R5)],
-)
-
-== Organização da Parte 1
-
-Os arquivos `config.h`, `main.c`, `adc.c/.h`, `lcd.c/.h`, `tempo.c/.h` e
-`tacometro.c/.h`, com as regras 1, 5 e 6 da Parte 2: laço sem espera, maior
-produto comentado, e uma linha no topo de cada arquivo dizendo o que ele faz.
-
-== Entregar e apresentar a Parte 1
-
-Na véspera da semana 7: o projeto compactado com `LEIAME.md`, a folha de
-decisões (meia página, com número em cada linha) e a medida do relógio contra o
-cronômetro em 10 minutos.
-
-Na semana 7, dez minutos por grupo: três de demonstração — o display, o cooler
-ligado com a rotação na tela, e o dedo no sensor fazendo o liga-desliga reagir —
-e sete de arguição, *com cada integrante respondendo pelo menos uma pergunta*.
-Perguntas típicas: por que `TMR0H` antes de `TMR0L`; quanto o relógio atrasou e
-por quê; quantos rpm vale um pulso a mais na janela; qual o maior produto da
-conversão.
-
-== Critério da Parte 1
-
-A Parte 1 vale *15% da nota de laboratório*. Dentro dela:
-
-#tab(columns: (1fr, auto),
-  [Item], [Pontos],
-  [*Funcionamento* — temperatura e display (A1, A2): 1,5; relógio dentro de 2 s em 10 min (A3): 1,0; rotação em rpm (A4): 1,5; liga-desliga (A5): 1,0], [5,0],
-  [*Código* — módulos e `config.h`: 1,0; laço sem espera: 0,6; aritmética verificada: 0,4], [2,0],
-  [*Decisões* — folha com número em cada decisão], [1,0],
-  [*Arguição* — individual], [2,0],
-)
-
-= Parte 2 — o termostato
-
-== Requisitos da Parte 2
+== Requisitos
 
 Cada requisito indica o roteiro de onde a peça vem. Os *básicos* são o mínimo para
 o termostato funcionar; os *completos* fecham o produto; os *extras* valem ponto
@@ -303,7 +231,7 @@ típicas:
 
 == Critério
 
-A Parte 2 vale *15% da nota de laboratório*. Dentro dela:
+O TP vale *15% da nota de laboratório*. Dentro dela:
 
 
 #tab(columns: (1fr, auto),
@@ -348,11 +276,11 @@ A Parte 2 vale *15% da nota de laboratório*. Dentro dela:
 
 #tab(columns: (auto, 1fr),
   [Encontro], [O que acontece],
-  [5], [Enunciado do TP distribuído, com as duas partes],
-  [6], [R6: os temporizadores, a última peça da Parte 1],
-  [7], [*Parte 1*: apresentação e arguição, na sessão de laboratório],
-  [8 a 12], [R7 a R11: as peças da Parte 2 chegam uma por semana],
-  [13 e 14], [Desenvolvimento fora da sessão; o R13 ajusta os ganhos que a Parte 2 pode usar],
+  [5], [Enunciado do TP distribuído],
+  [6], [R6: os temporizadores, a última peça da Avaliação prática I],
+  [7], [*Avaliação prática I — o painel*: feita e apresentada na sessão de laboratório],
+  [8 a 12], [R7 a R11: as peças do TP chegam uma por semana],
+  [13 e 14], [Desenvolvimento fora da sessão; o R13 ajusta os ganhos que o TP pode usar],
   [Véspera do 15], [Entrega do projeto, da telemetria, do gráfico e da folha de decisões],
-  [15], [*Parte 2*: apresentação e arguição, na bancada],
+  [15], [*TP*: apresentação e arguição, na bancada],
 )
