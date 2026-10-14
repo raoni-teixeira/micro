@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bits de configuração — Folha de Referência</title>
+<link rel="stylesheet" href="../estilo.css">
+<style>
+  /* Folha de consulta: densa, uma página impressa. */
+  .ref table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  .ref table th { text-align: left; font-weight: 700; font-size: 0.8rem;
+                  letter-spacing: 0.04em; border-bottom: 1px solid var(--tinta); padding: 0.3rem 0.5rem 0.3rem 0; }
+  .ref table td { border-bottom: 1px solid var(--regra); padding: 0.28rem 0.5rem 0.28rem 0; vertical-align: top; }
+  .ref table tr:last-child td { border-bottom: 1px solid var(--tinta); }
+  .ref code { background: none; padding: 0; font-size: 0.9em; white-space: nowrap; }
+  .tabela-rolavel { overflow-x: auto; }
+  pre { background: var(--papel-2); padding: 0.8rem 1rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+  @media print {
+    .pagina { padding-top: 0; }
+    h2 { margin-top: 1.1rem; }
+    .naoimprime { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="pagina ref">
+
+  <header>
+    <p class="corrente naoimprime"><a href="./index.html">← Teoria</a><span>Folha de referência</span></p>
+    <h1>Bits de configuração (PIC18F4550) — Folha de Referência</h1>
+    <p class="subtitulo">O <code>#pragma config</code> mínimo para o PICSimLab, linha a linha</p>
+    <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Consulta permitida</span></p>
+  </header>
+
+  <main>
+
+    <section>
+      <h2>A ideia</h2>
+      <p>Os bits de configuração não são registradores: são gravados na memória de
+      programa junto com o código e decidem, <strong>antes da primeira instrução</strong>,
+      de onde vem o relógio, se o watchdog está ligado e o que alguns pinos são.
+      O programa não os muda em tempo de execução.</p>
+      <p>O valor de fábrica de vários deles não serve para o curso. Por isso o
+      simulador precisa deste bloco no topo do <code>main.c</code>:</p>
+<pre>#include &lt;xc.h&gt;
+
+#pragma config FOSC   = HS   // cristal, sem PLL
+#pragma config WDT    = OFF  // watchdog desligado
+#pragma config LVP    = OFF  // RB5 livre
+#pragma config MCLRE  = ON   // pino 1 é o reset
+#pragma config PBADEN = OFF  // RB0–RB4 digitais
+
+#define _XTAL_FREQ 16000000UL // = relógio do PICSimLab</pre>
+    </section>
+
+    <section>
+      <h2>Linha a linha</h2>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Bit</th><th>Valor</th><th>O que faz</th><th>Sem a linha (valor de fábrica)</th></tr></thead>
+        <tbody>
+          <tr><td><code>FOSC</code></td><td><code>HS</code></td><td>Oscilador a cristal de alta velocidade (acima de 4 MHz), sem PLL. Com o <code>CPUDIV</code> de fábrica, a CPU roda na frequência do cristal: 16 MHz dão T<sub>CY</sub> = 4 / 16 MHz = 250 ns</td><td>Outro modo de oscilador: o programa roda em outra frequência, ou não roda</td></tr>
+          <tr><td><code>WDT</code></td><td><code>OFF</code></td><td>Desliga o watchdog, o temporizador que reinicia o chip se o programa não o zerar a tempo</td><td>Ligado: com o divisor de fábrica (1:32768), o programa reinicia sozinho a cada ~2 min</td></tr>
+          <tr><td><code>LVP</code></td><td><code>OFF</code></td><td>Desliga a gravação em baixa tensão</td><td>Ligada: RB5 vira o pino PGM e deixa de ser E/S comum</td></tr>
+          <tr><td><code>MCLRE</code></td><td><code>ON</code></td><td>O pino 1 é o <span style="text-decoration: overline">MCLR</span>: nível baixo reinicia o chip. É o botão de reset da placa</td><td>Já é <code>ON</code> de fábrica; a linha deixa a escolha visível. Com <code>OFF</code>, o pino vira RE3, só entrada, e o botão de reset não reinicia</td></tr>
+          <tr><td><code>PBADEN</code></td><td><code>OFF</code></td><td>RB0–RB4 começam como E/S digital</td><td>Começam analógicos: o botão em RB0 lê sempre 0 até o programa mudar o <code>ADCON1</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="passagem"><span class="rotulo">PBADEN e ADCON1</span><code>PBADEN</code> define só o estado no reset. O <code>ADCON1</code> escrito pelo programa vale depois dele, para qualquer valor de <code>PBADEN</code>: <code>ADCON1 = 0x0F</code> deixa todos os pinos digitais; <code>0x0E</code> deixa só o AN0 analógico.</p>
+    </section>
+
+    <section>
+      <h2>O relógio: <code>_XTAL_FREQ</code></h2>
+      <p>O <code>#pragma</code> diz <em>de onde</em> vem o relógio, mas não <em>quanto</em> ele vale.
+      Quem decide a frequência é o cristal — no PICSimLab, o campo de relógio da
+      janela principal. O <code>_XTAL_FREQ</code> só informa ao compilador esse valor, para
+      que <code>__delay_ms</code> e <code>__delay_us</code> contem os ciclos certos.</p>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Relógio no PICSimLab</th><th><code>_XTAL_FREQ</code></th><th>Resultado</th></tr></thead>
+        <tbody>
+          <tr><td>16 MHz</td><td><code>16000000UL</code></td><td>Atrasos certos; T<sub>CY</sub> = 250 ns, como no kit</td></tr>
+          <tr><td>8 MHz</td><td><code>16000000UL</code></td><td>Todo atraso dura o dobro do pedido</td></tr>
+          <tr><td>16 MHz</td><td><code>48000000UL</code></td><td>Todo atraso dura o triplo do pedido</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>No simulador e no kit</h2>
+      <p>No PICSimLab o chip começa do zero, e o <code>#pragma config</code> do programa é
+      o que vale. No XM118 os bits de configuração foram gravados junto com o
+      bootloader, que não os regrava: <strong>o <code>#pragma config</code> da aplicação é
+      ignorado</strong>, e o kit roda a 16 MHz de CPU de qualquer jeito.</p>
+      <p>Para o mesmo <code>main.c</code> servir aos dois, o bloco fica dentro de uma
+      condição — como no código de exemplo do curso:</p>
+<pre>#if defined(PLACA_PICSIMLAB)
+#pragma config FOSC = HS, WDT = OFF, LVP = OFF
+#pragma config MCLRE = ON, PBADEN = OFF
+#endif</pre>
+      <p class="passagem"><span class="rotulo">Por isso</span>no kit, um programa que esquece o <code>ADCON1</code> pode funcionar com o botão em RB0 — o <code>PBADEN</code> do bootloader já resolveu — e falhar no simulador. A causa é a mesma linha de configuração, presente numa placa e ausente na outra.</p>
+    </section>
+
+    <section>
+      <h2>O bloco completo dos exemplos</h2>
+      <p>O driver do display e o exemplo de interrupção acrescentam bits que reproduzem
+      no simulador a configuração do kit. Não são necessários para o PICSimLab
+      funcionar:</p>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Bit</th><th>Valor</th><th>O que faz</th></tr></thead>
+        <tbody>
+          <tr><td><code>CPUDIV</code></td><td><code>OSC1_PLL2</code></td><td>CPU = oscilador ÷ 1 (é o valor de fábrica)</td></tr>
+          <tr><td><code>PLLDIV</code>, <code>USBDIV</code></td><td><code>4</code>, <code>1</code></td><td>Preparam a PLL do USB (16 MHz ÷ 4 = 4 MHz); sem efeito com <code>FOSC = HS</code></td></tr>
+          <tr><td><code>PWRT</code></td><td><code>ON</code></td><td>Segura o reset por ~66 ms até a alimentação estabilizar</td></tr>
+          <tr><td><code>BOR</code>, <code>BORV</code></td><td><code>ON</code>, <code>2</code></td><td>Reinicia o chip se a alimentação cair abaixo de ~2,8 V</td></tr>
+          <tr><td><code>VREGEN</code></td><td><code>OFF</code></td><td>Regulador interno do USB desligado</td></tr>
+          <tr><td><code>XINST</code></td><td><code>OFF</code></td><td>Conjunto de instruções estendido desligado: o XC8 não gera código para ele</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>Raoni F. S. Teixeira</span>
+    <span>DENE/UFMT</span>
+  </footer>
+
+</div>
+</body>
+</html>
