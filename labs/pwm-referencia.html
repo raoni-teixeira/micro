@@ -33,15 +33,15 @@
   .ref table.registrador td { border-bottom: 1px solid var(--tinta); }
   .registrador .nada { color: var(--cinza-c); }
   .registrador small { display: block; font-size: 0.75rem; color: var(--cinza); }
+  .registrador .rot { text-align: left; font-size: 0.78rem; color: var(--cinza); }
   .reinicio { font-size: 0.85rem; color: var(--cinza); margin-top: -0.4rem; }
 
-  /* Diagrama de blocos do Timer0 */
+  /* Forma de onda do Timer2 e do CCP1 */
   .diagrama { overflow-x: auto; margin: 1rem 0 1.2rem; }
   .diagrama svg { display: block; width: 100%; min-width: 40rem; height: auto; }
   .diagrama .tr { stroke: var(--tinta); stroke-width: 1.2; fill: none; }
-  .diagrama .cx { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); }
-  .diagrama .cx2 { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); stroke-dasharray: 4 3; }
   .diagrama .pont { stroke: var(--cinza-c); stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
+  .diagrama .novo { stroke: var(--vermelho); stroke-width: 1.2; fill: none; stroke-dasharray: 4 3; }
   .diagrama .seta { fill: var(--tinta); }
   .diagrama text { fill: var(--tinta); font-family: var(--serifa); font-size: 13px; }
   .diagrama text.m { font-family: var(--mono); font-size: 11.5px; }
@@ -65,39 +65,109 @@
   <header>
     <p class="corrente naoimprime"><a href="./index.html">← Laboratório</a><span>Folha de referência</span></p>
     <h1>PWM e estágio de potência (PIC18F4550) — Folha de Referência</h1>
-    <p class="subtitulo">Timer2 dá o período, CCP1 dá a largura, e a chave dá a corrente</p>
+    <p class="subtitulo">Timer2 dá o período, CCP1 dá a largura, a carga escolhe a frequência e a chave entrega a corrente</p>
     <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Consulta permitida</span></p>
   </header>
   <main>
 
     <section>
-      <h2>A ideia: o Timer2 dá o ritmo, o CCP1 decide a largura</h2>
-      <p>O PWM do PIC18F4550 é feito por dois módulos que trabalham juntos. O <strong>Timer2</strong> conta de 0 até <code>PR2</code> e volta: isso fixa o <strong>período</strong>. O <strong>CCP1</strong> compara a contagem com um valor de 10 bits: o pino fica em nível alto do início do período até a contagem alcançar esse valor. Isso fixa a <strong>largura do pulso</strong>.</p>
-      <p>O pino é <code>RC2/CCP1</code> (pino 17). O <code>CCP2</code>, segundo módulo, sai em <code>RC1</code> na configuração padrão (<code>CCP2MX = 1</code>).</p>
-      <p class="formula">T<sub>PWM</sub> = (PR2 + 1) · 4 · T<sub>OSC</sub> · divisor &nbsp;&nbsp; = (PR2 + 1) · T<sub>CY</sub> · divisor<br>
-      t<sub>alto</sub> = D · T<sub>OSC</sub> · divisor &nbsp;&nbsp;&nbsp; (D = valor de 10 bits, <code>CCPR1L:DC1B1:DC1B0</code>)<br>
-      razão cíclica = D / (4 · (PR2 + 1))<br>
-      resolução = log<sub>2</sub>(4 · (PR2 + 1)) bits</p>
-      <p class="passagem"><span class="rotulo">Regra de ouro</span>
-        <strong>A razão cíclica não é D/1024.</strong> O denominador é <code>4 · (PR2 + 1)</code>, que só vale 1024 com <code>PR2 = 255</code>. Mudar <code>PR2</code> para subir a frequência muda a escala de todo valor escrito em <code>CCPR1L</code>.</p>
-      <p class="margem">T<sub>OSC</sub> = 62,5 ns e T<sub>CY</sub> = 250 ns, a 16 MHz. O PWM usa o mesmo relógio do processador, não os 48 MHz do USB.</p>
-    </section>
-
-    <section>
-      <h2>Frequência contra resolução</h2>
-      <p>Um passo de D vale um T<sub>OSC</sub> (vezes o divisor). Quanto mais curto o período, menos passos cabem nele. Exemplo, com <code>PR2 = 255</code> e divisor 1:16:</p>
-      <p class="formula">T = 256 · 250 ns · 16 = 1,024 ms → f ≈ 976,6 Hz; 4 · 256 = 1024 passos = 10 bits</p>
+      <h2>Por que PWM: o pino só decide</h2>
+      <p>O pino entrega 5 V e no máximo 25 mA (limite absoluto por pino). O 18F4550 não tem conversor digital-analógico, e mesmo que tivesse, um transistor em série esquentaria tanto quanto a carga. A saída é ligar e desligar uma chave depressa e deixar a carga fazer a média.</p>
       <div class="tabela-rolavel larga">
       <table>
-        <thead><tr><th>Divisor do Timer2</th><th>Frequência máxima (<code>PR2 = 0</code>)</th><th>Frequência mínima (<code>PR2 = 255</code>)</th><th>Resolução com <code>PR2 = 255</code></th></tr></thead>
+        <thead><tr><th>Exemplo: aquecedor do kit (12 V, 47 Ω)</th><th>Conta</th><th>Resultado</th></tr></thead>
         <tbody>
-          <tr><td class="num">1:1</td><td class="num">4 MHz (2 bits)</td><td class="num">15,625 kHz</td><td class="num">10 bits</td></tr>
-          <tr><td class="num">1:4</td><td class="num">1 MHz (2 bits)</td><td class="num">3,906 kHz</td><td class="num">10 bits</td></tr>
-          <tr><td class="num">1:16</td><td class="num">250 kHz (2 bits)</td><td class="num">976,6 Hz</td><td class="num">10 bits</td></tr>
+          <tr><td>Corrente e potência da carga</td><td class="num">12 V / 47 Ω; 12 V · 0,255 A</td><td class="num">255 mA, 3,06 W — dez vezes o pino</td></tr>
+          <tr><td>Transistor linear entregando metade da tensão</td><td class="num">V² / 4R = 144 / 188</td><td class="num">≈ 0,77 W no transistor; rendimento 50 %</td></tr>
+          <tr class="linha-destaque"><td>Chave (MOSFET, R<sub>DS(on)</sub> = 0,1 Ω) a 50 %</td><td class="num">0,255² · 0,1 · 0,5</td><td class="num">≈ 3 mW na chave</td></tr>
         </tbody>
       </table>
       </div>
-      <p class="margem">Abaixo de 976,6 Hz o módulo não chega: é preciso gerar o sinal por software, com um temporizador. Acima de 20 kHz o chaveamento deixa de ser audível no motor; abaixo disso, a carga pode "cantar" na frequência do PWM.</p>
+      <p class="margem">A chave quase não dissipa porque ou está aberta (sem corrente) ou fechada (sem tensão). O CVREF não é DAC: é uma escada de 16 degraus, de alta impedância, para o comparador.</p>
+    </section>
+
+    <section>
+      <h2>A ideia: o Timer2 dá o ritmo, o CCP1 decide a largura</h2>
+      <p>O <strong>TMR2</strong> sobe em rampa de 0 até <code>PR2</code> e volta a 0: isso fixa o <strong>período</strong>. O <strong>CCP1</strong> compara a rampa com um valor de 10 bits (<code>CCPR1L:DC1B</code>): o pino fica alto do início do período até a rampa alcançar esse valor, e baixo daí até o fim. Isso fixa a <strong>largura</strong>. O pré-divisor só muda a velocidade da rampa.</p>
+
+      <div class="diagrama larga" role="img" aria-label="Forma de onda: o TMR2 sobe em rampa de 0 a PR2 em três períodos. Nos dois primeiros a razão é 40 %, no terceiro 75 %. A razão nova é escrita no meio do segundo período e só passa a valer no início do terceiro, quando TMR2 = PR2. O pino RC2 sobe no início de cada período e desce quando a rampa cruza a razão.">
+        <svg viewBox="0 0 900 285" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ponta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="seta"/>
+            </marker>
+          </defs>
+
+          <!-- limiares -->
+          <line x1="80" y1="40" x2="860" y2="40" class="pont"/>
+          <text x="8" y="44" class="m">PR2</text>
+          <line x1="80" y1="100" x2="600" y2="100" class="pont"/>
+          <text x="8" y="104" class="m">razão 40 %</text>
+          <line x1="600" y1="65" x2="860" y2="65" class="novo"/>
+          <text x="866" y="69" class="v">75 %</text>
+          <line x1="80" y1="140" x2="860" y2="140" class="tr"/>
+          <text x="8" y="144" class="m">TMR2 = 0</text>
+
+          <!-- rampa do TMR2 -->
+          <path d="M80,140 L340,40 V140 L600,40 V140 L860,40 V140" class="tr"/>
+          <text x="210" y="80" text-anchor="middle" class="m">TMR2</text>
+
+          <!-- escrita da razão nova no meio do período -->
+          <line x1="470" y1="160" x2="470" y2="146" class="tr" marker-end="url(#ponta)"/>
+          <text x="470" y="174" text-anchor="middle" class="c">o programa escreve a razão nova</text>
+          <text x="600" y="24" text-anchor="middle" class="c">TMR2 = PR2: zera, pino sobe, razão nova copiada</text>
+
+          <!-- pino -->
+          <text x="8" y="222" class="m">RC2</text>
+          <path d="M80,235 V200 H184 V235 H340 V200 H444 V235 H600 V200 H795 V235 H860 V200" class="tr"/>
+          <text x="132" y="194" text-anchor="middle" class="c">t<tspan font-size="9" dy="3">alto</tspan></text>
+
+          <!-- período -->
+          <line x1="82" y1="255" x2="338" y2="255" class="tr" marker-start="url(#ponta)" marker-end="url(#ponta)"/>
+          <text x="210" y="275" text-anchor="middle" class="c">T<tspan font-size="9" dy="3">PWM</tspan><tspan dy="-3"> = (PR2 + 1) · T</tspan><tspan font-size="9" dy="3">CY</tspan><tspan dy="-3"> · pré</tspan></text>
+        </svg>
+      </div>
+      <p class="legenda">A razão escrita no meio do segundo período só vale no terceiro: o hardware a copia para <code>CCPR1H</code> no casamento <code>TMR2 = PR2</code>. Trocar a razão a qualquer momento nunca gera pulso truncado.</p>
+
+      <p class="formula">F<sub>PWM</sub> = F<sub>OSC</sub> / (4 · pré · (PR2 + 1))<br>
+      t<sub>alto</sub> = D · T<sub>OSC</sub> · pré &nbsp;&nbsp;&nbsp; (D = valor de 10 bits, <code>CCPR1L:DC1B</code>)<br>
+      razão cíclica = D / (4 · (PR2 + 1))<br>
+      resolução = log<sub>2</sub>(4 · (PR2 + 1)) bits</p>
+      <p class="passagem"><span class="rotulo">Regra de ouro</span>
+        <strong>A razão cíclica não é D/1024.</strong> O denominador é <code>4 · (PR2 + 1)</code>, que só vale 1024 com <code>PR2 = 255</code>. Mudar <code>PR2</code> para subir a frequência muda a escala de todo valor de razão.</p>
+      <p class="margem">A 16 MHz: T<sub>OSC</sub> = 62,5 ns e T<sub>CY</sub> = 250 ns. O "+1" vem de serem PR2 + 1 contagens: a última leva o TMR2 de PR2 de volta a 0. A razão conta em T<sub>OSC</sub>, não em T<sub>CY</sub>: daí o fator 4 e os 2 bits extras.</p>
+
+      <h3>Conta resolvida: exemplo A (<code>PR2 = 255</code>, pré 1:16)</h3>
+      <pre><code>Tcy = 4 / 16 MHz          = 250 ns
+n   = 16 · (255 + 1)      = 4096 ciclos por período
+T   = 250 ns · 4096       = 1,024 ms
+F   = 1 / 1,024 ms        = 976,5625 Hz
+passos = 4 · 256          = 1024  →  10 bits
+
+D = 512:  razão = 512 / 1024        = 50 %
+          talto = 512 · 62,5 ns · 16 = 512 µs</code></pre>
+    </section>
+
+    <section>
+      <h2>Frequência contra resolução (F<sub>OSC</sub> = 16 MHz)</h2>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Pré</th><th class="num"><code>PR2</code></th><th><code>T2CON</code></th><th>Frequência</th><th>Passos de razão</th><th>Bits</th><th>Uso</th></tr></thead>
+        <tbody>
+          <tr class="linha-destaque"><td class="num">1:16</td><td class="num">255</td><td class="num"><code>0x06</code></td><td class="num">976,6 Hz (mínima)</td><td class="num">1024</td><td class="num">10,0</td><td>exemplo A — LED</td></tr>
+          <tr><td class="num">1:16</td><td class="num">249</td><td class="num"><code>0x06</code></td><td class="num">1,000 kHz</td><td class="num">1000</td><td class="num">9,97</td><td></td></tr>
+          <tr><td class="num">1:4</td><td class="num">255</td><td class="num"><code>0x05</code></td><td class="num">3,906 kHz</td><td class="num">1024</td><td class="num">10,0</td><td></td></tr>
+          <tr><td class="num">1:4</td><td class="num">249</td><td class="num"><code>0x05</code></td><td class="num">4,000 kHz</td><td class="num">1000</td><td class="num">9,97</td><td></td></tr>
+          <tr><td class="num">1:1</td><td class="num">255</td><td class="num"><code>0x04</code></td><td class="num">15,625 kHz</td><td class="num">1024</td><td class="num">10,0</td><td></td></tr>
+          <tr class="linha-destaque"><td class="num">1:1</td><td class="num">159</td><td class="num"><code>0x04</code></td><td class="num">25,00 kHz</td><td class="num">640</td><td class="num">9,32</td><td>exemplo B — ventoinha</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <ul>
+        <li><strong>Frequência e resolução brigam.</strong> Diminuir <code>PR2</code> sobe a frequência e corta passos de razão.</li>
+        <li><strong>CCP1 e CCP2 dividem o mesmo Timer2.</strong> Não há como ter um a 1 kHz e o outro a 25 kHz ao mesmo tempo.</li>
+        <li><strong>O pós-divisor não muda o PWM.</strong> Ele só espaça o <code>TMR2IF</code>.</li>
+      </ul>
       <h3>Casos de borda</h3>
       <div class="tabela-rolavel larga">
       <table>
@@ -106,6 +176,7 @@
           <tr><td class="num">0</td><td>sempre em nível baixo (0 %)</td></tr>
           <tr><td class="num">D ≥ 4 · (PR2 + 1)</td><td>sempre em nível alto (100 %): o pino nunca desce</td></tr>
           <tr><td class="num"><code>PR2 = 255</code>, D = 1023</td><td>99,9 %: o 100 % exato não cabe em 10 bits</td></tr>
+          <tr><td class="num"><code>PR2 = 159</code>, D = 640</td><td>100 %: já é igual a 4 · 160</td></tr>
         </tbody>
       </table>
       </div>
@@ -113,62 +184,229 @@
 
     <section>
       <h2>Registradores</h2>
+      <p>Quatro bastam: <code>PR2</code> (período), <code>T2CON</code> (pré-divisor e liga), <code>CCP1CON</code> (modo e 2 bits baixos da razão) e <code>CCPR1L</code> (8 bits altos da razão).</p>
       <h3><code>T2CON</code> — Timer2</h3>
+      <div class="tabela-rolavel">
       <table class="registrador">
-<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
-<tbody><tr><td class="nada">—</td><td colspan="4"><code>T2OUTPS3:0</code><small>pós-divisor (não afeta o PWM)</small></td><td><code>TMR2ON</code><small>liga</small></td><td colspan="2"><code>T2CKPS1:0</code><small>divisor</small></td></tr></tbody>
+<thead><tr><th class="rot"></th><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody>
+  <tr><td class="rot">bit</td><td class="nada">—</td><td colspan="4"><code>T2OUTPS3:0</code><small>pós-divisor (só o <code>TMR2IF</code>)</small></td><td><code>TMR2ON</code><small>liga</small></td><td colspan="2"><code>T2CKPS1:0</code><small>pré-divisor</small></td></tr>
+  <tr><td class="rot">ex. A → <code>0x06</code></td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="num">1</td><td class="num">0</td></tr>
+  <tr><td class="rot">ex. B → <code>0x04</code></td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="num">0</td></tr>
+</tbody>
 </table>
+      </div>
       <ul>
         <li><code>T2CKPS1:T2CKPS0</code>: <code>00</code> = 1:1, <code>01</code> = 1:4, <code>1x</code> = 1:16.</li>
         <li>Valores do curso: <code>0x04</code> = ligado 1:1, <code>0x05</code> = ligado 1:4, <code>0x06</code> = ligado 1:16.</li>
       </ul>
-      <h3><code>CCP1CON</code> — modo e os 2 bits baixos da largura</h3>
+
+      <h3><code>CCP1CON</code> — modo e os 2 bits baixos da razão</h3>
+      <div class="tabela-rolavel">
       <table class="registrador">
-<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
-<tbody><tr><td colspan="2"><code>P1M1:0</code><small>saídas do ECCP</small></td><td colspan="2"><code>DC1B1:0</code><small>bits 1 e 0 de D</small></td><td colspan="4"><code>CCP1M3:0</code><small>modo</small></td></tr></tbody>
+<thead><tr><th class="rot"></th><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody>
+  <tr><td class="rot">bit</td><td colspan="2"><code>P1M1:0</code><small>00 = só P1A (RC2)</small></td><td colspan="2"><code>DC1B1:0</code><small>bits 1 e 0 de D</small></td><td colspan="4"><code>CCP1M3:0</code><small>1100 = PWM, ativo em alto</small></td></tr>
+  <tr><td class="rot">A e B → <code>0x0C</code></td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="num">1</td><td class="num">0</td><td class="num">0</td></tr>
+</tbody>
 </table>
+      </div>
       <ul>
-        <li><code>CCP1M3:CCP1M0 = 1100</code>: PWM com saídas ativas em nível alto. Com <code>P1M = 00</code>, só <code>RC2</code> é usado. Valor do curso: <code>CCP1CON = 0x0C</code>.</li>
-        <li><code>CCPR1L</code>: os 8 bits altos de D. Escrito a qualquer momento, só vale no próximo período (o módulo copia para <code>CCPR1H</code>).</li>
+        <li><code>CCPR1L</code>: os 8 bits altos de D. Escrito a qualquer momento, só vale no próximo período.</li>
         <li><code>PR2</code>: o fim do período, 8 bits.</li>
+        <li><code>CCP2CON</code> é igual, sem os bits 7–6. A saída do CCP2 é <code>RC1</code> com <code>CCP2MX = ON</code> (padrão) ou <code>RB3</code> com <code>OFF</code>.</li>
+        <li><code>ECCP1AS</code> (desligamento automático) e <code>ECCP1DEL</code> (tempo morto) ficam no valor de reset.</li>
       </ul>
-      <p class="margem">Ao escrever os bits baixos, preserve o resto de <code>CCP1CON</code> com a máscara <code>0xCF</code> (<code>1100 1111</code>). Sem ela, o modo é apagado e o pino volta a ser porta comum.</p>
+
+      <h3>Escrita da razão: os 10 bits em dois registradores</h3>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Configuração</th><th>Razão</th><th class="num">D</th><th class="num">D em binário</th><th class="num"><code>CCPR1L</code> (D &gt;&gt; 2)</th><th class="num"><code>DC1B</code> (D &amp; 3)</th></tr></thead>
+        <tbody>
+          <tr><td>A (<code>PR2 = 255</code>)</td><td class="num">50 %</td><td class="num">512</td><td class="num"><code>10 0000 0000</code></td><td class="num">128 (<code>0x80</code>)</td><td class="num"><code>00</code></td></tr>
+          <tr><td>A (<code>PR2 = 255</code>)</td><td class="num">66,7 %</td><td class="num">683</td><td class="num"><code>10 1010 1011</code></td><td class="num">170 (<code>0xAA</code>)</td><td class="num"><code>11</code></td></tr>
+          <tr><td>A (<code>PR2 = 255</code>)</td><td class="num">12,5 %</td><td class="num">128</td><td class="num"><code>00 1000 0000</code></td><td class="num">32 (<code>0x20</code>)</td><td class="num"><code>00</code></td></tr>
+          <tr><td>B (<code>PR2 = 159</code>)</td><td class="num">50 %</td><td class="num">320</td><td class="num"><code>01 0100 0000</code></td><td class="num">80 (<code>0x50</code>)</td><td class="num"><code>00</code></td></tr>
+          <tr><td>B (<code>PR2 = 159</code>)</td><td class="num">30 %</td><td class="num">192</td><td class="num"><code>00 1100 0000</code></td><td class="num">48 (<code>0x30</code>)</td><td class="num"><code>00</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">Escrever só <code>CCPR1L</code> joga fora os 2 bits baixos: a resolução cai para 8 bits. No PICSimLab isso nem aparece, porque o simulador ignora <code>DC1B</code>.</p>
     </section>
 
     <section>
-      <h2>Código de inicialização e de ajuste recomendado</h2>
-      <pre><code>/* Na ordem da folha de dados */
-PR2    = 255;                 // 1. período
-CCPR1L = 0;                   // 2. largura inicial: 0 %
-LATCbits.LATC2   = 0;         // 3. LAT antes de TRIS: a carga nasce desligada
-TRISCbits.TRISC2 = 0;
-T2CON   = 0x06;               // 4. Timer2 ligado, divisor 1:16
-CCP1CON = 0x0C;               // 5. modo PWM
+      <h2>Sequência de inicialização (folha de dados, "Setup for PWM Operation")</h2>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th class="num">Passo</th><th>O que fazer</th><th>Por quê</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td><code>LATC2 = 0</code>, <code>TRISC2 = 1</code></td><td>o driver fica desligado enquanto configura</td></tr>
+          <tr><td class="num">2</td><td><code>PR2</code></td><td>o período</td></tr>
+          <tr><td class="num">3</td><td><code>CCP1CON = 0x0C</code></td><td>modo PWM; antes da razão, porque zera <code>DC1B</code></td></tr>
+          <tr><td class="num">4</td><td>razão inicial 0</td><td>a carga nasce desligada</td></tr>
+          <tr><td class="num">5</td><td><code>TMR2IF = 0</code>; <code>T2CON</code> com pré e <code>TMR2ON</code></td><td>liga a rampa</td></tr>
+          <tr><td class="num">6</td><td>esperar <code>TMR2IF</code></td><td>um período inteiro já passou com a razão certa</td></tr>
+          <tr class="linha-destaque"><td class="num">7</td><td><code>TRISC2 = 0</code></td><td>só agora o pino entrega o PWM</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <pre><code>#define PR2_LED        255u
+#define T2CON_LED      0x06u    /* pós 1:1, TMR2ON, pré 1:16 → 976,6 Hz */
+#define PR2_VENT       159u
+#define T2CON_VENT     0x04u    /* pós 1:1, TMR2ON, pré 1:1  → 25 kHz   */
 
-/* D de 0 a 4*(PR2+1); os 8 bits altos em CCPR1L, os 2 baixos em DC1B */
-void pwm_largura(uint16_t d)
+static void pwm1_razao(uint16_t d)
 {
-    CCPR1L  = (uint8_t)(d &gt;&gt; 2);
-    CCP1CON = (uint8_t)((CCP1CON &amp; 0xCF) | (uint8_t)((d &amp; 0x03u) &lt;&lt; 4));
-}</code></pre>
-      <p>Os operadores: <code>d &gt;&gt; 2</code> descarta os 2 bits baixos; <code>d &amp; 0x03</code> guarda só eles; <code>&lt;&lt; 4</code> os leva às posições 5 e 4; <code>&amp; 0xCF</code> apaga essas posições sem tocar nas outras; <code>|</code> junta.</p>
+    CCPR1L = (uint8_t)(d &gt;&gt; 2);              /* 8 bits altos */
+    CCP1CONbits.DC1B = (uint8_t)(d &amp; 0x03u); /* 2 bits baixos */
+}
+
+static void pwm1_iniciar(uint8_t periodo, uint8_t t2con)
+{
+    LATCbits.LATC2   = 0;       /* LAT antes de TRIS */
+    TRISCbits.TRISC2 = 1;       /* pino desligado enquanto configura */
+    PR2 = periodo;
+    CCP1CON = 0x0C;             /* antes da razão: zera DC1B */
+    pwm1_razao(0);
+    PIR1bits.TMR2IF = 0;
+    T2CON = t2con;
+    while (!PIR1bits.TMR2IF) {  /* um período inteiro passou */
+    }
+    TRISCbits.TRISC2 = 0;       /* só agora o pino entrega o PWM */
+}
+
+/* Exemplo A: o potenciômetro (10 bits) entra direto na razão (1024 passos) */
+pwm1_iniciar(PR2_LED, T2CON_LED);
+pwm1_razao(adc_ler());
+
+/* Exemplo B: 640 passos; 1023 · 5 / 8 = 639 */
+pwm1_iniciar(PR2_VENT, T2CON_VENT);
+pwm1_razao((uint16_t)((adc_ler() * 5u) &gt;&gt; 3));</code></pre>
+      <p class="margem">Os passos 1 e 7 são o "LAT antes de TRIS": o pino só vira saída quando o que ele vai mostrar já está decidido. Em hardware, o mesmo papel é do resistor de pull-down na porta do MOSFET, que segura a carga desligada durante reset e bootloader.</p>
+    </section>
+
+    <section>
+      <h2>Frequência por carga</h2>
+      <p>O limite inferior vem da inércia da carga (abaixo dele a média aparece ondulada); o superior vem da chave e de efeitos colaterais. A escolha cai dentro da janela.</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Carga</th><th>Limite inferior (a carga)</th><th>Limite superior (a chave e os efeitos)</th><th>Escolha</th><th>Como</th></tr></thead>
+        <tbody>
+          <tr><td>LED</td><td>cintilação: o olho parado funde acima de ≈ 60–90 Hz; em movimento ou na câmera, vê bem acima</td><td>quase nenhum para um LED pequeno</td><td class="num">≈ 1 kHz</td><td>CCP1, pré 1:16, <code>PR2 = 255</code></td></tr>
+          <tr><td>Ventoinha</td><td>a inércia alisa a rotação em dezenas de Hz, mas cada pulso vira estalo</td><td>1–20 kHz é audível (o motor chia); perdas de chaveamento crescem com f</td><td class="num">25 kHz</td><td>CCP1, pré 1:1, <code>PR2 = 159</code></td></tr>
+          <tr><td>Aquecedor</td><td>ondulação térmica: período ≪ τ (dezenas de segundos)</td><td>relé: vida do contato; SSR com cruzamento por zero: múltiplos de 8,33 ms</td><td class="num">1 s</td><td>Timer0 + software; o CCP não desce tanto</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <h3>Ondulação do aquecedor</h3>
+      <p class="formula">ΔT<sub>pp</sub> ≈ ΔT<sub>max</sub> · D · (1 − D) · T / τ &nbsp;&nbsp;&nbsp; (válido para T ≪ τ)</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Exemplo: PICGenios, ΔT<sub>max</sub> = 50 °C, τ ≈ 33 s, D = 50 %</th><th class="num">Janela T</th><th class="num">ΔT<sub>pp</sub></th></tr></thead>
+        <tbody>
+          <tr class="linha-destaque"><td>janela do exemplo C</td><td class="num">1 s</td><td class="num">50 · 0,25 · 1 / 33 ≈ 0,38 °C</td></tr>
+          <tr><td></td><td class="num">5 s</td><td class="num">≈ 1,9 °C</td></tr>
+          <tr><td><code>JANELA_MARCAS = 2000</code></td><td class="num">20 s</td><td class="num">≈ 7,5 °C</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">Critério: ondulação abaixo de um degrau do ADC com LM35 (0,49 °C) exige T ≲ 1,3 s. O período mais longo do CCP a 16 MHz é 1,024 ms: mil vezes rápido demais para um relé (≈ 3,5 milhões de manobras por hora).</p>
+    </section>
+
+    <section>
+      <h2>Os três exemplos</h2>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th></th><th>A — LED</th><th>B — Ventoinha</th><th>C — Aquecedor</th></tr></thead>
+        <tbody>
+          <tr><td>Arquivo</td><td><code>pwm_led.c</code></td><td><code>pwm_ventoinha.c</code></td><td><code>pwm_aquecedor.c</code></td></tr>
+          <tr><td>Pino</td><td>RC2 (LED avulso)</td><td>RC2</td><td>RC5</td></tr>
+          <tr><td>Mecanismo</td><td>CCP1 + Timer2</td><td>CCP1 + Timer2</td><td>Timer0 a 10 ms + interrupção</td></tr>
+          <tr><td>Período</td><td class="num">1,024 ms (976,6 Hz)</td><td class="num">40 µs (25 kHz)</td><td class="num">1 s (ou 20 s)</td></tr>
+          <tr><td><code>PR2</code> / <code>T2CON</code></td><td class="num">255 / <code>0x06</code></td><td class="num">159 / <code>0x04</code></td><td class="num">— (<code>T0CON = 0x88</code>, pré-carga 25 536)</td></tr>
+          <tr><td>Razão a partir do pot</td><td>ADC direto (10 → 10 bits)</td><td>ADC · 5/8 (0..639)</td><td>ADC · 100/1024 marcas</td></tr>
+          <tr><td>Chaves DIP (PICGenios)</td><td>18 desligada</td><td>18 ligada</td><td>16 e 17 ligadas, 18 desligada</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <h3>PWM por software: janela de tempo com o Timer0</h3>
+      <pre><code>#define JANELA_MARCAS 100u           /* 100 · 10 ms = 1 s; 2000 = 20 s */
+#define PRECARGA      25536u         /* 0x63C0: 40 000 · 250 ns = 10 ms */
+#define AQUECEDOR_BIT 0x20u          /* RC5: o XC8 não define LATCbits.LATC5 no 18F4550 */
+
+static volatile uint16_t marcas_ligado = 0; /* o laço escreve, o tratamento lê */
+
+void __interrupt() tratar(void)
+{
+    static uint16_t marca = 0;
+    if (INTCONbits.TMR0IF) {
+        INTCONbits.TMR0IF = 0;
+        TMR0H = (uint8_t)(PRECARGA &gt;&gt; 8);   /* alto primeiro */
+        TMR0L = (uint8_t)(PRECARGA &amp; 0xFF);
+        if (++marca &gt;= JANELA_MARCAS) {
+            marca = 0;                       /* nova janela */
+        }
+        if (marca &lt; marcas_ligado) {
+            LATC |= AQUECEDOR_BIT;           /* parte ligada da janela */
+        } else {
+            LATC &amp;= (uint8_t)~AQUECEDOR_BIT;
+        }
+    }
+}
+
+/* no laço principal; 32 bits porque 1023 · 2000 não cabe em 16 */
+uint16_t m = (uint16_t)(((uint32_t)adc_ler() * JANELA_MARCAS) &gt;&gt; 10);
+INTCONbits.GIE = 0;                  /* seção crítica: 16 bits, duas escritas */
+marcas_ligado = m;
+INTCONbits.GIE = 1;</code></pre>
+      <p>É o "controle por janela de tempo" dos controladores de temperatura industriais. Pré-carga e <code>T0CON</code> são os mesmos do R6; a seção crítica é a do R7.</p>
     </section>
 
     <section>
       <h2>O estágio de potência</h2>
-      <p>O pino entrega no máximo 25 mA, a 5 V. Motor, ventoinha, lâmpada e resistência pedem mais corrente, e às vezes 12 V. O pino só comanda: quem conduz é um transistor ou um relé.</p>
       <div class="tabela-rolavel larga">
       <table>
         <thead><tr><th>Chave</th><th>Velocidade</th><th>Serve para PWM?</th><th>Cuidado</th></tr></thead>
         <tbody>
-          <tr><td>MOSFET de nível lógico</td><td>dezenas de kHz</td><td>sim</td><td>escolher um que conduza plenamente com 5 V no gate</td></tr>
+          <tr><td>MOSFET de nível lógico</td><td>dezenas de kHz</td><td>sim</td><td>escolher um que conduza plenamente com 5 V no gate; pull-down na porta</td></tr>
           <tr><td>CI driver (como no kit)</td><td>dezenas de kHz</td><td>sim</td><td>o sinal na carga é invertido ou atrasado em relação ao pino; meça os dois</td></tr>
-          <tr><td>Relé</td><td>milissegundos por manobra</td><td><strong>não</strong></td><td>vida mecânica limitada (da ordem de 10<sup>5</sup> manobras); bom para liga-desliga raro</td></tr>
+          <tr><td>Relé</td><td>milissegundos por manobra</td><td><strong>não</strong></td><td>vida mecânica da ordem de 10<sup>5</sup> manobras; só liga-desliga raro</td></tr>
         </tbody>
       </table>
       </div>
-      <p class="margem">Carga indutiva (motor, relé) precisa de diodo de roda-livre: ao desligar, a corrente da bobina continua e, sem caminho, gera um pico de tensão que destrói a chave.</p>
-      <p class="passagem"><span class="rotulo">No kit</span>A ventoinha (COOLER) está em RC2, pela chave CH3-5; o aquecedor (HEATER) em RC1, pela CH3-3. Os pontos de teste COOLER, HEATER e LAMP chegam a 12 V: nunca prenda a garra de terra neles.</p>
+      <p class="passagem"><span class="rotulo">Cuidado</span>Carga indutiva (motor, relé) precisa de diodo de roda-livre: ao desligar, a corrente da bobina continua e, sem caminho, gera um pico de tensão que destrói a chave.</p>
+      <h3>Pinos: simulador e kit</h3>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Função</th><th>PICGenios (PICSimLab)</th><th>XM118 (bancada)</th></tr></thead>
+        <tbody>
+          <tr><td>Ventoinha</td><td>RC2 = CCP1, chave DIP 18</td><td>RC2 = CCP1, CH3-5</td></tr>
+          <tr><td>Aquecedor</td><td>RC5, sem CCP, chave DIP 16</td><td>RC1 = CCP2, CH3-3</td></tr>
+          <tr><td>Sensor de temperatura</td><td>RA2/AN2, chave DIP 17</td><td>RA0/AN0, CH1-7</td></tr>
+          <tr><td>Tacômetro</td><td>RC0 (só acima de ≈ 27 % de razão)</td><td>RC0, CH3-1</td></tr>
+          <tr><td>Potenciômetro</td><td>RA0/AN0</td><td>—</td></tr>
+          <tr><td>Buzzer</td><td>RC1 = CCP2, jumper JP1</td><td>—</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="passagem"><span class="rotulo">No kit</span>Os pontos de teste COOLER, HEATER e LAMP chegam a 12 V: nunca prenda a garra de terra neles. RC4 e RC5 são D− e D+ do USB e só entram: o exemplo C não vai para o kit como está.</p>
+    </section>
+
+    <section>
+      <h2>Onde o simulador mente</h2>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>PICSimLab</th><th>Chip ou carga real</th><th>Consequência</th></tr></thead>
+        <tbody>
+          <tr><td>LED, ventoinha e aquecedor pela média do pino a cada 100 ms</td><td>o LED cintila abaixo de ≈ 90 Hz; a ventoinha chia entre 1 e 20 kHz</td><td>a frequência só aparece no osciloscópio do simulador (Modules → Oscilloscope)</td></tr>
+          <tr><td>compara só <code>CCPR1L</code> com o TMR2 (ignora <code>DC1B</code>)</td><td>razão de 10 bits</td><td>resolução real 4× a vista no simulador</td></tr>
+          <tr><td>período de PR2 contagens</td><td>período de PR2 + 1</td><td>≈ 980 Hz em vez de 976,6 Hz; 25,16 kHz em vez de 25,00 kHz</td></tr>
+          <tr><td>brilho linear com a razão</td><td>o olho percebe brilho quase logaritmicamente</td><td>no kit, 10 % já parece "meio aceso"</td></tr>
+          <tr><td>escrever em <code>LATC</code> força RC2 ao valor de <code>LATC2</code>, mesmo com o CCP ativo</td><td>o CCP tem prioridade sobre o latch</td><td>ventoinha em CCP1 + aquecedor por software em RC5 pode cortar pulsos de RC2</td></tr>
+          <tr><td>ventoinha com zona morta ≈ 20 %; aquecedor de 1.ª ordem, τ ≈ 33 s, 27,5 + 50·D °C</td><td>outro motor, outra constante de tempo e outro ganho</td><td>a fórmula vale; os números se medem no kit</td></tr>
+        </tbody>
+      </table>
+      </div>
     </section>
 
   </main>
