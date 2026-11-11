@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decodificador de UART</title>
+<link rel="stylesheet" href="../estilo.css">
+<style>
+  .pagina > main { max-width: none; }
+  main > section > p, main > section > ol, main > section > ul,
+  .controles, .resposta, .info { max-width: var(--col); }
+
+  .controles { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: center; margin: 0.8rem 0; }
+  .controles label { font-size: 0.92rem; }
+  select, input[type=text], button {
+    font: inherit; font-size: 0.92rem; color: var(--tinta);
+    background: var(--papel); border: 1px solid var(--cinza-c); padding: 0.25rem 0.55rem;
+  }
+  input[type=text] { font-family: var(--mono); }
+  button { cursor: pointer; background: var(--papel-2); }
+  button:hover, button:focus-visible { border-color: var(--navy); color: var(--navy); }
+  button.forte { border-color: var(--tinta); font-weight: 700; }
+
+  .info { font-size: 0.95rem; border-left: 2px solid var(--tinta); padding: 0.2rem 0 0.2rem 0.7rem; margin: 0.8rem 0; }
+  .info code { white-space: nowrap; }
+
+  .osc-barra { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center;
+               font-size: 0.85rem; color: var(--cinza); margin: 0.4rem 0; }
+  .osc { overflow-x: auto; border-top: 1px solid var(--tinta); border-bottom: 1px solid var(--tinta);
+         background: var(--papel-2); -webkit-overflow-scrolling: touch; }
+  .osc svg { display: block; cursor: crosshair; }
+  .leitura { font-family: var(--mono); font-size: 0.85rem; min-height: 1.4em; margin: 0.4rem 0; color: var(--tinta); }
+
+  svg .traco   { fill: none; stroke: var(--tinta); stroke-width: 2; }
+  svg .grade   { stroke: var(--cinza-c); stroke-width: 0.8; stroke-dasharray: 3 3; }
+  svg .regua   { stroke: var(--cinza-c); stroke-width: 1; }
+  svg .eixo    { stroke: var(--regra); stroke-width: 1; }
+  svg text     { fill: var(--cinza); font-family: var(--mono); font-size: 11px; }
+  svg text.rot { fill: var(--tinta); }
+  svg text.err { fill: var(--vermelho); }
+  svg .cursor  { stroke: var(--navy); stroke-width: 1.2; }
+  svg text.cur { fill: var(--navy); }
+  svg .quadro  { fill: var(--tinta); opacity: 0.07; }
+  svg .amostra { fill: var(--papel); stroke: var(--tinta); stroke-width: 1.5; }
+  svg .amostra.err { stroke: var(--vermelho); fill: var(--vermelho); }
+
+  .resposta { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.8rem 0; }
+  .resposta input { flex: 1 1 12rem; }
+  .veredito { font-size: 0.98rem; margin: 0.4rem 0; max-width: var(--col); }
+  .veredito .errado { color: var(--vermelho); text-decoration: underline; }
+  .veredito code { white-space: pre; }
+
+  table.rx, table.ascii { border-collapse: collapse; font-size: 0.85rem; margin: 0.6rem 0; }
+  table.rx th, table.rx td, table.ascii th, table.ascii td {
+    border-bottom: 1px solid var(--regra); padding: 0.2rem 0.6rem 0.2rem 0; text-align: left; }
+  table.rx th, table.ascii th { border-bottom: 1px solid var(--tinta); font-size: 0.78rem; }
+  table.rx td { font-family: var(--mono); }
+  table.rx td.err { color: var(--vermelho); }
+  table.ascii td, table.ascii th { text-align: center; padding: 0.15rem 0.45rem; font-family: var(--mono); }
+  .tabela-rolavel { overflow-x: auto; }
+
+  details { margin: 0.8rem 0; max-width: var(--col); }
+  summary { cursor: pointer; font-size: 0.95rem; }
+  .bits { font-family: var(--mono); letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+<div class="pagina">
+
+  <header>
+    <p class="corrente"><a href="./index.html">← Teoria</a><span>Aula 10 — Comunicação serial</span></p>
+    <h1>Decodificador de UART</h1>
+    <p class="subtitulo">Que mensagem passou pelo fio?</p>
+    <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Exercício interativo</span></p>
+  </header>
+
+  <main>
+
+    <section>
+      <h2>Como funciona</h2>
+      <p>Abaixo está o pino TX de uma UART, como apareceria no osciloscópio. Algumas
+      letras foram enviadas, uma por quadro. Descubra a mensagem.</p>
+      <ol>
+        <li>Ache cada <strong>bit de início</strong>: a primeira descida depois do repouso em nível alto.</li>
+        <li>Leia os oito bits seguintes <strong>no meio de cada bit</strong>. O primeiro a chegar é o
+        <strong>menos significativo</strong> (D0): escreva o byte de trás para a frente.</li>
+        <li>Converta para hexadecimal e procure o caractere na tabela ASCII, no fim da página.</li>
+      </ol>
+      <p>Nos níveis 3 e 4 a taxa não é dada. Clique em dois pontos do traço para medir
+      o intervalo: o pulso mais curto dura um bit.</p>
+    </section>
+
+    <section>
+      <h2>O sinal</h2>
+
+      <div class="controles">
+        <label>Nível
+          <select id="nivel">
+            <option value="1">1 — com grade, 9600 8N1</option>
+            <option value="2">2 — sem grade, 9600 8N1</option>
+            <option value="3">3 — taxa desconhecida</option>
+            <option value="4">4 — formato desconhecido</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="rs232"> níveis RS-232 (±12 V)</label>
+        <button id="nova" class="forte">Nova mensagem</button>
+      </div>
+
+      <p class="info" id="info"></p>
+
+      <div class="osc-barra">
+        <span>Zoom</span>
+        <button id="menos" aria-label="Diminuir zoom">−</button>
+        <button id="mais" aria-label="Aumentar zoom">+</button>
+        <label><input type="checkbox" id="atrair" checked> cursores grudam nas bordas</label>
+        <button id="limpar">Apagar cursores</button>
+      </div>
+      <div class="osc" id="osc"></div>
+      <p class="leitura" id="leitura">Clique no traço para pôr o cursor A; clique de novo para o B.</p>
+
+      <div class="resposta">
+        <input type="text" id="palpite" placeholder="A mensagem é…" autocomplete="off" spellcheck="false">
+        <button id="conferir" class="forte">Conferir</button>
+        <button id="revelar">Mostrar quadros</button>
+      </div>
+      <div class="veredito" id="veredito"></div>
+    </section>
+
+    <section>
+      <h2>O receptor</h2>
+      <p>Uma UART não vê a forma de onda inteira: ela espera a descida do início,
+      conta meio bit e depois amostra a linha uma vez por bit, com o próprio relógio.
+      Configure o receptor e veja onde ele amostra e o que ele lê. Com a taxa errada,
+      as amostras escorregam para os bits vizinhos.</p>
+
+      <div class="controles">
+        <label>Taxa
+          <select id="rxTaxa"></select>
+        </label>
+        <label>Paridade
+          <select id="rxPar">
+            <option value="N">nenhuma</option>
+            <option value="E">par</option>
+            <option value="O">ímpar</option>
+          </select>
+        </label>
+        <label>Entrada
+          <select id="rxInv">
+            <option value="0">TTL (0/5 V)</option>
+            <option value="1">RS-232 (inverte)</option>
+          </select>
+        </label>
+        <button id="receber" class="forte">Receber</button>
+        <button id="semRx">Tirar amostras</button>
+      </div>
+      <div class="tabela-rolavel" id="rxSaida"></div>
+    </section>
+
+    <section>
+      <h2>Tabela ASCII</h2>
+      <p>Coluna: dígito hexadecimal mais significativo. Linha: o menos significativo.
+      <code>0x41</code> está na coluna 4, linha 1: <code>A</code>. Ⓢ é o espaço.</p>
+      <div class="tabela-rolavel"><table class="ascii" id="ascii"></table></div>
+    </section>
+
+    <section>
+      <h2>Para o professor</h2>
+      <p>Escreva uma mensagem (até 12 caracteres ASCII, sem acento), escolha o nível
+      acima e gere o sinal. O link guarda a mensagem, a taxa e o formato, para projetar
+      ou mandar à turma. A mensagem vai codificada no link, mas não cifrada.</p>
+      <div class="controles">
+        <input type="text" id="propria" maxlength="12" placeholder="ex.: UFMT" autocomplete="off" spellcheck="false">
+        <button id="gerar">Gerar sinal</button>
+        <button id="link">Copiar link</button>
+        <span id="linkOk" class="leitura"></span>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Microcontroladores — DENE/UFMT · <a href="./aula10-comunicacao-serial.pdf">Aula 10 (PDF)</a></p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var TAXAS = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200];
+  var BANCO = ["OI", "OK", "PIC", "LED", "ADC", "PWM", "TX", "RX", "UFMT", "DENE", "Hz",
+    "42", "40,1", "SOS", "bit", "ola", "T=25", "on", "off", "LCD", "CCP", "Vcc", "GND",
+    "9600", "uart", "ACK", "Ok!", "ufa", "pino", "fio", "byte", "5V", "SPI", "I2C", "CAN"];
+  var NS = "http://www.w3.org/2000/svg";
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ------------------------------------------------------------- aleatório
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function sorteio(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  // ----------------------------------------------------------------- estado
+  var est = null;      // {msg, nivel, taxa, par, stop, inv, semente}
+  var sinal = null;    // {segs:[{t0,t1,v}], quadros:[...], total, Tb}
+  var zoom = 1;
+  var cursores = [];
+  var revelado = false;
+  var rx = null;       // resultado do receptor
+
+  function novoEstado(nivel, msg) {
+    var e = { nivel: nivel, inv: $("rs232").checked, semente: Math.floor(Math.random() * 1e9) };
+    if (!msg) {
+      var faixa = nivel === 1 ? [2, 3] : nivel === 2 ? [2, 4] : [3, 5];
+      var opc = BANCO.filter(function (m) { return m.length >= faixa[0] && m.length <= faixa[1]; });
+      msg = sorteio(opc);
+    }
+    e.msg = msg;
+    e.taxa = nivel <= 2 ? 9600 : sorteio(TAXAS);
+    e.par = nivel === 4 ? sorteio(["N", "E", "O"]) : "N";
+    e.stop = nivel === 4 ? sorteio([1, 2]) : 1;
+    return e;
+  }
+
+  // ------------------------------------------------------- gerar o sinal
+  function paridade(b, tipo) {
+    var n = 0;
+    for (var i = 0; i < 8; i++) n += (b >> i) & 1;
+    return tipo === "E" ? (n & 1) : (1 - (n & 1));
+  }
+
+  function construir(e) {
+    var Tb = 1e6 / e.taxa;
+    var rnd = mulberry32(e.semente);
+    var segs = [], quadros = [], t = 0;
+    function poe(v, dur) {
+      var ult = segs[segs.length - 1];
+      if (ult && ult.v === v) ult.t1 += dur;
+      else segs.push({ t0: t, t1: t + dur, v: v });
+      t += dur;
+    }
+    poe(1, 3 * Tb);
+    for (var k = 0; k < e.msg.length; k++) {
+      var b = e.msg.charCodeAt(k) & 0xFF;
+      var q = { t0: t, byte: b, ch: e.msg[k], bits: [] };
+      q.bits.push({ t0: t, rot: "S", v: 0 }); poe(0, Tb);
+      for (var i = 0; i < 8; i++) {
+        var v = (b >> i) & 1;
+        q.bits.push({ t0: t, rot: String(i), v: v }); poe(v, Tb);
+      }
+      if (e.par !== "N") {
+        var p = paridade(b, e.par);
+        q.bits.push({ t0: t, rot: "P", v: p }); poe(p, Tb);
+      }
+      for (var s = 0; s < e.stop; s++) { q.bits.push({ t0: t, rot: "T", v: 1 }); poe(1, Tb); }
+      q.t1 = t;
+      quadros.push(q);
+      var lacuna = e.nivel === 1 ? 2 : (rnd() < 0.3 ? 0 : rnd() * 4);
+      if (k < e.msg.length - 1 && lacuna > 0) poe(1, lacuna * Tb);
+    }
+    poe(1, 3 * Tb);
+    return { segs: segs, quadros: quadros, total: t, Tb: Tb };
+  }
+
+  function nivelEm(tt) {        // nível lógico transmitido no instante tt
+    var s = sinal.segs, a = 0, b = s.length - 1;
+    if (tt <= 0) return s[0].v;
+    if (tt >= sinal.total) return s[b].v;
+    while (a < b) {
+      var m = (a + b) >> 1;
+      if (s[m].t1 <= tt) a = m + 1; else b = m;
+    }
+    return s[a].v;
+  }
+
+  // ----------------------------------------------------------- desenho
+  var X0 = 52, H = 236, YA = 70, YB = 150;   // y do nível alto e do baixo, na tela
+
+  function pxPorUs() { return 30 / sinal.Tb * zoom; }
+  function xDe(tt) { return X0 + tt * pxPorUs(); }
+  function tDe(x) { return (x - X0) / pxPorUs(); }
+
+  function el(nome, attrs, texto) {
+    var n = document.createElementNS(NS, nome);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (texto !== undefined) n.textContent = texto;
+    return n;
+  }
+
+  function fmtT(us) {
+    var a = Math.abs(us);
+    if (a >= 1000) return (us / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 }) + " ms";
+    return us.toLocaleString("pt-BR", { maximumFractionDigits: a < 10 ? 2 : 1 }) + " µs";
+  }
+
+  function passoBonito(alvoUs) {
+    var p = Math.pow(10, Math.floor(Math.log10(alvoUs)));
+    var c = [1, 2, 5, 10];
+    for (var i = 0; i < c.length; i++) if (c[i] * p >= alvoUs) return c[i] * p;
+    return 10 * p;
+  }
+
+  function desenhar() {
+    var W = Math.ceil(xDe(sinal.total) + 20);
+    var svg = el("svg", { width: W, height: H, viewBox: "0 0 " + W + " " + H,
+      role: "img", "aria-label": "Forma de onda do pino TX" });
+
+    // rótulos de tensão
+    var alto = est.inv ? "+12 V" : "5 V", baixo = est.inv ? "−12 V" : "0 V";
+    svg.appendChild(el("text", { x: 4, y: YA + 4 }, alto));
+    svg.appendChild(el("text", { x: 4, y: YB + 4 }, baixo));
+    svg.appendChild(el("line", { x1: X0, y1: YA, x2: W, y2: YA, "class": "eixo" }));
+    svg.appendChild(el("line", { x1: X0, y1: YB, x2: W, y2: YB, "class": "eixo" }));
+
+    // quadros revelados (fundo)
+    if (revelado) {
+      sinal.quadros.forEach(function (q) {
+        svg.appendChild(el("rect", { x: xDe(q.t0), y: 36, width: xDe(q.t1) - xDe(q.t0),
+          height: YB - 36 + 24, "class": "quadro" }));
+      });
+    }
+
+    // grade de bits
+    if (est.nivel === 1 || revelado) {
+      sinal.quadros.forEach(function (q) {
+        q.bits.forEach(function (b) {
+          var x = xDe(b.t0);
+          svg.appendChild(el("line", { x1: x, y1: YA - 14, x2: x, y2: YB + 8, "class": "grade" }));
+        });
+        var xf = xDe(q.t1);
+        svg.appendChild(el("line", { x1: xf, y1: YA - 14, x2: xf, y2: YB + 8, "class": "grade" }));
+      });
+    }
+
+    // traço: nível alto na tela = tensão alta = (lógico 1) xor (RS-232)
+    var d = "", s = sinal.segs;
+    for (var i = 0; i < s.length; i++) {
+      var y = (s[i].v ^ (est.inv ? 1 : 0)) ? YA : YB;
+      d += (i === 0 ? "M" : "L") + xDe(s[i].t0).toFixed(1) + " " + y + "L" + xDe(s[i].t1).toFixed(1) + " " + y;
+    }
+    svg.appendChild(el("path", { d: d, "class": "traco" }));
+
+    // anotações reveladas
+    if (revelado) {
+      sinal.quadros.forEach(function (q) {
+        q.bits.forEach(function (b) {
+          var xm = xDe(b.t0 + sinal.Tb / 2);
+          var rot = b.rot === "S" ? "S" : b.rot === "P" ? "P" : b.rot === "T" ? "T" : "D" + b.rot;
+          svg.appendChild(el("text", { x: xm, y: 50, "text-anchor": "middle", "class": "rot" }, rot));
+        });
+        var xm2 = (xDe(q.t0) + xDe(q.t1)) / 2;
+        var hex = "0x" + q.byte.toString(16).toUpperCase().padStart(2, "0");
+        svg.appendChild(el("text", { x: xm2, y: YB + 22, "text-anchor": "middle", "class": "rot" },
+          hex + "  '" + q.ch + "'"));
+      });
+    }
+
+    // amostras do receptor
+    if (rx) {
+      rx.quadros.forEach(function (q) {
+        q.amostras.forEach(function (a) {
+          var y = (nivelEm(a.t) ^ (est.inv ? 1 : 0)) ? YA : YB;
+          svg.appendChild(el("circle", { cx: xDe(a.t), cy: y, r: 3.6,
+            "class": "amostra" + (a.ruim ? " err" : "") }));
+        });
+      });
+    }
+
+    // régua de tempo
+    var yR = H - 30;
+    svg.appendChild(el("line", { x1: X0, y1: yR, x2: W, y2: yR, "class": "regua" }));
+    var passo = passoBonito(90 / pxPorUs());
+    for (var tt = 0; tt <= sinal.total; tt += passo) {
+      var x = xDe(tt);
+      svg.appendChild(el("line", { x1: x, y1: yR, x2: x, y2: yR + 5, "class": "regua" }));
+      svg.appendChild(el("text", { x: x, y: yR + 18, "text-anchor": "middle" }, fmtT(tt)));
+    }
+
+    // cursores
+    cursores.forEach(function (c, k) {
+      var x = xDe(c);
+      svg.appendChild(el("line", { x1: x, y1: 18, x2: x, y2: yR, "class": "cursor" }));
+      svg.appendChild(el("text", { x: x + 3, y: 28, "class": "cur" }, k === 0 ? "A" : "B"));
+    });
+
+    svg.addEventListener("click", clique);
+    var osc = $("osc");
+    var rol = osc.scrollLeft;
+    osc.innerHTML = "";
+    osc.appendChild(svg);
+    osc.scrollLeft = rol;
+  }
+
+  // ----------------------------------------------------------- cursores
+  function clique(ev) {
+    var r = ev.currentTarget.getBoundingClientRect();
+    var x = ev.clientX - r.left;
+    var tt = tDe(x);
+    if (tt < 0 || tt > sinal.total) return;
+    if ($("atrair").checked) {
+      var melhor = null, dmin = 8;
+      sinal.segs.forEach(function (s) {
+        var dx = Math.abs(xDe(s.t0) - x);
+        if (s.t0 > 0 && dx < dmin) { dmin = dx; melhor = s.t0; }
+      });
+      if (melhor !== null) tt = melhor;
+    }
+    if (cursores.length >= 2) cursores = [];
+    cursores.push(tt);
+    leitura();
+    desenhar();
+  }
+
+  function leitura() {
+    var L = $("leitura");
+    if (cursores.length === 0) { L.textContent = "Clique no traço para pôr o cursor A; clique de novo para o B."; return; }
+    if (cursores.length === 1) { L.textContent = "A = " + fmtT(cursores[0]) + " — clique para o cursor B."; return; }
+    var dt = Math.abs(cursores[1] - cursores[0]);
+    var txt = "A = " + fmtT(cursores[0]) + "   B = " + fmtT(cursores[1]) + "   Δt = " + fmtT(dt);
+    if (dt > 0) txt += "   1/Δt = " + Math.round(1e6 / dt).toLocaleString("pt-BR") + " Hz";
+    L.textContent = txt;
+  }
+
+  // ----------------------------------------------------------- receptor
+  function receber() {
+    var Tr = 1e6 / Number($("rxTaxa").value);
+    var par = $("rxPar").value;
+    var inv = (est.inv ? 1 : 0) ^ Number($("rxInv").value);
+    var ve = function (tt) { return nivelEm(tt) ^ inv; };   // o que o receptor enxerga
+    var out = [], t = 0, s = sinal.segs;
+
+    function proximaDescida(desde) {
+      // primeira transição 1 -> 0 (vista pelo receptor) em t >= desde
+      if (ve(desde) === 0) {
+        // linha baixa: espera subir antes
+        for (var i = 0; i < s.length; i++) if (s[i].t0 > desde && ve(s[i].t0 + 1e-6) === 1) { desde = s[i].t0; break; }
+        if (ve(desde + 1e-6) === 0) return null;
+      }
+      for (var j = 0; j < s.length; j++) {
+        if (s[j].t0 > desde && ve(s[j].t0 + 1e-6) === 0 && ve(s[j].t0 - 1e-6) === 1) return s[j].t0;
+      }
+      return null;
+    }
+
+    while (out.length < 40) {
+      var tf = proximaDescida(t);
+      if (tf === null) break;
+      var q = { t: tf, amostras: [], byte: 0, fe: false, pe: false, falso: false };
+      var a0 = tf + Tr / 2;
+      if (ve(a0) === 1) {
+        q.falso = true; q.amostras.push({ t: a0, ruim: true });
+        out.push(q); t = a0; continue;
+      }
+      q.amostras.push({ t: a0 });
+      var fim = tf + (9.5 + (par !== "N" ? 1 : 0)) * Tr;
+      if (fim > sinal.total) break;
+      for (var i = 0; i < 8; i++) {
+        var ta = tf + (1.5 + i) * Tr;
+        q.byte |= ve(ta) << i;
+        q.amostras.push({ t: ta });
+      }
+      var tp = tf + 9.5 * Tr;
+      if (par !== "N") {
+        var pb = ve(tp);
+        q.pe = pb !== paridade(q.byte, par);
+        q.amostras.push({ t: tp, ruim: q.pe });
+        tp += Tr;
+      }
+      q.fe = ve(tp) === 0;
+      q.amostras.push({ t: tp, ruim: q.fe });
+      out.push(q);
+      t = tp;
+    }
+    rx = { quadros: out };
+    mostrarRx();
+    desenhar();
+  }
+
+  function mostrarRx() {
+    var sai = $("rxSaida");
+    if (!rx) { sai.innerHTML = ""; return; }
+    if (rx.quadros.length === 0) { sai.innerHTML = "<p>O receptor não encontrou nenhum bit de início.</p>"; return; }
+    var h = "<table class='rx'><thead><tr><th>Quadro</th><th>Bits (D7…D0)</th><th>Hex</th><th>Caractere</th><th>Situação</th></tr></thead><tbody>";
+    var texto = "";
+    rx.quadros.forEach(function (q, k) {
+      if (q.falso) {
+        h += "<tr><td>" + (k + 1) + "</td><td>—</td><td>—</td><td>—</td><td class='err'>início falso (linha já tinha voltado a 1)</td></tr>";
+        return;
+      }
+      var bits = q.byte.toString(2).padStart(8, "0");
+      var hex = "0x" + q.byte.toString(16).toUpperCase().padStart(2, "0");
+      var ch = (q.byte >= 0x20 && q.byte < 0x7F) ? q.byte === 0x20 ? "espaço" : String.fromCharCode(q.byte) : "(não imprimível)";
+      var sit = [];
+      if (q.fe) sit.push("erro de quadro: parada lida em 0");
+      if (q.pe) sit.push("erro de paridade");
+      h += "<tr><td>" + (k + 1) + "</td><td class='bits'>" + bits + "</td><td>" + hex + "</td><td>" + esc(ch) + "</td><td" +
+        (sit.length ? " class='err'>" + sit.join("; ") : ">ok") + "</td></tr>";
+      texto += (q.byte >= 0x20 && q.byte < 0x7F) ? String.fromCharCode(q.byte) : "·";
+    });
+    h += "</tbody></table><p>No terminal apareceria: <code>" + esc(texto) + "</code></p>";
+    sai.innerHTML = h;
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // ----------------------------------------------------------- textos
+  function fmtFormato(e) { return "8" + e.par + e.stop; }
+
+  function atualizarInfo() {
+    var i = $("info"), e = est;
+    if (e.nivel <= 2) {
+      i.innerHTML = "Taxa: <code>9600 bit/s</code>, formato <code>8N1</code> (8 bits de dado, sem paridade, 1 bit de parada). " +
+        e.msg.length + " caracteres.";
+    } else if (e.nivel === 3) {
+      i.innerHTML = "Taxa: <strong>desconhecida</strong>, uma das padrão (1200 a 115200). Formato <code>8N1</code>. " +
+        "Meça o pulso mais curto com os cursores.";
+    } else {
+      i.innerHTML = "Taxa <strong>desconhecida</strong>; 8 bits de dado; paridade (nenhuma, par ou ímpar) e " +
+        "bits de parada (1 ou 2) <strong>desconhecidos</strong>. Conte quantos bits cabem entre o início e a próxima descida.";
+    }
+    if (e.inv) i.innerHTML += " Níveis RS-232: o 1 lógico é a tensão <strong>negativa</strong>.";
+  }
+
+  function conferir() {
+    var p = $("palpite").value, m = est.msg, V = $("veredito");
+    if (p === m) {
+      V.innerHTML = "<strong>Certo.</strong> A mensagem era <code>" + esc(m) + "</code>, a " +
+        String(est.taxa) + " bit/s, formato " + fmtFormato(est) + ".";
+      return;
+    }
+    var h = "", ok = 0;
+    for (var i = 0; i < Math.max(p.length, m.length); i++) {
+      var c = p[i] === undefined ? "_" : p[i];
+      if (p[i] === m[i]) { ok++; h += esc(c); } else h += "<span class='errado'>" + esc(c) + "</span>";
+    }
+    V.innerHTML = "Ainda não: " + ok + " de " + m.length + " caracteres na posição certa. <code>" + h + "</code>" +
+      (p.length !== m.length ? " (a mensagem tem " + m.length + " caracteres)" : "") +
+      (p.trim().toLowerCase() === m.toLowerCase() && p !== m ? " — confira maiúsculas e minúsculas: o bit 5 decide." : "");
+  }
+
+  // ----------------------------------------------------------- link
+  function b64(s) { return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+  function deb64(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; return atob(s); }
+
+  function linkAtual() {
+    var q = "m=" + b64(est.msg) + "&n=" + est.nivel + "&b=" + est.taxa + "&p=" + est.par +
+      "&s=" + est.stop + "&i=" + (est.inv ? 1 : 0) + "&g=" + est.semente;
+    return location.href.split("#")[0] + "#" + q;
+  }
+
+  function lerLink() {
+    if (location.hash.length < 3) return null;
+    try {
+      var p = {};
+      location.hash.slice(1).split("&").forEach(function (kv) { var a = kv.split("="); p[a[0]] = a[1]; });
+      var msg = deb64(p.m);
+      if (!/^[\x20-\x7E]{1,12}$/.test(msg)) return null;
+      var e = {
+        msg: msg, nivel: Math.min(4, Math.max(1, Number(p.n) || 1)),
+        taxa: TAXAS.indexOf(Number(p.b)) >= 0 ? Number(p.b) : 9600,
+        par: /^[NEO]$/.test(p.p) ? p.p : "N", stop: p.s === "2" ? 2 : 1,
+        inv: p.i === "1", semente: Number(p.g) || 1
+      };
+      return e;
+    } catch (err) { return null; }
+  }
+
+  // ----------------------------------------------------------- ciclo
+  function iniciar(e) {
+    est = e;
+    $("nivel").value = String(e.nivel);
+    $("rs232").checked = e.inv;
+    sinal = construir(e);
+    zoom = 1; cursores = []; revelado = false; rx = null;
+    $("palpite").value = ""; $("veredito").innerHTML = ""; $("revelar").textContent = "Mostrar quadros";
+    $("osc").scrollLeft = 0;
+    atualizarInfo(); leitura(); mostrarRx(); desenhar();
+  }
+
+  // tabela ASCII
+  (function () {
+    var h = "<thead><tr><th></th>";
+    for (var c = 2; c <= 7; c++) h += "<th>" + c + "</th>";
+    h += "</tr></thead><tbody>";
+    for (var r = 0; r < 16; r++) {
+      h += "<tr><th>" + r.toString(16).toUpperCase() + "</th>";
+      for (var c2 = 2; c2 <= 7; c2++) {
+        var code = c2 * 16 + r;
+        var ch = code === 0x20 ? "Ⓢ" : code === 0x7F ? "DEL" : String.fromCharCode(code);
+        h += "<td>" + esc(ch) + "</td>";
+      }
+      h += "</tr>";
+    }
+    $("ascii").innerHTML = h + "</tbody>";
+  })();
+
+  TAXAS.forEach(function (t) {
+    var o = document.createElement("option");
+    o.value = t; o.textContent = t + " bit/s";
+    if (t === 9600) o.selected = true;
+    $("rxTaxa").appendChild(o);
+  });
+
+  $("nova").addEventListener("click", function () {
+    history.replaceState(null, "", location.pathname + location.search);
+    iniciar(novoEstado(Number($("nivel").value)));
+  });
+  $("nivel").addEventListener("change", function () { $("nova").click(); });
+  $("rs232").addEventListener("change", function () {
+    est.inv = $("rs232").checked; atualizarInfo(); if (rx) receber(); else desenhar();
+  });
+  $("mais").addEventListener("click", function () { zoom = Math.min(8, zoom * 1.5); desenhar(); });
+  $("menos").addEventListener("click", function () { zoom = Math.max(0.12, zoom / 1.5); desenhar(); });
+  $("limpar").addEventListener("click", function () { cursores = []; leitura(); desenhar(); });
+  $("conferir").addEventListener("click", conferir);
+  $("palpite").addEventListener("keydown", function (ev) { if (ev.key === "Enter") conferir(); });
+  $("revelar").addEventListener("click", function () {
+    revelado = !revelado;
+    $("revelar").textContent = revelado ? "Esconder quadros" : "Mostrar quadros";
+    if (revelado && est.nivel >= 3) {
+      $("veredito").innerHTML = "Taxa: " + String(est.taxa) + " bit/s, formato " + fmtFormato(est) +
+        " (S = início, D0–D7 = dado, P = paridade, T = parada).";
+    }
+    desenhar();
+  });
+  $("receber").addEventListener("click", receber);
+  $("semRx").addEventListener("click", function () { rx = null; mostrarRx(); desenhar(); });
+  $("gerar").addEventListener("click", function () {
+    var m = $("propria").value;
+    if (!/^[\x20-\x7E]{1,12}$/.test(m)) { $("linkOk").textContent = "Só ASCII sem acento, 1 a 12 caracteres."; return; }
+    $("linkOk").textContent = "";
+    iniciar(novoEstado(Number($("nivel").value), m));
+  });
+  $("link").addEventListener("click", function () {
+    var u = linkAtual();
+    history.replaceState(null, "", u);
+    var ok = function () { $("linkOk").textContent = "Link copiado."; };
+    if (navigator.clipboard) navigator.clipboard.writeText(u).then(ok, function () { $("linkOk").textContent = u; });
+    else $("linkOk").textContent = u;
+  });
+
+  iniciar(lerLink() || novoEstado(1));
+})();
+</script>
+</body>
+</html>

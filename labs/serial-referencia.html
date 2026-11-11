@@ -18,6 +18,7 @@
   .formula { font-family: var(--mono); font-size: 0.92rem; background: var(--papel-2); padding: 0.4rem 0.6rem; }
   pre { background: var(--papel-2); padding: 0.8rem 1rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
   .linha-destaque { background-color: var(--papel-2); }
+  .ruim { color: var(--vermelho); }
 
   /* Tabelas e figuras largas ocupam também a coluna de notas. */
   .larga table { min-width: 36rem; }
@@ -33,20 +34,19 @@
   .ref table.registrador td { border-bottom: 1px solid var(--tinta); }
   .registrador .nada { color: var(--cinza-c); }
   .registrador small { display: block; font-size: 0.75rem; color: var(--cinza); }
-  .reinicio { font-size: 0.85rem; color: var(--cinza); margin-top: -0.4rem; }
+  .registrador .rot { text-align: left; font-size: 0.78rem; color: var(--cinza); }
 
-  /* Diagrama de blocos do Timer0 */
+  /* Diagramas */
   .diagrama { overflow-x: auto; margin: 1rem 0 1.2rem; }
   .diagrama svg { display: block; width: 100%; min-width: 40rem; height: auto; }
   .diagrama .tr { stroke: var(--tinta); stroke-width: 1.2; fill: none; }
   .diagrama .cx { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); }
-  .diagrama .cx2 { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel); stroke-dasharray: 4 3; }
+  .diagrama .cx2 { stroke: var(--tinta); stroke-width: 1.2; fill: var(--papel-2); }
   .diagrama .pont { stroke: var(--cinza-c); stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
   .diagrama .seta { fill: var(--tinta); }
   .diagrama text { fill: var(--tinta); font-family: var(--serifa); font-size: 13px; }
   .diagrama text.m { font-family: var(--mono); font-size: 11.5px; }
   .diagrama text.c { fill: var(--cinza-c); font-size: 11.5px; }
-  .diagrama text.v { fill: var(--vermelho); font-family: var(--mono); font-size: 11.5px; font-weight: 700; }
   .legenda { font-size: 0.85rem; font-style: italic; color: var(--cinza); margin-top: 0.3rem; }
 
   @media print {
@@ -65,125 +65,417 @@
   <header>
     <p class="corrente naoimprime"><a href="./index.html">← Laboratório</a><span>Folha de referência</span></p>
     <h1>Comunicação serial — EUSART (PIC18F4550) — Folha de Referência</h1>
-    <p class="subtitulo">Taxa, quadro, divisor e os dois erros que param a recepção</p>
+    <p class="subtitulo">O gerador de taxa marca os bits, o periférico monta o quadro, a interrupção entrega os bytes</p>
     <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Consulta permitida</span></p>
   </header>
   <main>
 
     <section>
-      <h2>A ideia: um fio, um combinado de tempo</h2>
-      <p>Na comunicação serial assíncrona não há fio de relógio. Transmissor e receptor combinam a <strong>taxa</strong> (bits por segundo) e o <strong>formato</strong>, e o receptor se sincroniza a cada quadro pela borda de descida do bit de partida.</p>
-      <p>Formato do curso, <strong>8N1</strong>: 8 bits de dado, sem paridade, 1 bit de parada. O quadro tem 10 bits:</p>
+      <h2>A ideia: quem faz o quê</h2>
+      <p>A EUSART é um periférico que produz o quadro serial sozinho. O programa entrega um byte em <code>TXREG</code> e segue em frente; o hardware o põe no pino RC6, um bit de cada vez, no ritmo do <strong>gerador de taxa</strong>, um temporizador interno com recarga automática. Na recepção, o caminho é o inverso: o hardware monta o byte que chega pelo RC7 e o deixa em <code>RCREG</code>.</p>
+
+      <div class="diagrama larga" role="img" aria-label="Diagrama de blocos da transmissão. O programa principal escreve bytes numa fila circular em RAM pelo índice entra. A rotina de interrupção lê da fila pelo índice sai e escreve em TXREG. O hardware passa o byte de TXREG para o registrador de deslocamento, que o põe no pino RC6 bit a bit, no ritmo do gerador de taxa SPBRGH:SPBRG. Quando TXREG fica livre, TXIF vai a 1 e pede a interrupção.">
+        <svg viewBox="0 0 900 230" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ponta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="seta"/>
+            </marker>
+          </defs>
+          <!-- faixa do software / hardware -->
+          <text x="20" y="20" class="c">software (o seu código)</text>
+          <text x="500" y="20" class="c">hardware (a EUSART, sozinha)</text>
+          <line x1="470" y1="8" x2="470" y2="222" class="pont"/>
+
+          <rect x="20" y="70" width="90" height="50" class="cx"/>
+          <text x="65" y="92" text-anchor="middle">main</text>
+          <text x="65" y="109" text-anchor="middle" class="m">putch()</text>
+
+          <rect x="150" y="62" width="150" height="66" class="cx2"/>
+          <text x="225" y="84" text-anchor="middle">fila em RAM</text>
+          <text x="225" y="102" text-anchor="middle" class="m">fila[64]</text>
+          <text x="225" y="119" text-anchor="middle" class="c">entra → … → sai</text>
+
+          <rect x="340" y="70" width="100" height="50" class="cx"/>
+          <text x="390" y="92" text-anchor="middle">isr()</text>
+          <text x="390" y="109" text-anchor="middle" class="m">fila[sai]</text>
+
+          <rect x="500" y="70" width="90" height="50" class="cx"/>
+          <text x="545" y="100" text-anchor="middle" class="m">TXREG</text>
+
+          <rect x="630" y="70" width="140" height="50" class="cx"/>
+          <text x="700" y="92" text-anchor="middle">deslocamento</text>
+          <text x="700" y="109" text-anchor="middle" class="c">10 bits por byte</text>
+
+          <text x="850" y="100" text-anchor="middle" class="m">RC6</text>
+
+          <rect x="630" y="165" width="140" height="44" class="cx"/>
+          <text x="700" y="184" text-anchor="middle">gerador de taxa</text>
+          <text x="700" y="200" text-anchor="middle" class="m">SPBRGH:SPBRG</text>
+
+          <line x1="110" y1="95" x2="148" y2="95" class="tr" marker-end="url(#ponta)"/>
+          <line x1="300" y1="95" x2="338" y2="95" class="tr" marker-end="url(#ponta)"/>
+          <line x1="440" y1="95" x2="498" y2="95" class="tr" marker-end="url(#ponta)"/>
+          <line x1="590" y1="95" x2="628" y2="95" class="tr" marker-end="url(#ponta)"/>
+          <line x1="770" y1="95" x2="828" y2="95" class="tr" marker-end="url(#ponta)"/>
+          <line x1="700" y1="165" x2="700" y2="122" class="tr" marker-end="url(#ponta)"/>
+          <text x="708" y="150" class="c">um tique por bit</text>
+
+          <!-- TXIF de volta -->
+          <path d="M545,70 V42 H390 V68" class="tr" marker-end="url(#ponta)"/>
+          <text x="468" y="36" text-anchor="middle" class="m">TXIF = 1: "TXREG livre"</text>
+        </svg>
+      </div>
+      <p class="legenda">O periférico não conhece a fila: só esvazia <code>TXREG</code> e avisa com <code>TXIF</code>. Quem tira o próximo byte da fila e o põe em <code>TXREG</code> é a rotina de interrupção.</p>
+
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Ritmo</th><th>Quem marca</th><th>A 9600 bit/s</th><th>Custa processador?</th></tr></thead>
+        <tbody>
+          <tr><td>Um <strong>bit</strong></td><td>gerador de taxa (hardware)</td><td class="num">104,2 µs</td><td>não</td></tr>
+          <tr><td>Um <strong>byte</strong> (quadro de 10 bits)</td><td><code>TXIF</code> → uma chamada da ISR</td><td class="num">1,042 ms</td><td>algumas dezenas de ciclos</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>O quadro e os tempos</h2>
+      <p>Formato do curso, <strong>8N1</strong>: 8 bits de dado, sem paridade, 1 bit de parada. Em repouso a linha fica em 1; o bit de partida (0) cria a borda de descida que o receptor usa como referência, e a partir dela ele conta o tempo com o próprio relógio, amostrando cada bit no meio.</p>
       <div class="tabela-rolavel larga">
       <table>
         <thead><tr><th>repouso</th><th>partida</th><th>b0</th><th>b1</th><th>b2</th><th>b3</th><th>b4</th><th>b5</th><th>b6</th><th>b7</th><th>parada</th><th>repouso</th></tr></thead>
         <tbody><tr><td class="num">1</td><td class="num"><strong>0</strong></td><td class="num" colspan="8">dado, <strong>bit menos significativo primeiro</strong></td><td class="num"><strong>1</strong></td><td class="num">1</td></tr></tbody>
       </table>
       </div>
-      <p class="formula">largura de um bit = 1 / taxa<br>tempo de um byte = 10 / taxa &nbsp;&nbsp;&nbsp; (9600 bit/s → 104,2 µs por bit, 1,042 ms por byte)<br>vazão útil = taxa / 10 bytes por segundo</p>
-      <p class="passagem"><span class="rotulo">Regra de ouro</span>
-        <strong>Os dois lados precisam do mesmo relógio, dentro de ~2 %.</strong> O receptor amostra cada bit no meio; o erro acumula ao longo do quadro, e no décimo bit a amostra já caiu no bit vizinho. Taxa diferente não dá "nada": dá caracteres errados.</p>
-      <p class="margem">Na linha TTL do pino, repouso é nível alto (5 V). No conector DB9, depois do conversor RS-232 do kit, os níveis são invertidos e maiores (cerca de ±10 V). Meça no pino, não no conector.</p>
+      <h3>Conta resolvida: 9600 bit/s</h3>
+      <pre class="larga"><code>bit      = 1 / 9600            = 104,2 µs
+byte     = 10 bits · 104,2 µs  = 1,042 ms    (8 de dado + partida + parada)
+vazão    = 9600 / 10           = 960 bytes/s
+eficiência = 8 / 10            = 80 %       (os 2 bits a mais pagam a falta de relógio)
+
+linha de telemetria "125300,398,400,1,17\r\n" = 21 bytes
+         = 21 · 1,042 ms       ≈ 22 ms no fio
+         uma por segundo       ≈ 2,2 % do enlace</code></pre>
+      <p>Na linha TTL do pino, repouso é 5 V. Depois do conversor RS-232 do kit os níveis são invertidos e maiores (cerca de ±10 V): o 1 lógico é a tensão negativa. Meça no pino, não no conector.</p>
     </section>
 
     <section>
-      <h2>Gerador de taxa</h2>
-      <p>O divisor n é um registrador de 8 bits (<code>SPBRG</code>) ou de 16 bits (<code>SPBRGH:SPBRG</code>, com <code>BRG16 = 1</code>).</p>
+      <h2>O gerador de taxa é um temporizador</h2>
+      <p>Um contador conta pulsos do oscilador de <code>n</code> até 0, recarrega <code>n</code> sozinho e recomeça. Cada volta completa é um passo do quadro. O programa não escreve a taxa: escreve <code>n</code>, e a taxa resulta dele. É o mesmo papel do <code>PR2</code> no PWM, também com recarga automática, e por isso todos os bits saem com exatamente a mesma largura.</p>
       <div class="tabela-rolavel larga">
       <table>
-        <thead><tr><th><code>BRG16</code></th><th><code>BRGH</code></th><th>Taxa</th><th>Divisor</th><th>Faixa de n</th></tr></thead>
+        <thead><tr><th><code>BRG16</code></th><th><code>BRGH</code></th><th>Taxa</th><th>Divisor n</th><th>Faixa de n</th></tr></thead>
         <tbody>
-          <tr><td class="num">0</td><td class="num">0</td><td class="num">F<sub>OSC</sub> / (64 · (n + 1))</td><td class="num">n = F<sub>OSC</sub> / (64 · taxa) − 1</td><td class="num">0 … 255</td></tr>
-          <tr><td class="num">0</td><td class="num">1</td><td class="num">F<sub>OSC</sub> / (16 · (n + 1))</td><td class="num">n = F<sub>OSC</sub> / (16 · taxa) − 1</td><td class="num">0 … 255</td></tr>
-          <tr><td class="num">1</td><td class="num">0</td><td class="num">F<sub>OSC</sub> / (16 · (n + 1))</td><td class="num">n = F<sub>OSC</sub> / (16 · taxa) − 1</td><td class="num">0 … 65 535</td></tr>
-          <tr class="linha-destaque"><td class="num">1</td><td class="num">1</td><td class="num">F<sub>OSC</sub> / (4 · (n + 1))</td><td class="num">n = F<sub>OSC</sub> / (4 · taxa) − 1</td><td class="num">0 … 65 535</td></tr>
+          <tr><td class="num">0</td><td class="num">0</td><td class="num">F<sub>OSC</sub> / (64 · (n + 1))</td><td class="num">n = F<sub>OSC</sub> / (64 · taxa) − 1</td><td class="num">0 … 255 (<code>SPBRG</code>)</td></tr>
+          <tr><td class="num">0</td><td class="num">1</td><td class="num">F<sub>OSC</sub> / (16 · (n + 1))</td><td class="num">n = F<sub>OSC</sub> / (16 · taxa) − 1</td><td class="num">0 … 255 (<code>SPBRG</code>)</td></tr>
+          <tr><td class="num">1</td><td class="num">0</td><td class="num">F<sub>OSC</sub> / (16 · (n + 1))</td><td class="num">n = F<sub>OSC</sub> / (16 · taxa) − 1</td><td class="num">0 … 65 535 (<code>SPBRGH:SPBRG</code>)</td></tr>
+          <tr class="linha-destaque"><td class="num">1</td><td class="num">1</td><td class="num">F<sub>OSC</sub> / (4 · (n + 1))</td><td class="num">n = F<sub>OSC</sub> / (4 · taxa) − 1</td><td class="num">0 … 65 535 (<code>SPBRGH:SPBRG</code>)</td></tr>
         </tbody>
       </table>
       </div>
-      <p>Procedimento: calcule n, <strong>arredonde para o inteiro mais próximo</strong>, recalcule a taxa real com o n inteiro e o erro relativo. Exemplo, 19 200 bit/s com <code>BRG16 = 1</code> e <code>BRGH = 1</code>:</p>
-      <p class="formula">n = 16 000 000 / (4 · 19 200) − 1 = 207,33 → 207<br>taxa real = 16 000 000 / (4 · 208) = 19 230,8 bit/s &nbsp;&nbsp;&nbsp; erro = +0,16 %</p>
-      <p class="margem">O cálculo usa F<sub>OSC</sub> = 16 MHz. Usar 48 MHz (o relógio do USB) dá um n três vezes maior, e a taxa real sai um terço da pretendida.</p>
+      <p class="passagem"><span class="rotulo">Atenção</span>
+        <strong>A fórmula usa F<sub>OSC</sub> (16 MHz), não F<sub>CY</sub> (4 MHz).</strong> O "+1" vem de o contador ir de n até 0: são n + 1 passos. E <code>n</code> só vale para o relógio com que foi calculado.</p>
+
+      <h3>Conta resolvida: 9600 bit/s a 16 MHz (<code>BRG16 = 1</code>, <code>BRGH = 1</code>)</h3>
+      <pre class="larga"><code>1. isolar n:      n = 16 000 000 / (4 · 9600) − 1 = 415,67
+2. arredondar:    n = 416                    (o contador só aceita inteiros)
+3. caber:         416 &gt; 255  →  precisa do contador de 16 bits (BRG16 = 1)
+4. dividir:       416 = 0x01A0  →  SPBRGH = 0x01 (alto), SPBRG = 0xA0 (baixo)
+5. taxa real:     16 000 000 / (4 · 417) = 9592,3 bit/s
+6. erro:          (9592,3 − 9600) / 9600 = −0,08 %</code></pre>
+
+      <h3>Qual erro é aceitável</h3>
+      <p>O receptor amostra o bit de parada 9,5 bits depois da borda de partida. Se até lá o desvio acumulado passar de meio bit, a amostra cai no bit vizinho:</p>
+      <p class="formula">limite do enlace = 0,5 / 9,5 ≈ 5,3 % &nbsp;&nbsp;&nbsp; (soma dos erros dos dois lados)<br>
+      regra prática = cada lado abaixo de 2 %</p>
+
+      <h3>Tabela pronta a 16 MHz</h3>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th class="num">Taxa</th><th class="num">16 bits, <code>BRGH = 1</code> (÷4)</th><th class="num">Erro</th><th class="num">8 bits, <code>BRGH = 1</code> (÷16)</th><th class="num">Erro</th><th>Veredito</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1200</td><td class="num">3332 (<code>0x0D04</code>)</td><td class="num">+0,01 %</td><td class="num">— (832 &gt; 255)</td><td class="num">—</td><td>só com 16 bits</td></tr>
+          <tr><td class="num">4800</td><td class="num">832 (<code>0x0340</code>)</td><td class="num">+0,04 %</td><td class="num">207 (<code>0xCF</code>)</td><td class="num">+0,16 %</td><td>ótimo</td></tr>
+          <tr class="linha-destaque"><td class="num">9600</td><td class="num">416 (<code>0x01A0</code>)</td><td class="num">−0,08 %</td><td class="num">103 (<code>0x67</code>)</td><td class="num">+0,16 %</td><td>ótimo — o do curso</td></tr>
+          <tr><td class="num">19 200</td><td class="num">207 (<code>0x00CF</code>)</td><td class="num">+0,16 %</td><td class="num">51 (<code>0x33</code>)</td><td class="num">+0,16 %</td><td>ótimo</td></tr>
+          <tr><td class="num">38 400</td><td class="num">103 (<code>0x0067</code>)</td><td class="num">+0,16 %</td><td class="num">25 (<code>0x19</code>)</td><td class="num">+0,16 %</td><td>ótimo</td></tr>
+          <tr><td class="num">57 600</td><td class="num">68 (<code>0x0044</code>)</td><td class="num">+0,64 %</td><td class="num">16 (<code>0x10</code>)</td><td class="num ruim">+2,12 %</td><td>só com ÷4</td></tr>
+          <tr><td class="num">115 200</td><td class="num">34 (<code>0x0022</code>)</td><td class="num">−0,79 %</td><td class="num">8 (<code>0x08</code>)</td><td class="num ruim">−3,55 %</td><td>só com ÷4, pouca margem</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Por que o modo ÷4 erra menos nas taxas altas: com divisor menor, n é maior, e o arredondamento de meia unidade pesa proporcionalmente menos. A 115 200 com ÷16, n = 7,68 vira 8: um erro de 4 % só no arredondamento.</p>
+
+      <h3>Relógio errado: o mesmo n, outra taxa</h3>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>F<sub>OSC</sub> real</th><th class="num">Taxa com n = 416</th><th class="num">Erro</th><th>No terminal a 9600</th></tr></thead>
+        <tbody>
+          <tr class="linha-destaque"><td>16 MHz (o do cálculo)</td><td class="num">9592 bit/s</td><td class="num">−0,08 %</td><td>texto certo</td></tr>
+          <tr><td>8 MHz (PICSimLab mal configurado)</td><td class="num">4796 bit/s</td><td class="num ruim">−50 %</td><td>lixo repetido: <code>`.........f........`.........x</code></td></tr>
+          <tr><td>48 MHz (confundir com o relógio do USB)</td><td class="num">28 777 bit/s</td><td class="num ruim">+200 %</td><td>lixo, e menos caracteres que o enviado</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>A 8 MHz, o certo seria n = 8 000 000 / (4 · 9600) − 1 = 207,3 → 207 (<code>0x00CF</code>), +0,16 %.</p>
     </section>
 
     <section>
-      <h2>Registradores da EUSART</h2>
+      <h2>Registradores</h2>
+      <p>Três de configuração (<code>TXSTA</code>, <code>RCSTA</code>, <code>BAUDCON</code>), dois para o divisor (<code>SPBRGH</code>, <code>SPBRG</code>) e dois de dado (<code>TXREG</code>, <code>RCREG</code>). A linha de exemplo é a configuração do curso: 9600 8N1 a 16 MHz.</p>
+
       <h3><code>TXSTA</code> — transmissão</h3>
+      <div class="tabela-rolavel">
       <table class="registrador">
-<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
-<tbody><tr><td><code>CSRC</code><small>só síncrono</small></td><td><code>TX9</code><small>9 bits</small></td><td><code>TXEN</code><small>liga TX</small></td><td><code>SYNC</code><small>0 = assíncrono</small></td><td><code>SENDB</code><small>break</small></td><td><code>BRGH</code><small>alta velocidade</small></td><td><code>TRMT</code><small>1 = vazio</small></td><td><code>TX9D</code></td></tr></tbody>
+<thead><tr><th class="rot"></th><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody>
+  <tr><td class="rot">bit</td><td><code>CSRC</code><small>só síncrono</small></td><td><code>TX9</code><small>9 bits</small></td><td><code>TXEN</code><small>liga TX</small></td><td><code>SYNC</code><small>0 = assíncrono</small></td><td><code>SENDB</code><small>break</small></td><td><code>BRGH</code><small>alta velocidade</small></td><td><code>TRMT</code><small>1 = vazio (só leitura)</small></td><td><code>TX9D</code><small>9.º bit</small></td></tr>
+  <tr><td class="rot">curso → <code>0x24</code></td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="nada">—</td><td class="num">0</td></tr>
+</tbody>
 </table>
-      <h3><code>RCSTA</code> — recepção</h3>
-      <table class="registrador">
-<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
-<tbody><tr><td><code>SPEN</code><small>liga a porta</small></td><td><code>RX9</code><small>9 bits</small></td><td><code>SREN</code><small>só síncrono</small></td><td><code>CREN</code><small>liga RX</small></td><td><code>ADDEN</code></td><td><code>FERR</code><small>erro de quadro</small></td><td><code>OERR</code><small>estouro</small></td><td><code>RX9D</code></td></tr></tbody>
-</table>
-      <h3><code>BAUDCON</code> — controle de taxa</h3>
-      <table class="registrador">
-<thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
-<tbody><tr><td><code>ABDOVF</code></td><td><code>RCIDL</code></td><td><code>RXDTP</code><small>inverte RX</small></td><td><code>TXCKP</code><small>inverte TX</small></td><td><code>BRG16</code><small>divisor de 16 bits</small></td><td class="nada">—</td><td><code>WUE</code></td><td><code>ABDEN</code></td></tr></tbody>
-</table>
-      <div class="tabela-rolavel larga">
-      <table>
-        <thead><tr><th>Registrador / bit</th><th>Papel</th></tr></thead>
-        <tbody>
-          <tr><td><code>TXREG</code></td><td>escrever aqui envia um byte; liga o transmissor e apaga <code>TXIF</code></td></tr>
-          <tr><td><code>PIR1.TXIF</code></td><td>1 = <code>TXREG</code> livre para o próximo byte (o anterior pode ainda estar saindo; para isso, <code>TRMT</code>)</td></tr>
-          <tr><td><code>RCREG</code></td><td>ler aqui retira um byte da fila de recepção; apaga <code>RCIF</code> quando a fila esvazia</td></tr>
-          <tr><td><code>PIR1.RCIF</code></td><td>1 = há byte esperando em <code>RCREG</code></td></tr>
-        </tbody>
-      </table>
       </div>
+
+      <h3><code>RCSTA</code> — recepção</h3>
+      <div class="tabela-rolavel">
+      <table class="registrador">
+<thead><tr><th class="rot"></th><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody>
+  <tr><td class="rot">bit</td><td><code>SPEN</code><small>liga a porta</small></td><td><code>RX9</code><small>9 bits</small></td><td><code>SREN</code><small>só síncrono</small></td><td><code>CREN</code><small>liga RX</small></td><td><code>ADDEN</code><small>endereço</small></td><td><code>FERR</code><small>erro de quadro</small></td><td><code>OERR</code><small>estouro</small></td><td><code>RX9D</code><small>9.º bit</small></td></tr>
+  <tr><td class="rot">curso → <code>0x90</code></td><td class="num">1</td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="nada">—</td><td class="nada">—</td><td class="nada">—</td></tr>
+</tbody>
+</table>
+      </div>
+
+      <h3><code>BAUDCON</code> — controle de taxa</h3>
+      <div class="tabela-rolavel">
+      <table class="registrador">
+<thead><tr><th class="rot"></th><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+<tbody>
+  <tr><td class="rot">bit</td><td><code>ABDOVF</code></td><td><code>RCIDL</code><small>RX ocioso</small></td><td><code>RXDTP</code><small>inverte RX</small></td><td><code>TXCKP</code><small>inverte TX</small></td><td><code>BRG16</code><small>divisor de 16 bits</small></td><td class="nada">—</td><td><code>WUE</code></td><td><code>ABDEN</code><small>taxa automática</small></td></tr>
+  <tr><td class="rot">curso → <code>0x08</code></td><td class="num">0</td><td class="nada">—</td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="nada">—</td><td class="num">0</td><td class="num">0</td></tr>
+</tbody>
+</table>
+      </div>
+      <ul>
+        <li><code>SPBRGH = 0x01</code>, <code>SPBRG = 0xA0</code>: os dois bytes de n = 416.</li>
+        <li><code>SPEN = 1</code> entrega RC6 e RC7 ao periférico: a partir daí, escrever em <code>LATC6</code> não muda o pino. É a primeira exceção do curso à regra "escrever no <code>LAT</code> muda o pino".</li>
+        <li><code>TRMT</code> e <code>RCIDL</code> são só leitura; <code>FERR</code> e <code>OERR</code> são indicadores de erro (ver adiante).</li>
+      </ul>
     </section>
 
     <section>
-      <h2>Erros de recepção</h2>
-      <p>A recepção tem uma fila de <strong>2 bytes</strong>, mais o registrador de deslocamento que monta o byte que está chegando.</p>
+      <h2>As interrupções da EUSART</h2>
+      <p>São duas fontes, uma por sentido. As duas são <strong>periféricas</strong>: além do bit da fonte, precisam de <code>PEIE</code> e <code>GIE</code>.</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Fonte</th><th>Indicador (<code>PIR1</code>)</th><th>Habilitação (<code>PIE1</code>)</th><th>Prioridade (<code>IPR1</code>)</th><th>Vai a 1 quando</th><th>Volta a 0 quando</th></tr></thead>
+        <tbody>
+          <tr><td>Transmissão</td><td class="num"><code>TXIF</code> (b4)</td><td class="num"><code>TXIE</code> (b4)</td><td class="num"><code>TXIP</code> (b4)</td><td><code>TXREG</code> fica livre</td><td>o programa escreve em <code>TXREG</code></td></tr>
+          <tr><td>Recepção</td><td class="num"><code>RCIF</code> (b5)</td><td class="num"><code>RCIE</code> (b5)</td><td class="num"><code>RCIP</code> (b5)</td><td>há byte em <code>RCREG</code></td><td>o programa lê <code>RCREG</code> até esvaziar</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <pre class="larga"><code>INTCONbits.PEIE = 1;   /* b6: libera as fontes periféricas (PIR1/PIE1) */
+INTCONbits.GIE  = 1;   /* b7: libera tudo                              */
+/* sem IPEN (= 0, o padrão), as prioridades são ignoradas e tudo vai para 0x0008 */</code></pre>
+      <p class="passagem"><span class="rotulo">Diferente do Timer0</span>
+        <strong><code>TXIF</code> e <code>RCIF</code> não se zeram com uma escrita.</strong> Eles são só leitura e refletem o estado do periférico: <code>TXIF</code> só cai quando <code>TXREG</code> recebe um byte, <code>RCIF</code> só cai quando <code>RCREG</code> é lido. Um tratamento que testa <code>RCIF</code> e não lê <code>RCREG</code> é chamado de novo, sem parar.</p>
+
+      <h3>Por que <code>TXIE</code> liga e desliga</h3>
+      <p>Com nada a enviar, <code>TXREG</code> está livre, e <code>TXIF</code> fica em 1 o tempo todo. Se <code>TXIE</code> continuasse ligado, a interrupção seria pedida sem parar e o programa principal nunca mais rodaria. Por isso:</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Quem</th><th>Quando</th><th>Faz</th><th>Significado</th></tr></thead>
+        <tbody>
+          <tr><td>main (<code>uart_enfileirar</code>)</td><td>põe um byte na fila</td><td><code>TXIE = 1</code></td><td>"acorda, tem trabalho"</td></tr>
+          <tr><td>ISR</td><td>encontra a fila vazia</td><td><code>TXIE = 0</code></td><td>"dormi; me chame quando houver mais"</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p><code>RCIE</code> fica sempre ligado: <code>RCIF</code> só vai a 1 quando chega um byte de verdade.</p>
+    </section>
+
+    <section>
+      <h2>A fila de transmissão</h2>
+      <p>Um vetor em RAM com dois índices. Cada índice tem um único dono, e por isso a fila dispensa desligar interrupções: os dois têm um byte, e cada escrita é uma instrução só.</p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Índice</th><th>Aponta para</th><th>Quem escreve</th></tr></thead>
+        <tbody>
+          <tr><td><code>entra</code></td><td>a posição onde o próximo byte será <strong>escrito</strong></td><td>só o main</td></tr>
+          <tr><td><code>sai</code></td><td>a posição de onde o próximo byte será <strong>lido</strong></td><td>só a ISR</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="formula">vazia: entra == sai<br>
+      cheia: (entra + 1) % FILA == sai &nbsp;&nbsp;&nbsp; (uma posição fica sempre livre: cabem FILA − 1 = 63 bytes)<br>
+      avançar: i = (i + 1) % FILA &nbsp;&nbsp;&nbsp; (depois do 63 volta ao 0: a fila é circular)</p>
+
+      <h3>Passo a passo: <code>printf("Oi\r\n")</code></h3>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Momento</th><th>Quem age</th><th>O que acontece</th><th class="num"><code>entra</code></th><th class="num"><code>sai</code></th></tr></thead>
+        <tbody>
+          <tr><td>início</td><td>—</td><td>fila vazia, <code>TXIE = 0</code></td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td><code>putch('O')</code></td><td>main</td><td><code>fila[0] = 'O'</code>, <code>TXIE = 1</code></td><td class="num">1</td><td class="num">0</td></tr>
+          <tr><td>logo em seguida</td><td>ISR</td><td><code>TXREG</code> livre: <code>TXREG = fila[0]</code>; <code>'O'</code> começa a sair</td><td class="num">1</td><td class="num">1</td></tr>
+          <tr class="linha-destaque"><td><code>putch('i')</code>, <code>'\r'</code>, <code>'\n'</code></td><td>main</td><td>escreve nas posições 1, 2, 3 e <strong>segue o programa</strong></td><td class="num">4</td><td class="num">1</td></tr>
+          <tr><td>logo em seguida</td><td>ISR</td><td><code>'O'</code> passou ao deslocamento, <code>TXREG</code> livre: <code>TXREG = fila[1]</code></td><td class="num">4</td><td class="num">2</td></tr>
+          <tr><td>+1,04 ms</td><td>ISR</td><td><code>'O'</code> saiu: <code>TXREG = fila[2]</code></td><td class="num">4</td><td class="num">3</td></tr>
+          <tr><td>+1,04 ms</td><td>ISR</td><td><code>TXREG = fila[3]</code></td><td class="num">4</td><td class="num">4</td></tr>
+          <tr><td>+1,04 ms</td><td>ISR</td><td><code>entra == sai</code>: <code>TXIE = 0</code></td><td class="num">4</td><td class="num">4</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <h3>Contas da fila</h3>
+      <pre class="larga"><code>main enfileira um byte          ≈ dezenas de ciclos  (µs)
+fio leva um byte                = 1,042 ms           (~4170 ciclos a 16 MHz)
+fila de 64 → 63 bytes no fio    = 63 · 1,042 ms ≈ 66 ms de folga
+vazão máxima sustentada         = 960 bytes/s        (acima disso a fila enche
+                                                      e o main volta a esperar)</code></pre>
+      <p>FILA potência de 2 faz o <code>% FILA</code> virar um AND barato. Aumentar a fila só adia o problema se o programa produz mais de 960 bytes/s: aí é enviar menos ou subir a taxa.</p>
+    </section>
+
+    <section>
+      <h2>Recepção e seus erros</h2>
+      <p>O receptor guarda até <strong>2 bytes</strong> em <code>RCREG</code> (uma pequena fila em hardware), mais o que está sendo montado no registrador de deslocamento.</p>
       <div class="tabela-rolavel larga">
       <table>
         <thead><tr><th>Erro</th><th>Causa</th><th>Consequência</th><th>Como sair</th></tr></thead>
         <tbody>
-          <tr><td><code>OERR</code> (estouro)</td><td>terceiro byte termina de chegar com a fila cheia</td><td>o byte se perde e <strong>a recepção para</strong>: nenhum byte novo entra até o programa agir</td><td>zerar e religar <code>CREN</code></td></tr>
-          <tr><td><code>FERR</code> (quadro)</td><td>bit de parada lido como 0: taxa errada, ruído ou linha em curto</td><td>o byte provavelmente está errado</td><td>ler <code>RCREG</code> (o bit acompanha o byte)</td></tr>
+          <tr><td><code>OERR</code> (estouro)</td><td>3.º byte termina de chegar com os 2 lugares ocupados</td><td>o byte se perde e <strong>a recepção para</strong>: nada novo entra até o programa agir</td><td>zerar e religar <code>CREN</code></td></tr>
+          <tr><td><code>FERR</code> (quadro)</td><td>bit de parada lido como 0: taxa errada, ruído, linha em curto</td><td>o byte provavelmente está errado</td><td>ler <code>RCREG</code> (o indicador acompanha o byte)</td></tr>
         </tbody>
       </table>
       </div>
-      <p class="formula">tempo até o estouro, a partir da fila vazia ≈ 3 bytes · 10 / taxa</p>
-      <p class="margem">Se a recepção for por consulta, todo trecho do laço principal mais longo que esse tempo pode perder bytes. A recepção por interrupção resolve: o tratamento esvazia a fila a cada byte.</p>
+      <h3>Conta: quanto tempo até o estouro</h3>
+      <pre class="larga"><code>3 bytes · 1,042 ms = 3,1 ms   (a partir da fila vazia, bytes chegando colados)
+
+atualizar o display (encontro 3)       ≈ 1,3 ms  → cabe, por pouco, se for no main
+transmissão bloqueante de 21 bytes     ≈ 22 ms   → estoura, se a recepção for por consulta
+escrever no display DENTRO da ISR      → atrasa a próxima leitura: estoura</code></pre>
+      <p class="margem">Por isso a recepção é por interrupção e o tratamento é curto: ele só guarda o byte num buffer; quem interpreta a linha é o main.</p>
+
+      <h3>Fim da mensagem</h3>
+      <p>O tratamento junta os bytes em <code>linha[]</code> e marca <code>linha_pronta</code> ao chegar <code>\r</code> ou <code>\n</code>. Terminais mandam <code>\r\n</code>: sem cuidado, o <code>\n</code> fecha uma segunda linha, vazia, por cima da primeira. E um terminal configurado sem final de linha nunca fecha a mensagem: os bytes chegam, mas nada acontece.</p>
     </section>
 
     <section>
-      <h2>Código recomendado</h2>
-      <h3>Inicialização</h3>
-      <pre><code>TRISCbits.TRISC6 = 0;           // TX
-TRISCbits.TRISC7 = 1;           // RX
-BAUDCONbits.BRG16 = 1;
-TXSTAbits.BRGH    = 1;
-SPBRGH = (uint8_t)(N &gt;&gt; 8);     // N calculado pela tabela, arredondado
-SPBRG  = (uint8_t)(N &amp; 0xFF);
-TXSTAbits.SYNC = 0;             // assíncrono
-RCSTAbits.SPEN = 1;             // liga a porta: RC6 e RC7 passam ao módulo
-TXSTAbits.TXEN = 1;
-RCSTAbits.CREN = 1;
-PIE1bits.RCIE = 1;              // recepção por interrupção
-INTCONbits.PEIE = 1; INTCONbits.GIE = 1;</code></pre>
-      <h3>Transmissão por consulta (bloqueante) e recepção por interrupção</h3>
-      <pre><code>void uart_byte(uint8_t b)
+      <h2>Código completo, testado (9600 8N1, 16 MHz)</h2>
+      <pre class="larga"><code>#define FILA 64
+static volatile uint8_t fila[FILA];
+static volatile uint8_t entra = 0;     /* só o main escreve */
+static volatile uint8_t sai = 0;       /* só a ISR escreve  */
+
+static volatile char    linha[24];
+static volatile uint8_t n = 0;
+static volatile uint8_t linha_pronta = 0;
+
+void uart_iniciar(void)
 {
-    while (!PIR1bits.TXIF) { }  // espera TXREG livre: ~1 ms por byte a 9600
-    TXREG = b;
+    TRISCbits.TRISC6 = 0;              /* TX */
+    TRISCbits.TRISC7 = 1;              /* RX */
+    BAUDCONbits.BRG16 = 1;             /* divisor de 16 bits     */
+    TXSTAbits.BRGH    = 1;             /* taxa = Fosc / (4(n+1)) */
+    SPBRGH = 0x01;                     /* n = 416 = 0x01A0       */
+    SPBRG  = 0xA0;
+    TXSTAbits.SYNC = 0;                /* assíncrono */
+    RCSTAbits.SPEN = 1;                /* RC6 e RC7 passam ao periférico */
+    TXSTAbits.TXEN = 1;
+    RCSTAbits.CREN = 1;
+    PIE1bits.RCIE  = 1;                /* recepção por interrupção; TXIE fica 0 */
 }
 
-/* no tratamento: */
-if (PIR1bits.RCIF) {
-    if (RCSTAbits.OERR) {       // estouro: a recepção PAROU
-        RCSTAbits.CREN = 0;
-        RCSTAbits.CREN = 1;
+/* Só o main chama: com a fila cheia ela espera a ISR. */
+void uart_enfileirar(uint8_t b)
+{
+    uint8_t prox = (uint8_t)((entra + 1u) % FILA);
+    while (prox == sai) { }            /* fila cheia: raro */
+    fila[entra] = b;
+    entra = prox;                      /* só depois de o byte estar na fila */
+    PIE1bits.TXIE = 1;                 /* acorda o transmissor */
+}
+
+void putch(char c) { uart_enfileirar((uint8_t)c); }   /* printf usa esta */
+
+void __interrupt() isr(void)
+{
+    if (PIE1bits.TXIE &amp;&amp; PIR1bits.TXIF) {
+        if (entra == sai) {
+            PIE1bits.TXIE = 0;         /* nada a enviar */
+        } else {
+            TXREG = fila[sai];         /* escrever em TXREG zera TXIF */
+            sai = (uint8_t)((sai + 1u) % FILA);
+        }
     }
-    char c = RCREG;             // ler RCREG apaga RCIF
-    /* guardar c num buffer; o laço processa a linha */
+    if (PIE1bits.RCIE &amp;&amp; PIR1bits.RCIF) {
+        if (RCSTAbits.OERR) {          /* estouro: a recepção PAROU */
+            RCSTAbits.CREN = 0;
+            RCSTAbits.CREN = 1;
+        }
+        char c = RCREG;                /* ler RCREG zera RCIF */
+        if (linha_pronta) {
+            /* o main ainda não leu a anterior: descarta */
+        } else if (c == '\n' || c == '\r') {
+            if (n &gt; 0u) {              /* ignora o \n de um \r\n */
+                linha[n] = '\0';
+                linha_pronta = 1;
+                n = 0;
+            }
+        } else if (n &lt; sizeof(linha) - 1u) {
+            linha[n++] = c;
+        }
+    }
+}
+
+/* em main(): */
+uart_iniciar();
+INTCONbits.PEIE = 1;
+INTCONbits.GIE  = 1;
+printf("Ola, serial!\r\n");
+while (1) {
+    /* ... */
+    if (linha_pronta) {
+        printf("recebido: %s\r\n", (const char *)linha);
+        linha_pronta = 0;              /* só agora a ISR pode reusar o buffer */
+    }
 }</code></pre>
-      <p class="margem">A transmissão bloqueante prende o processador ~1 ms por caractere a 9600 bit/s: uma linha de 30 caracteres custa 31 ms. Com fila em RAM e <code>TXIE</code>, o laço só deposita os bytes, e o tratamento os envia (R10).</p>
-      <p class="passagem"><span class="rotulo">No kit</span>CH4-6 (RS232_TX) e CH4-8 (RS232_RX) em ON, CH4-5 e CH4-7 (RS-485) em OFF, e os relés (CH5) em OFF, porque estão ligados a RC6 e RC7. Cabo DB9 de extensão (CN4), não <em>null-modem</em>.</p>
+      <p class="margem">Programa inteiro em <a href="https://github.com/raoni-teixeira/micro/tree/main/code/uart"><code>code/uart/main.c</code></a>. Simulado a 9600 bit/s: um byte a cada 4170 ciclos (1,0425 ms), a taxa de 9592 bit/s da conta. Com <code>printf</code>, o programa ocupa 1,3 kB de Flash (4 % do chip).</p>
+    </section>
+
+    <section>
+      <h2>Diagnóstico pela aparência do defeito</h2>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Sintoma</th><th>Causa provável</th><th>O que conferir</th></tr></thead>
+        <tbody>
+          <tr><td>nada aparece; o programa parece travado</td><td>interrupções não ligadas: a fila enche e o main para no <code>while</code></td><td><code>PEIE = 1</code> e <code>GIE = 1</code></td></tr>
+          <tr><td>nada aparece; o terminal nem abre</td><td>taxa fora da lista padrão (o driver recusa)</td><td>a conta de n</td></tr>
+          <tr><td>lixo que se repete com o mesmo padrão</td><td>taxas diferentes nos dois lados</td><td>a taxa do terminal e o <strong>relógio</strong> (16 MHz no PICSimLab)</td></tr>
+          <tr><td>a transmissão funciona, mas o que se digita não volta</td><td>sem final de linha, ou RX não ligado</td><td>CR/LF no terminal; TX do terminal no RC7</td></tr>
+          <tr><td>funciona alguns minutos e para de receber, sem travar</td><td>estouro (<code>OERR</code>) sem tratamento</td><td>religar <code>CREN</code>; tratamento curto, nada de display dentro dele</td></tr>
+          <tr><td>o programa principal não roda, mas não reinicia</td><td><code>TXIE</code> sempre ligado, ou <code>RCIF</code> testado sem ler <code>RCREG</code></td><td>desligar <code>TXIE</code> com a fila vazia; ler <code>RCREG</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem">Para treinar a leitura do quadro e ver o que um receptor com a taxa errada lê: <a href="../teoria/uart-decodificador.html">decodificador de UART</a>.</p>
+    </section>
+
+    <section>
+      <h2>Simulador e kit</h2>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th></th><th>PICGenios (PICSimLab)</th><th>XM118 (bancada)</th></tr></thead>
+        <tbody>
+          <tr><td>Relógio</td><td>escolhido na janela principal: <strong>16 MHz</strong></td><td>cristal de 16 MHz</td></tr>
+          <tr><td>Terminal</td><td>peça "IO Virtual Term" (Modules → Spare parts → Virtual), ligada em RC6 (TX) e RC7 (RX); final de linha ligado</td><td>cabo DB9 de extensão (CN4), não <em>null-modem</em>; terminal no PC</td></tr>
+          <tr><td>Ver o sinal</td><td>Modules → Oscilloscope, canal em RC6</td><td>osciloscópio no pino RC6 (TTL), não no conector</td></tr>
+          <tr><td>Chaves</td><td>—</td><td>CH4-6 (RS232_TX) e CH4-8 (RS232_RX) em ON; CH4-5 e CH4-7 (RS-485) em OFF; relés (CH5) em OFF, porque estão ligados a RC6 e RC7</td></tr>
+          <tr><td>Bits de configuração</td><td>o <code>#pragma config</code> do programa vale</td><td>gravados pelo bootloader</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="passagem"><span class="rotulo">No Linux</span>Para ler a serial do PICSimLab em Python (<code>pyserial</code>), use a peça "IO UART" e um par de portas virtuais do tty0tty: o PICSimLab numa ponta (<code>/dev/tnt0</code>), o programa na outra (<code>/dev/tnt1</code>). No Windows, o par vem do com0com.</p>
     </section>
 
   </main>

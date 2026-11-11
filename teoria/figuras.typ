@@ -1232,6 +1232,75 @@
 })
 
 // ===========================================================================
+// 22b. O MESMO BYTE EM PARALELO E EM SÉRIE
+// ===========================================================================
+
+#let fig_paralelo_serial() = block(breakable: false, width: 12.4cm, height: 4.6cm, {
+  // 'A' = 0x41 = 0100 0001, índice = número do bit
+  let bits = (1, 0, 0, 0, 0, 0, 1, 0)
+  let h = 0.2cm
+  let passo = 0.38cm
+  let ytop = 0.5cm
+
+  // --- paralelo -----------------------------------------------------------
+  let xp = 1.0cm
+  let up = 0.42cm
+  let fp = 6
+  _txt(0cm, 0cm, [*Paralelo* — um fio por bit], w: 4.6cm, al: center, fonte: 7.2pt)
+  for k in range(8) {
+    let y = ytop + k * passo
+    _txt(0cm, y - 0.04cm, _m("D" + str(k)), w: 0.85cm, al: right)
+    _onda(xp, y, h, up, ((0, bits.at(k)),), fp)
+    _txt(xp + fp * up + 0.1cm, y - 0.04cm, _m(str(bits.at(k))), w: 0.4cm)
+  }
+  let ye = ytop + 8 * passo + 0.12cm
+  _txt(0cm, ye - 0.04cm, _m("E"), w: 0.85cm, al: right)
+  _onda(xp, ye, h, up, ((0, 0), (2, 1), (4, 0)), fp)
+  place(dx: xp + 4 * up, dy: ytop - 0.1cm,
+    line(start: (0pt, 0pt), end: (0pt, 8 * passo + 0.5cm),
+      stroke: (thickness: 0.4pt, dash: "dashed", paint: _cinza)))
+  _txt(0cm, ye + 0.42cm,
+    [A borda de #_m("E", t: 6.6pt) transfere os oito bits *de uma vez*. Todos precisam ter
+     chegado antes dela.],
+    w: 4.6cm, al: center, fonte: 6.6pt)
+
+  // --- serial -------------------------------------------------------------
+  let xs = 6.7cm
+  let us = 0.62cm
+  let fs = 9
+  _txt(xs - 1.4cm, 0cm, [*Serial* — os bits em fila, num fio só],
+    w: fs * us + 1.4cm, al: center, fonte: 7.2pt)
+  let yd = ytop + 1.0cm
+  let niveis = ((0, 0),)
+  for i in range(8) { niveis.push((0.5 + i, bits.at(i))) }
+  niveis.push((8.5, 0))
+  _txt(xs - 1.5cm, yd - 0.04cm, [dado], w: 1.35cm, al: right)
+  _onda(xs, yd, h, us, niveis, fs)
+  for i in range(8) {
+    if i > 0 {
+      place(dx: xs + (0.5 + i) * us, dy: yd - 0.08cm,
+        line(start: (0pt, 0pt), end: (0pt, h + 0.16cm),
+          stroke: (thickness: 0.35pt, dash: "dotted", paint: _claro)))
+    }
+    _txt(xs + (0.5 + i) * us, yd + h + 0.08cm, _m("D" + str(i), t: 6.2pt),
+      w: us, al: center)
+  }
+
+  let yc = yd + 1.0cm
+  let rel = ((0, 0),)
+  for i in range(8) { rel.push((1 + i, 1)); rel.push((1.5 + i, 0)) }
+  _txt(xs - 1.5cm, yc - 0.04cm, [relógio], w: 1.35cm, al: right)
+  _onda(xs, yc, h, us, rel, fs)
+  _txt(xs - 1.5cm, yc + h + 0.08cm, [(só na síncrona)], w: 1.35cm, al: right,
+    fonte: 6.0pt)
+
+  _txt(xs - 1.4cm, yc + 0.75cm,
+    [Cada bit tem seu instante. Quem marca esse instante é um fio de relógio
+     (*síncrona*) ou uma taxa combinada antes (*assíncrona*).],
+    w: fs * us + 1.4cm, al: center, fonte: 6.6pt)
+})
+
+// ===========================================================================
 // 23. QUADRO ASSÍNCRONO DA UART
 // ===========================================================================
 
