@@ -57,6 +57,9 @@
     pre, table, .diagrama { break-inside: avoid; }
     .naoimprime { display: none; }
   }
+  .ds { font-size: 0.78rem; color: var(--cinza); white-space: nowrap; }
+  .ds::before { content: "▸ "; }
+  p.fonte { margin: -0.3rem 0 0.6rem; }
 </style>
 
 </head>
@@ -71,7 +74,15 @@
   <main>
 
     <section>
+      <p class="passagem">
+        <span class="rotulo">A fonte</span>
+        Os números desta folha vêm da folha de dados do fabricante, <strong>PIC18F2455/2550/4455/4550 Data Sheet, DS39632E</strong> (Microchip, 2009) — <a href="../2027-1/pdf/39632e.pdf" target="_blank">cópia da revisão citada</a>. As páginas citadas são as impressas no rodapé (“DS39632E-page”); no leitor de PDF, some 2.
+      </p>
+    </section>
+
+    <section>
       <h2>A ideia: o hardware chama o programa</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 99, §9.0; p. 100, Figura 9-1</span></p>
       <p>Cada periférico tem um <strong>indicador</strong> (<code>…IF</code>) que o hardware liga quando o evento acontece, <em>esteja a interrupção habilitada ou não</em>. Uma interrupção só ocorre quando três chaves estão fechadas ao mesmo tempo: o indicador, a habilitação da fonte (<code>…IE</code>) e a habilitação global.</p>
       <p class="formula">interrompe = …IF · …IE · GIE &nbsp;&nbsp;&nbsp;(e também PEIE, se a fonte for de PIR1 ou PIR2)</p>
       <p>Quando as três estão fechadas, o processador termina a instrução em curso, guarda o endereço de retorno na pilha, zera <code>GIE</code> e salta para o vetor. A rotina de tratamento roda, e o retorno religa <code>GIE</code>.</p>
@@ -93,6 +104,7 @@
 
     <section>
       <h2>Fontes usadas no curso</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 99, §9.0; p. 100, Figura 9-1</span></p>
       <div class="tabela-rolavel larga">
       <table>
         <thead><tr><th>Fonte</th><th>Evento</th><th>Indicador</th><th>Habilitação</th><th>Precisa de PEIE?</th><th>Como o indicador se apaga</th></tr></thead>
@@ -118,28 +130,34 @@
 
     <section>
       <h2>Registradores</h2>
+      <p class="fonte"><span class="ds">DS39632E, §9.2 a §9.4, p. 101–107</span></p>
       <h3><code>INTCON</code> — habilitação global e fontes principais</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 101, Registrador 9-1</span></p>
       <table class="registrador">
 <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
 <tbody><tr><td><code>GIE</code><small>global</small></td><td><code>PEIE</code><small>periféricos</small></td><td><code>TMR0IE</code></td><td><code>INT0IE</code></td><td><code>RBIE</code></td><td><code>TMR0IF</code></td><td><code>INT0IF</code></td><td><code>RBIF</code></td></tr></tbody>
 </table>
       <p>Com <code>IPEN = 1</code>, os bits 7 e 6 passam a se chamar <code>GIEH</code> e <code>GIEL</code> (alta e baixa prioridade).</p>
       <h3><code>INTCON2</code> — bordas e pull-ups</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 102, Registrador 9-2</span></p>
       <table class="registrador">
 <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
 <tbody><tr><td><code>RBPU</code><small>0 = liga pull-ups</small></td><td><code>INTEDG0</code><small>1 = subida</small></td><td><code>INTEDG1</code></td><td><code>INTEDG2</code></td><td class="nada">—</td><td><code>TMR0IP</code><small>prioridade</small></td><td class="nada">—</td><td><code>RBIP</code><small>prioridade</small></td></tr></tbody>
 </table>
       <h3><code>INTCON3</code> — INT1 e INT2</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 103, Registrador 9-3</span></p>
       <table class="registrador">
 <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
 <tbody><tr><td><code>INT2IP</code></td><td><code>INT1IP</code></td><td class="nada">—</td><td><code>INT2IE</code></td><td><code>INT1IE</code></td><td class="nada">—</td><td><code>INT2IF</code></td><td><code>INT1IF</code></td></tr></tbody>
 </table>
       <h3><code>PIR1</code> / <code>PIE1</code> — periféricos (indicador / habilitação, mesma posição)</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 104, Registrador 9-4; p. 106, Registrador 9-6</span></p>
       <table class="registrador">
 <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
 <tbody><tr><td><code>SPPIF</code><small>porta paralela</small></td><td><code>ADIF</code><small>A/D</small></td><td><code>RCIF</code><small>serial RX</small></td><td><code>TXIF</code><small>serial TX</small></td><td><code>SSPIF</code><small>MSSP</small></td><td><code>CCP1IF</code><small>CCP1</small></td><td><code>TMR2IF</code></td><td><code>TMR1IF</code></td></tr></tbody>
 </table>
       <h3><code>PIR2</code> / <code>PIE2</code></h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 105, Registrador 9-5; p. 107, Registrador 9-7</span></p>
       <table class="registrador">
 <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
 <tbody><tr><td><code>OSCFIF</code><small>oscilador</small></td><td><code>CMIF</code><small>comparador</small></td><td><code>USBIF</code><small>USB</small></td><td><code>EEIF</code><small>EEPROM</small></td><td><code>BCLIF</code><small>colisão I²C</small></td><td><code>HLVDIF</code><small>tensão</small></td><td><code>TMR3IF</code></td><td><code>CCP2IF</code></td></tr></tbody>
@@ -149,6 +167,7 @@
 
     <section>
       <h2>A rotina de tratamento: modelo do curso</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 59, §5.1 (vetores 0008h e 0018h); p. 111, §9.10</span></p>
       <p>Um único tratamento atende todas as fontes. Ele pergunta, fonte por fonte, quem pediu, e testa também a habilitação quando ela é ligada e desligada pelo programa (como <code>TXIE</code>).</p>
       <pre><code>volatile uint8_t  borda = 0;          // sinalizador: o tratamento liga, o laço consome
 volatile uint16_t contagem = 0;       // 16 bits: a leitura no laço NÃO é atômica
@@ -171,6 +190,7 @@ void __interrupt() tratar(void)
     }
 }</code></pre>
       <h3>Inicialização</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 111, §9.7</span></p>
       <pre><code>ADCON1 = 0x0F;                  // RB0-RB2 digitais (veja a folha do A/D)
 TRISBbits.TRISB0 = 1;           // INT0 é entrada
 INTCON2bits.INTEDG0 = 0;        // borda de descida: o botão aterra o pino

@@ -57,6 +57,9 @@
     pre, table, .diagrama { break-inside: avoid; }
     .naoimprime { display: none; }
   }
+  .ds { font-size: 0.78rem; color: var(--cinza); white-space: nowrap; }
+  .ds::before { content: "▸ "; }
+  p.fonte { margin: -0.3rem 0 0.6rem; }
 </style>
 </head>
 <body>
@@ -72,7 +75,15 @@
   <main>
 
     <section>
+      <p class="passagem">
+        <span class="rotulo">A fonte</span>
+        Os números desta folha vêm da folha de dados do fabricante, <strong>PIC18F2455/2550/4455/4550 Data Sheet, DS39632E</strong> (Microchip, 2009) — <a href="../2027-1/pdf/39632e.pdf" target="_blank">cópia da revisão citada</a>. As páginas citadas são as impressas no rodapé (“DS39632E-page”); no leitor de PDF, some 2.
+      </p>
+    </section>
+
+    <section>
       <h2>A ideia: um registrador que conta sozinho</h2>
+      <p class="fonte"><span class="ds">DS39632E, §11.0, p. 127; §12.0, p. 131</span></p>
       <p>Um temporizador é um registrador que <strong>incrementa a cada pulso de uma fonte de contagem</strong>, sem executar instrução. Ao passar do valor máximo, ele volta a zero e <strong>levanta um indicador</strong> (um bit, <code>TMRxIF</code>). O indicador não se apaga sozinho: o programa precisa zerá-lo.</p>
       <p>O contador não sabe o que é tempo. A diferença entre <em>temporizador</em> e <em>contador</em> está só na fonte dos pulsos:</p>
       <p class="margem">Só Timer0, Timer1 e Timer3 contam pulsos de um pino. O Timer2 só conhece o relógio interno: ele serve para gerar tempo (e o PWM), nunca para contar eventos.</p>
@@ -152,6 +163,7 @@
       <p>No modo de 8 bits do Timer0 (<code>T08BIT = 1</code>), só <code>TMR0L</code> conta, e o estouro de <code>0xFF</code> para <code>0x00</code> já levanta <code>TMR0IF</code>.</p>
 
       <h3>O byte alto é um buffer, não o contador</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 133, §12.2; p. 128, §11.1</span></p>
       <p>O processador lê e escreve um byte por vez, mas o contador pode mudar entre uma operação e outra. Para evitar isso, <code>TMR0H</code> (e <code>TMR1H</code>/<code>TMR3H</code> com <code>RD16 = 1</code>) não é o byte alto real. É uma cópia intermediária, trocada com o contador <strong>no instante em que se acessa o byte baixo</strong>:</p>
       <div class="tabela-rolavel">
       <table>
@@ -174,6 +186,7 @@ uint16_t n  = ((uint16_t)TMR0H &lt;&lt; 8) | lo;</code></pre>
 
     <section>
       <h2>Timer0: o caminho do pulso</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 128, Figuras 11-1 e 11-2</span></p>
       <p>Cada bit de <code>T0CON</code> controla uma chave no caminho entre a fonte de pulsos e o contador:</p>
 
       <div class="diagrama larga" role="img" aria-label="Diagrama de blocos do Timer0: a fonte interna ou o pino T0CKI passa pelo seletor T0CS, pelo divisor opcional selecionado por PSA, por uma sincronização de dois ciclos e chega a TMR0L e TMR0H; o estouro levanta TMR0IF.">
@@ -249,6 +262,7 @@ uint16_t n  = ((uint16_t)TMR0H &lt;&lt; 8) | lo;</code></pre>
 
       <p class="margem">Após o reset, <code>T0CON = 0xFF</code>: o Timer0 já está <em>ligado</em>, em 8 bits, contando o pino RA4. O bootloader pode ter mudado isso. Escreva sempre o registrador inteiro, nunca bit a bit a partir de um valor que você não conhece.</p>
       <h3><code>T0CON</code> — controle do Timer0</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 127, Registrador 11-1</span></p>
       <div class="tabela-rolavel">
       <table class="registrador">
         <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
@@ -308,6 +322,7 @@ uint16_t n  = ((uint16_t)TMR0H &lt;&lt; 8) | lo;</code></pre>
 
     <section>
       <h2>Pré-carga: escolher o intervalo</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 129, §11.3 (divisor) e §11.4 (interrupção)</span></p>
       <p>Sem pré-carga, o contador percorre sempre a faixa inteira. Para um intervalo menor, ele começa de um valor mais alto e estoura antes. <strong>O divisor escolhe o tamanho do passo; a pré-carga escolhe onde a contagem começa.</strong> O divisor alonga o intervalo, a pré-carga encurta.</p>
       <p class="formula">N = intervalo / (T<sub>CY</sub> · divisor)&nbsp;&nbsp;&nbsp;(precisa ser ≤ 2<sup>n</sup>)<br>pré-carga = 2<sup>n</sup> − N&nbsp;&nbsp;&nbsp;(n = 8 ou 16)</p>
       <p>Receita: escolha o <strong>menor divisor</strong> que faça N caber em 2<sup>n</sup>, porque o passo menor dá o ajuste mais fino. Depois calcule a pré-carga e escreva o valor de novo <strong>a cada estouro</strong>, porque depois do estouro o contador recomeça de zero.</p>
@@ -332,9 +347,11 @@ uint16_t n  = ((uint16_t)TMR0H &lt;&lt; 8) | lo;</code></pre>
 
     <section>
       <h2>Contando pulsos externos</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 128, §11.1; p. 132, §12.1</span></p>
       <p>Para trocar a fonte, basta mudar um bit, <code>T0CS</code> ou <code>TMR1CS</code>. O resto do temporizador (tamanho, divisor, estouro, indicador) funciona igual. O que muda é o que um incremento significa.</p>
 
       <h3>Timer0 pelo pino RA4/T0CKI</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 128, §11.1</span></p>
       <ol>
         <li>Pino como entrada: <code>TRISAbits.TRISA4 = 1</code>. RA4 não é canal analógico no PIC18F4550, então <code>ADCON1</code> não interfere.</li>
         <li><code>T0CS = 1</code> (fonte externa).</li>
@@ -345,6 +362,7 @@ uint16_t n  = ((uint16_t)TMR0H &lt;&lt; 8) | lo;</code></pre>
 
       <p class="margem">No kit, RC0 recebe o <strong>tacômetro do cooler</strong> (chave CH3-1), que também chega a RA4 (T0CKI) — por isso RA4 fica como entrada. Com o Timer1 contando por um tempo conhecido, a leitura dá pulsos por segundo, ou seja, a rotação. Confira na bancada quantos pulsos o cooler dá por volta.</p>
       <h3>Timer1 pelo pino RC0/T13CKI</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 132, §12.1</span></p>
       <ol>
         <li>Pino como entrada: <code>TRISCbits.TRISC0 = 1</code>.</li>
         <li><code>TMR1CS = 1</code> (fonte externa) e <code>T1OSCEN = 0</code> (sem cristal; o sinal entra direto em T13CKI).</li>
@@ -366,8 +384,10 @@ uint16_t n  = ((uint16_t)TMR0H &lt;&lt; 8) | lo;</code></pre>
 
     <section>
       <h2>Timer1 e Timer3 — 16 bits, divisor até 1:8</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 131, §12.0; p. 139, §14.0</span></p>
 
       <h3><code>T1CON</code> — controle do Timer1</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 131, Registrador 12-1</span></p>
       <div class="tabela-rolavel">
       <table class="registrador">
         <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
@@ -401,6 +421,7 @@ uint16_t n  = ((uint16_t)TMR0H &lt;&lt; 8) | lo;</code></pre>
       <p class="margem">O divisor máximo é 1:8: a 16 MHz, o Timer1 estoura em no máximo 65 536 · 2 µs = 131 ms. Para 1 s, use o Timer0 ou conte vários estouros.</p>
 
       <h3><code>T3CON</code> — controle do Timer3</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 139, Registrador 14-1</span></p>
       <div class="tabela-rolavel">
       <table class="registrador">
         <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
@@ -423,9 +444,11 @@ uint16_t n  = ((uint16_t)TMR0H &lt;&lt; 8) | lo;</code></pre>
 
     <section>
       <h2>Timer2 — 8 bits com período programável</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 137, §13.0; p. 138, Figura 13-1</span></p>
       <p>O Timer2 não estoura em <code>0xFF</code>. Ele conta de 0 até o valor de <code>PR2</code> e, no pulso seguinte, <strong>volta a zero sozinho</strong>. Por isso ele não precisa de pré-carga: o período fica em <code>PR2</code> e se repete sem intervenção do programa. Cada volta a zero passa por um <strong>pós-divisor</strong>, e só a cada 1 … 16 voltas o <code>TMR2IF</code> sobe.</p>
 
       <h3><code>T2CON</code> — controle do Timer2</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 137, Registrador 13-1</span></p>
       <div class="tabela-rolavel">
       <table class="registrador">
         <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
@@ -452,6 +475,7 @@ uint16_t n  = ((uint16_t)TMR0H &lt;&lt; 8) | lo;</code></pre>
 
     <section>
       <h2>Indicadores e habilitações</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 101, Registrador 9-1 (INTCON); p. 104, Registrador 9-4 (PIR1)</span></p>
       <p>O indicador sobe no estouro <strong>mesmo que a interrupção esteja desligada</strong>. Isso permite consultar o bit no laço principal. O bit só volta a 0 quando o programa o zera. Um estouro que acontece com o bit ainda em 1 se perde, porque um bit não conta até dois.</p>
       <div class="tabela-rolavel larga">
       <table>

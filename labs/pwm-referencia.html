@@ -57,6 +57,9 @@
     pre, table, .diagrama { break-inside: avoid; }
     .naoimprime { display: none; }
   }
+  .ds { font-size: 0.78rem; color: var(--cinza); white-space: nowrap; }
+  .ds::before { content: "▸ "; }
+  p.fonte { margin: -0.3rem 0 0.6rem; }
 </style>
 
 </head>
@@ -69,6 +72,13 @@
     <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Consulta permitida</span></p>
   </header>
   <main>
+
+    <section>
+      <p class="passagem">
+        <span class="rotulo">A fonte</span>
+        Os números desta folha vêm da folha de dados do fabricante, <strong>PIC18F2455/2550/4455/4550 Data Sheet, DS39632E</strong> (Microchip, 2009) — <a href="../2027-1/pdf/39632e.pdf" target="_blank">cópia da revisão citada</a>. As páginas citadas são as impressas no rodapé (“DS39632E-page”); no leitor de PDF, some 2.
+      </p>
+    </section>
 
     <section>
       <h2>Por que PWM: o pino só decide</h2>
@@ -88,6 +98,7 @@
 
     <section>
       <h2>A ideia: o Timer2 dá o ritmo, o CCP1 decide a largura</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 148, §15.4 e Figura 15-3</span></p>
       <p>O <strong>TMR2</strong> sobe em rampa de 0 até <code>PR2</code> e volta a 0: isso fixa o <strong>período</strong>. O <strong>CCP1</strong> compara a rampa com um valor de 10 bits (<code>CCPR1L:DC1B</code>): o pino fica alto do início do período até a rampa alcançar esse valor, e baixo daí até o fim. Isso fixa a <strong>largura</strong>. O pré-divisor só muda a velocidade da rampa.</p>
 
       <div class="diagrama larga" role="img" aria-label="Forma de onda: o TMR2 sobe em rampa de 0 a PR2 em três períodos. Nos dois primeiros a razão é 40 %, no terceiro 75 %. A razão nova é escrita no meio do segundo período e só passa a valer no início do terceiro, quando TMR2 = PR2. O pino RC2 sobe no início de cada período e desce quando a rampa cruza a razão.">
@@ -150,6 +161,7 @@ D = 512:  razão = 512 / 1024        = 50 %
 
     <section>
       <h2>Frequência contra resolução (F<sub>OSC</sub> = 16 MHz)</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 148, Equações 15-1 a 15-3</span></p>
       <div class="tabela-rolavel larga">
       <table>
         <thead><tr><th>Pré</th><th class="num"><code>PR2</code></th><th><code>T2CON</code></th><th>Frequência</th><th>Passos de razão</th><th>Bits</th><th>Uso</th></tr></thead>
@@ -184,8 +196,10 @@ D = 512:  razão = 512 / 1024        = 50 %
 
     <section>
       <h2>Registradores</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 150, Tabela 15-5</span></p>
       <p>Quatro bastam: <code>PR2</code> (período), <code>T2CON</code> (pré-divisor e liga), <code>CCP1CON</code> (modo e 2 bits baixos da razão) e <code>CCPR1L</code> (8 bits altos da razão).</p>
       <h3><code>T2CON</code> — Timer2</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 137, Registrador 13-1</span></p>
       <div class="tabela-rolavel">
       <table class="registrador">
 <thead><tr><th class="rot"></th><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
@@ -202,6 +216,7 @@ D = 512:  razão = 512 / 1024        = 50 %
       </ul>
 
       <h3><code>CCP1CON</code> — modo e os 2 bits baixos da razão</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 151, Registrador 16-1 (nos chips de 40 pinos, o CCP1 é o ECCP)</span></p>
       <div class="tabela-rolavel">
       <table class="registrador">
 <thead><tr><th class="rot"></th><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
@@ -219,6 +234,7 @@ D = 512:  razão = 512 / 1024        = 50 %
       </ul>
 
       <h3>Escrita da razão: os 10 bits em dois registradores</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 148, §15.4.2</span></p>
       <div class="tabela-rolavel larga">
       <table>
         <thead><tr><th>Configuração</th><th>Razão</th><th class="num">D</th><th class="num">D em binário</th><th class="num"><code>CCPR1L</code> (D &gt;&gt; 2)</th><th class="num"><code>DC1B</code> (D &amp; 3)</th></tr></thead>
@@ -236,6 +252,7 @@ D = 512:  razão = 512 / 1024        = 50 %
 
     <section>
       <h2>Sequência de inicialização (folha de dados, "Setup for PWM Operation")</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 149, §15.4.4</span></p>
       <div class="tabela-rolavel larga">
       <table>
         <thead><tr><th class="num">Passo</th><th>O que fazer</th><th>Por quê</th></tr></thead>
@@ -330,6 +347,7 @@ pwm1_razao((uint16_t)((adc_ler() * 5u) &gt;&gt; 3));</code></pre>
       </table>
       </div>
       <h3>PWM por software: janela de tempo com o Timer0</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 127, §11.0</span></p>
       <pre><code>#define JANELA_MARCAS 100u           /* 100 · 10 ms = 1 s; 2000 = 20 s */
 #define PRECARGA      25536u         /* 0x63C0: 40 000 · 250 ns = 10 ms */
 #define AQUECEDOR_BIT 0x20u          /* RC5: o XC8 não define LATCbits.LATC5 no 18F4550 */
@@ -376,6 +394,7 @@ INTCONbits.GIE = 1;</code></pre>
       </div>
       <p class="passagem"><span class="rotulo">Cuidado</span>Carga indutiva (motor, relé) precisa de diodo de roda-livre: ao desligar, a corrente da bobina continua e, sem caminho, gera um pico de tensão que destrói a chave.</p>
       <h3>Pinos: simulador e kit</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 2; p. 152, Tabela 16-1</span></p>
       <div class="tabela-rolavel larga">
       <table>
         <thead><tr><th>Função</th><th>PICGenios (PICSimLab)</th><th>XM118 (bancada)</th></tr></thead>

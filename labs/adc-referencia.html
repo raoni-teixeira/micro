@@ -51,6 +51,9 @@
     h2 { margin-top: 1rem; }
     .naoimprime { display: none; }
   }
+  .ds { font-size: 0.78rem; color: var(--cinza); white-space: nowrap; }
+  .ds::before { content: "▸ "; }
+  p.fonte { margin: -0.3rem 0 0.6rem; }
 </style>
 </head>
 <body>
@@ -66,7 +69,15 @@
   <main>
 
     <section>
+      <p class="passagem">
+        <span class="rotulo">A fonte</span>
+        Os números desta folha vêm da folha de dados do fabricante, <strong>PIC18F2455/2550/4455/4550 Data Sheet, DS39632E</strong> (Microchip, 2009) — <a href="../2027-1/pdf/39632e.pdf" target="_blank">cópia da revisão citada</a>. As páginas citadas são as impressas no rodapé (“DS39632E-page”); no leitor de PDF, some 2.
+      </p>
+    </section>
+
+    <section>
       <h2>A ideia dos projetistas: 13 pinos, 4 bits e o deslizamento</h2>
+      <p class="fonte"><span class="ds">DS39632E, §21.0; ADCON1 no Registrador 21-2, p. 266</span></p>
       <p>O PIC18F4550 possui <strong>13 canais analógicos</strong> (AN0 a AN12) multiplexados com pinos de entrada e saída digital de PORTA, PORTE e PORTB. Para permitir que cada pino fosse configurado individualmente de forma independente (como fazem microcontroladores modernos através de registradores como o <code>ANSEL</code>), seriam necessários 13 bits dedicados — quase dois bytes inteiros de controle só para essa função.</p>
       
       <p>Na arquitetura herdada do PIC16, os projetistas da Microchip reservaram apenas <strong>4 bits</strong> em <code>ADCON1</code> (<code>PCFG3:PCFG0</code>). Com 4 bits, existem exatamente 16 combinações possíveis (2<sup>4</sup> = 16), incapazes de cobrir as 8.192 combinações de 13 pinos independentes (2<sup>13</sup>).</p>
@@ -91,6 +102,7 @@
 
     <section>
       <h2>Tensões de referência e degrau de quantização</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 266, Registrador 21-2 (VCFG); p. 269, Figura 21-2</span></p>
       <p>As referências de tensão superior (V<sub>REF+</sub>) e inferior (V<sub>REF-</sub>) determinam os extremos da régua de medição. Elas são selecionadas pelos bits <strong><code>VCFG0</code></strong> (bit 4) e <strong><code>VCFG1</code></strong> (bit 5) de <code>ADCON1</code>:</p>
 
       <div class="tabela-rolavel larga">
@@ -149,6 +161,7 @@
 
     <section>
       <h2>Tabela de configuração de portas: <code>PCFG&lt;3:0&gt;</code></h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 266, Registrador 21-2</span></p>
       <p>Estado de cada pino segundo o valor gravado nos bits <code>PCFG3:PCFG0</code> de <code>ADCON1</code>. <br>
       <strong class="an">A</strong> = Entrada analógica (buffer digital desconectado; leitura em <code>PORTx</code> retorna 0). <br>
       <strong>D</strong> = Entrada/saída digital comum.</p>
@@ -311,8 +324,10 @@
 
     <section>
       <h2>Registradores de controle do conversor A/D</h2>
+      <p class="fonte"><span class="ds">DS39632E, §21.0, p. 265–267</span></p>
 
       <h3>1. <code>ADCON0</code> — Seleção de canal e disparo</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 265, Registrador 21-1</span></p>
       <div class="tabela-rolavel">
       <table class="registrador">
         <thead>
@@ -339,6 +354,7 @@
       </ul>
 
       <h3>2. <code>ADCON1</code> — Referências e portas</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 266, Registrador 21-2</span></p>
       <div class="tabela-rolavel">
       <table class="registrador">
         <thead>
@@ -363,6 +379,7 @@
       </ul>
 
       <h3>3. <code>ADCON2</code> — Formatação de resultado, aquisição e relógio</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 267, Registrador 21-3; T<sub>AD</sub> na p. 271, Tabela 21-1</span></p>
       <div class="tabela-rolavel">
       <table class="registrador">
         <thead>
@@ -391,13 +408,14 @@
         </li>
         <li><code>ACQT2:ACQT0</code>: Tempo que o hardware aguarda o capacitor de amostragem carregar após o <code>GO = 1</code> antes de iniciar a conversão sucessiva.
           <code>000</code> = 0 T<sub>AD</sub>, <code>001</code> = 2 T<sub>AD</sub>, <code>010</code> = 4 T<sub>AD</sub>, <code>011</code> = 6 T<sub>AD</sub>, <code>100</code> = 8 T<sub>AD</sub>, <code>101</code> = 12 T<sub>AD</sub>, <code>110</code> = 16 T<sub>AD</sub>, <code>111</code> = 20 T<sub>AD</sub>. O padrão do curso é <code>010</code> (4 T<sub>AD</sub>).</li>
-        <li><code>ADCS2:ADCS0</code>: Divisor do oscilador do sistema para gerar o período de conversão T<sub>AD</sub>. Para F<sub>OSC</sub> = 16 MHz, a folha de dados exige T<sub>AD</sub> ≥ 0,7 µs.
+        <li><code>ADCS2:ADCS0</code>: Divisor do oscilador do sistema para gerar o período de conversão T<sub>AD</sub>. Para F<sub>OSC</sub> = 16 MHz, a folha de dados exige T<sub>AD</sub> ≥ 0,8 µs (p. 271, Tabela 21-1; p. 405, parâmetro 130).
           O valor <code>101</code> seleciona F<sub>OSC</sub> / 16, resultando em T<sub>AD</sub> = 1,0 µs.</li>
       </ul>
     </section>
 
     <section>
       <h2>Mapeamento de pinos físicos e canais analógicos (DIP 40)</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 2; p. 16–19, Tabela 1-3</span></p>
       <p>Correspondência entre o número do pino físico no encapsulamento DIP de 40 pinos, a porta digital correspondente e o canal analógico. Repare no salto de pinos e na ordem invertida do PORTB:</p>
 
       <div class="tabela-rolavel larga">
@@ -436,6 +454,7 @@
 
     <section>
       <h2>Código de inicialização e leitura recomendado</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 273, §21.6; sequência de conversão no §21.0, p. 269</span></p>
       <pre><code>// 1. Configurar o pino como entrada no TRIS
 TRISAbits.TRISA0 = 1;
 

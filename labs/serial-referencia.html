@@ -57,6 +57,9 @@
     pre, table, .diagrama { break-inside: avoid; }
     .naoimprime { display: none; }
   }
+  .ds { font-size: 0.78rem; color: var(--cinza); white-space: nowrap; }
+  .ds::before { content: "▸ "; }
+  p.fonte { margin: -0.3rem 0 0.6rem; }
 </style>
 
 </head>
@@ -71,7 +74,15 @@
   <main>
 
     <section>
+      <p class="passagem">
+        <span class="rotulo">A fonte</span>
+        Os números desta folha vêm da folha de dados do fabricante, <strong>PIC18F2455/2550/4455/4550 Data Sheet, DS39632E</strong> (Microchip, 2009) — <a href="../2027-1/pdf/39632e.pdf" target="_blank">cópia da revisão citada</a>. As páginas citadas são as impressas no rodapé (“DS39632E-page”); no leitor de PDF, some 2.
+      </p>
+    </section>
+
+    <section>
       <h2>A ideia: quem faz o quê</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 243, §20.0</span></p>
       <p>A EUSART é um periférico que produz o quadro serial sozinho. O programa entrega um byte em <code>TXREG</code> e segue em frente; o hardware o põe no pino RC6, um bit de cada vez, no ritmo do <strong>gerador de taxa</strong>, um temporizador interno com recarga automática. Na recepção, o caminho é o inverso: o hardware monta o byte que chega pelo RC7 e o deixa em <code>RCREG</code>.</p>
 
       <div class="diagrama larga" role="img" aria-label="Diagrama de blocos da transmissão. O programa principal escreve bytes numa fila circular em RAM pelo índice entra. A rotina de interrupção lê da fila pelo índice sai e escreve em TXREG. O hardware passa o byte de TXREG para o registrador de deslocamento, que o põe no pino RC6 bit a bit, no ritmo do gerador de taxa SPBRGH:SPBRG. Quando TXREG fica livre, TXIF vai a 1 e pede a interrupção.">
@@ -161,6 +172,7 @@ linha de telemetria "125300,398,400,1,17\r\n" = 21 bytes
 
     <section>
       <h2>O gerador de taxa é um temporizador</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 247, §20.1 e Tabela 20-1</span></p>
       <p>Um contador conta pulsos do oscilador de <code>n</code> até 0, recarrega <code>n</code> sozinho e recomeça. Cada volta completa é um passo do quadro. O programa não escreve a taxa: escreve <code>n</code>, e a taxa resulta dele. É o mesmo papel do <code>PR2</code> no PWM, também com recarga automática, e por isso todos os bits saem com exatamente a mesma largura.</p>
       <div class="tabela-rolavel larga">
       <table>
@@ -177,6 +189,7 @@ linha de telemetria "125300,398,400,1,17\r\n" = 21 bytes
         <strong>A fórmula usa F<sub>OSC</sub> (16 MHz), não F<sub>CY</sub> (4 MHz).</strong> O "+1" vem de o contador ir de n até 0: são n + 1 passos. E <code>n</code> só vale para o relógio com que foi calculado.</p>
 
       <h3>Conta resolvida: 9600 bit/s a 16 MHz (<code>BRG16 = 1</code>, <code>BRGH = 1</code>)</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 247, Tabela 20-1</span></p>
       <pre class="larga"><code>1. isolar n:      n = 16 000 000 / (4 · 9600) − 1 = 415,67
 2. arredondar:    n = 416                    (o contador só aceita inteiros)
 3. caber:         416 &gt; 255  →  precisa do contador de 16 bits (BRG16 = 1)
@@ -190,6 +203,7 @@ linha de telemetria "125300,398,400,1,17\r\n" = 21 bytes
       regra prática = cada lado abaixo de 2 %</p>
 
       <h3>Tabela pronta a 16 MHz</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 249–250, Tabela 20-3</span></p>
       <div class="tabela-rolavel larga">
       <table>
         <thead><tr><th class="num">Taxa</th><th class="num">16 bits, <code>BRGH = 1</code> (÷4)</th><th class="num">Erro</th><th class="num">8 bits, <code>BRGH = 1</code> (÷16)</th><th class="num">Erro</th><th>Veredito</th></tr></thead>
@@ -222,9 +236,11 @@ linha de telemetria "125300,398,400,1,17\r\n" = 21 bytes
 
     <section>
       <h2>Registradores</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 255, Tabela 20-5; p. 257, Tabela 20-6</span></p>
       <p>Três de configuração (<code>TXSTA</code>, <code>RCSTA</code>, <code>BAUDCON</code>), dois para o divisor (<code>SPBRGH</code>, <code>SPBRG</code>) e dois de dado (<code>TXREG</code>, <code>RCREG</code>). A linha de exemplo é a configuração do curso: 9600 8N1 a 16 MHz.</p>
 
       <h3><code>TXSTA</code> — transmissão</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 244, Registrador 20-1</span></p>
       <div class="tabela-rolavel">
       <table class="registrador">
 <thead><tr><th class="rot"></th><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
@@ -236,6 +252,7 @@ linha de telemetria "125300,398,400,1,17\r\n" = 21 bytes
       </div>
 
       <h3><code>RCSTA</code> — recepção</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 245, Registrador 20-2</span></p>
       <div class="tabela-rolavel">
       <table class="registrador">
 <thead><tr><th class="rot"></th><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
@@ -247,6 +264,7 @@ linha de telemetria "125300,398,400,1,17\r\n" = 21 bytes
       </div>
 
       <h3><code>BAUDCON</code> — controle de taxa</h3>
+      <p class="fonte"><span class="ds">DS39632E, p. 246, Registrador 20-3</span></p>
       <div class="tabela-rolavel">
       <table class="registrador">
 <thead><tr><th class="rot"></th><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
@@ -265,6 +283,7 @@ linha de telemetria "125300,398,400,1,17\r\n" = 21 bytes
 
     <section>
       <h2>As interrupções da EUSART</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 253, §20.2.1; p. 104, Registrador 9-4 (TXIF, RCIF)</span></p>
       <p>São duas fontes, uma por sentido. As duas são <strong>periféricas</strong>: além do bit da fonte, precisam de <code>PEIE</code> e <code>GIE</code>.</p>
       <div class="tabela-rolavel larga">
       <table>
@@ -338,6 +357,7 @@ vazão máxima sustentada         = 960 bytes/s        (acima disso a fila enche
 
     <section>
       <h2>Recepção e seus erros</h2>
+      <p class="fonte"><span class="ds">DS39632E, p. 256, §20.2.2</span></p>
       <p>O receptor guarda até <strong>2 bytes</strong> em <code>RCREG</code> (uma pequena fila em hardware), mais o que está sendo montado no registrador de deslocamento.</p>
       <div class="tabela-rolavel larga">
       <table>
