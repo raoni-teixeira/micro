@@ -25,7 +25,15 @@ No primeiro programa escrevemos `LATDbits.LATD0 = 1` e afirmamos, sem provar,
 que aquilo era uma escrita em memória. Hoje a afirmação vira endereço.
 
 Abra a folha de dados do PIC18F4550 na tabela de registradores de função
-especial e procure `LATD`. Ele está em *0x F8C*.
+especial — Tabela 5-1, p. 68 — e procure `LATD`. Ele está em *0x F8C*.
+
+#nota[
+*A folha de dados deste curso é a DS39632E* (Microchip, 2009), publicada na
+página do curso. Toda citação no material dá a página impressa no rodapé
+("DS39632E-page 68"); no leitor de PDF, a mesma página é a de número dois a
+mais. Ao lado dela, a folha de referência "CPU, memória e pinos" resume esta
+aula com as mesmas citações.
+]
 
 #conceito[
 `LATD` não é uma variável. Nenhuma memória foi reservada para ele, nenhum
@@ -34,7 +42,7 @@ especial e procure `LATD`. Ele está em *0x F8C*.
 gravado, e continuaria existindo se você programasse em assembly ou em Forth.
 
 O `xc.h` não implementa `LATD`. Ele apenas informa ao compilador um endereço que
-está impresso na folha de dados.
+está impresso na folha de dados, na p. 68.
 ]
 
 == A parede do encontro 0, agora legível
@@ -48,7 +56,7 @@ O encontro 0 mostrou esta linha e pediu que vocês não tentassem entendê-la ai
 Agora ela se lê da direita para a esquerda, e cada pedaço já foi apresentado.
 
 #conceito[
-`0x0F8C` — o endereço. Está na tabela de registradores da folha de dados; a §3
+`0x0F8C` — o endereço. Está na Tabela 5-1 da folha de dados (p. 68); a §3
 vai mostrar por que ele tem exatamente três dígitos hexadecimais, e o que isso
 obriga a existir dentro do processador.
 
@@ -101,7 +109,7 @@ Mesmo mecanismo, duas causas.
   fig_pinos(),
   [O objeto do semestre. Dos quarenta pinos, trinta e quatro são de entrada e
   saída; o resto é alimentação, cristal e USB. `LATD0` é o pino 19 — escrever no
-  endereço 0xF8C move elétrons ali.],
+  endereço 0xF8C move elétrons ali. Pinagem do PDIP-40: DS39632E, p. 2.],
 )
 
 A partir daqui, a folha de dados é a autoridade do semestre. Quando ela e o
@@ -118,7 +126,9 @@ material discordarem, ela ganha; quando ela e a placa discordarem, a placa ganha
 )
 
 Isso é uma arquitetura Harvard: instruções e dados em memórias fisicamente
-separadas, com barramentos separados. Duas consequências imediatas.
+separadas, com barramentos separados (DS39632E, §5.0, p. 59; mapa da memória de
+programa na Figura 5-1, p. 59; mapa de dados na Figura 5-5, p. 66; EEPROM no
+§7.0, p. 91). Duas consequências imediatas.
 
 A primeira é que o processador pode buscar a próxima instrução enquanto executa
 a atual, porque as duas buscas não disputam o mesmo barramento. É disso que sai
@@ -178,7 +188,7 @@ da arquitetura nem uma instrução do conjunto.
 
 == A conta que não fecha
 
-Agora abra a codificação da instrução `MOVWF` na folha de dados:
+Agora abra a codificação da instrução `MOVWF` na folha de dados (§26.0, p. 339):
 
 ```text
 MOVWF f, a       0110 111a ffff ffff
@@ -220,8 +230,8 @@ silêncio. Depois disso o BSR é óbvio, e um BSR óbvio nunca mais é decorado.
 
 == O BSR
 
-Existe um registrador de 4 bits chamado *Bank Select Register*. O endereço
-efetivo é a concatenação:
+Existe um registrador de 4 bits chamado *Bank Select Register* (§5.3.2, p. 65;
+Figura 5-6, p. 67). O endereço efetivo é a concatenação:
 
 #align(center)[
   #text(size: 11pt)[
@@ -260,7 +270,8 @@ instrução — com outra solução.
 == O access bank
 
 Trocar de banco toda vez que se toca num SFR seria caro: uma instrução extra
-antes de cada acesso. O bit `a` da instrução existe para evitar isso.
+antes de cada acesso. O bit `a` da instrução existe para evitar isso (§5.3.3,
+p. 67).
 
 #tab(
   columns: (auto, 1fr),
@@ -275,7 +286,7 @@ O mapa fixo divide os 256 valores possíveis de `f` em duas metades desiguais:
   columns: (auto, auto, 1fr),
   [`f`], [Endereço efetivo], [O que se alcança],
   [0x00–0x5F], [0x000–0x05F], [Os 96 primeiros bytes do banco 0 — onde o compilador põe as variáveis mais usadas],
-  [0x60–0xFF], [0xF60–0xFFF], [Os 160 SFRs mais usados],
+  [0x60–0xFF], [0xF60–0xFFF], [Todos os SFRs do 4550, de `UFRML` a `TOSU`],
 )
 
 96 mais 160 é 256. O access bank é uma janela de 256 endereços montada com dois
@@ -298,13 +309,14 @@ O caso (b) é o que o compilador gera, e é por isso que a listagem dele mostra
 uma instrução onde você esperava duas.
 ]
 
-#atencao[
-Nem todo SFR está no access bank. Os que ficam abaixo de 0xF60 — no 4550, os
-registradores de endpoint da USB — só são alcançáveis com `MOVLB 0xF` antes. Se
-o seu código toca a USB e depois um LED, o BSR precisa voltar.
+#nota[
+No PIC18F4550 *todos* os SFRs estão entre 0xF60 e 0xFFF (§5.3.5 e Tabela 5-1,
+p. 68), e a faixa 0xF00–0xF5F é vazia (Figura 5-5, p. 66). Por isso qualquer
+SFR deste chip se alcança pelo access bank, sem tocar no BSR (§5.3.3, p. 67).
 
-Confira a faixa exata na tabela de registradores da folha de dados antes de
-confiar nesta frase.
+Em outros PIC18, com mais periféricos, há SFRs abaixo de 0xF60, e esses só se
+alcançam com `MOVLB 0xF` antes. É uma regra do chip, não da família: confira a
+tabela de registradores de cada um.
 ]
 
 = O que o compilador estava escondendo
@@ -355,7 +367,8 @@ palavra*; aqui ela é legível *no que custa*.
 
 E a última linha da tabela é a mais desconfortável: escrever em 0x0900 compila,
 executa, não avisa e não faz nada. O compilador não tem como saber que aquele
-endereço não existe — o mapa está na folha de dados, não na linguagem.
+endereço não existe — o mapa está na folha de dados (Figura 5-5, p. 66), não na
+linguagem.
 
 É por isso que o simulador do R2 precisa reproduzir a região não implementada em
 vez de ignorá-la: reproduzir o vazio é parte da especificação.
@@ -439,7 +452,8 @@ bank não é apenas "somar 0xF00 quando `f` é grande"?
 ]
 
 #bancada[
-Leve esta folha preenchida e o mapa de memória da folha de dados aberto. O
+Leve esta folha preenchida e o mapa de memória da folha de dados aberto
+(Figura 5-5, p. 66). O
 esqueleto e os testes serão distribuídos no início da sessão; o tempo é curto
 para escrever e conferir a especificação ao mesmo tempo.
 ]

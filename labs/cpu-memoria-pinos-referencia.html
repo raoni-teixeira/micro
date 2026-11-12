@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPU, memória e pinos (PIC18F4550) — Folha de Referência</title>
+<link rel="stylesheet" href="../estilo.css">
+<style>
+  .ref table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin-bottom: 0.8rem; }
+  .ref table th { text-align: left; font-weight: 700; font-size: 0.78rem; vertical-align: bottom;
+                  letter-spacing: 0.04em; border-bottom: 1px solid var(--tinta); padding: 0.3rem 0.4rem 0.3rem 0; }
+  .ref table td { border-bottom: 1px solid var(--regra); padding: 0.25rem 0.4rem 0.25rem 0; vertical-align: middle; }
+  .ref table tr:last-child td { border-bottom: 1px solid var(--tinta); }
+  .ref code:not(pre code) { background: none; padding: 0; font-size: 0.88em; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: center; }
+  .tabela-rolavel { overflow-x: auto; margin-bottom: 1rem; }
+  .formula { font-family: var(--mono); font-size: 0.95rem; background: var(--papel-2); padding: 0.4rem 0.6rem; }
+  pre { background: var(--papel-2); padding: 0.8rem 1rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+  .larga table { min-width: 38rem; }
+  @media (min-width: 58rem) { .larga { width: calc(var(--col) + var(--mg-dx) + var(--mg-larg)); } }
+  .ref table.registrador { table-layout: fixed; font-size: 0.85rem; }
+  .ref table.registrador th, .ref table.registrador td { text-align: center; padding: 0.3rem 0.2rem; border: 1px solid var(--regra); }
+  .ref table.registrador th { border-bottom-color: var(--tinta); color: var(--cinza-c); font-weight: 500; }
+  .registrador .nada { color: var(--cinza-c); }
+  .linha-destaque { background-color: var(--papel-2); }
+  .ds { font-size: 0.78rem; color: var(--cinza); white-space: nowrap; }
+  .ds::before { content: "▸ "; }
+  .alim { color: var(--cinza); }
+  @media print {
+    .pagina { padding-top: 0; }
+    .pagina > main { max-width: none; }
+    .larga { width: auto; }
+    h2 { margin-top: 1rem; }
+    .naoimprime { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="pagina ref">
+
+  <header>
+    <p class="corrente naoimprime"><a href="./index.html">← Laboratório</a><span>Folha de referência</span></p>
+    <h1>CPU, memória e pinos (PIC18F4550) — Folha de Referência</h1>
+    <p class="subtitulo">O processador, os três espaços de memória, os SFRs e o endereço de cada pino</p>
+    <p class="filiacao"><span>Microcontroladores — DENE/UFMT</span><span>Consulta permitida</span></p>
+  </header>
+
+  <main>
+
+    <section>
+      <p class="passagem">
+        <span class="rotulo">A fonte</span>
+        Tudo nesta folha vem da folha de dados do fabricante, <strong>PIC18F2455/2550/4455/4550 Data Sheet, DS39632E</strong>
+        (Microchip, 2009) — <a href="../2027-1/pdf/39632e.pdf" target="_blank">cópia da revisão citada</a>.
+        Cada seção indica a página. Os números de página são os impressos no rodapé do documento
+        (“DS39632E-page&nbsp;68”), não os do leitor de PDF, que estão sempre dois à frente.
+      </p>
+    </section>
+
+    <section>
+      <h2>O processador</h2>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Característica</th><th>PIC18F4550</th><th>Onde está</th></tr></thead>
+        <tbody>
+          <tr><td>Arquitetura</td><td>Harvard: programa e dados em barramentos separados</td><td><span class="ds">p. 59, §5.0</span></td></tr>
+          <tr><td>Largura dos dados</td><td>8 bits; o registrador de trabalho é o <code>WREG</code> (0xFE8)</td><td><span class="ds">p. 68, Tabela 5-1</span></td></tr>
+          <tr><td>Instruções</td><td>75 instruções; quase todas de uma palavra de 16 bits, algumas de duas</td><td><span class="ds">p. 313, §26.0</span></td></tr>
+          <tr><td>Ciclo de instrução</td><td>4 períodos do relógio (Q1 a Q4): T<sub>CY</sub> = 4 / F<sub>OSC</sub>. Com busca e execução sobrepostas, a maioria executa em 1 T<sub>CY</sub></td><td><span class="ds">p. 63, §5.2</span></td></tr>
+          <tr><td>Relógio máximo</td><td>48 MHz (12 milhões de instruções por segundo). No kit: 16 MHz, T<sub>CY</sub> = 250 ns</td><td><span class="ds">p. 1</span></td></tr>
+          <tr><td>Contador de programa</td><td>21 bits (<code>PCU:PCH:PCL</code>); o bit 0 é sempre 0; avança de 2 em 2</td><td><span class="ds">p. 60, §5.1.1</span></td></tr>
+          <tr><td>Pilha de retorno</td><td>31 níveis de 21 bits, fora da RAM; ponteiro <code>STKPTR</code></td><td><span class="ds">p. 60–61, §5.1.2</span></td></tr>
+          <tr><td>Multiplicador</td><td>8 × 8 bits em hardware, resultado em <code>PRODH:PRODL</code></td><td><span class="ds">p. 1; §8.0</span></td></tr>
+          <tr><td>Indicadores da ULA</td><td><code>STATUS</code> (0xFD8): N, OV, Z, DC, C</td><td><span class="ds">p. 73, Registrador 5-2</span></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>O diagrama de blocos do chip inteiro — núcleo, memórias e cada periférico ligado às portas — é a
+      <strong>Figura 1-2</strong>. <span class="ds">p. 11</span></p>
+    </section>
+
+    <section>
+      <h2>Os três espaços de memória</h2>
+      <p>São três memórias separadas, cada uma com o seu próprio endereço zero. O mesmo número, 0x0F8C, significa
+      coisas diferentes em cada uma. <span class="ds">p. 59, §5.0</span></p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th>Espaço</th><th>Tamanho</th><th>Endereços</th><th>O que guarda</th><th>Onde está</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Programa</strong> (Flash)</td><td class="num">32 KB</td><td><code>0x000000–0x007FFF</code></td><td>As instruções: até 16&nbsp;384 de uma palavra</td><td><span class="ds">p. 59, Figura 5-1</span></td></tr>
+          <tr><td><strong>Dados</strong> (RAM e SFRs)</td><td class="num">2 KB + SFRs</td><td><code>0x000–0xFFF</code> (12 bits)</td><td>As variáveis e os registradores de controle</td><td><span class="ds">p. 66, Figura 5-5</span></td></tr>
+          <tr><td><strong>EEPROM de dados</strong></td><td class="num">256 bytes</td><td><code>0x00–0xFF</code>, por <code>EEADR</code></td><td>Valores que sobrevivem ao desligamento</td><td><span class="ds">p. 91, §7.0</span></td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <h3>Memória de programa: endereços fixos</h3>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Endereço</th><th>O que é</th><th>Onde está</th></tr></thead>
+        <tbody>
+          <tr><td><code>0x000000</code></td><td>Vetor de reset: a primeira instrução depois de ligar</td><td><span class="ds">p. 59, §5.1</span></td></tr>
+          <tr><td><code>0x000008</code></td><td>Vetor de interrupção de alta prioridade</td><td><span class="ds">p. 59, §5.1</span></td></tr>
+          <tr><td><code>0x000018</code></td><td>Vetor de interrupção de baixa prioridade</td><td><span class="ds">p. 59, §5.1</span></td></tr>
+          <tr><td><code>0x300000–0x30000D</code></td><td>Bits de configuração (<code>CONFIG1L</code> a <code>CONFIG7H</code>) — o que <code>#pragma config</code> escreve</td><td><span class="ds">p. 292, Tabela 25-1</span></td></tr>
+          <tr><td><code>0x3FFFFE–0x3FFFFF</code></td><td>Identificação do dispositivo (somente leitura)</td><td><span class="ds">p. 292, Tabela 25-1</span></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem"><strong>No kit:</strong> o bootloader ocupa o começo da Flash, incluindo os vetores, e não grava a área de
+      configuração. Por isso <code>#pragma config</code> não tem efeito na XM118.</p>
+
+      <h3>Memória de dados: o mapa de 4096 endereços</h3>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Faixa</th><th>Banco (BSR)</th><th>Conteúdo</th></tr></thead>
+        <tbody>
+          <tr><td><code>0x000–0x05F</code></td><td class="num">0</td><td>RAM de uso geral; também a metade baixa do <em>access bank</em></td></tr>
+          <tr><td><code>0x060–0x3FF</code></td><td class="num">0–3</td><td>RAM de uso geral</td></tr>
+          <tr><td><code>0x400–0x7FF</code></td><td class="num">4–7</td><td>RAM de uso geral, compartilhada com o módulo USB <span class="ds">p. 65, §5.3.1</span></td></tr>
+          <tr><td><code>0x800–0xEFF</code></td><td class="num">8–14</td><td>Não implementada: lê 0</td></tr>
+          <tr><td><code>0xF00–0xF5F</code></td><td class="num">15</td><td>Não implementada: lê 0</td></tr>
+          <tr class="linha-destaque"><td><code>0xF60–0xFFF</code></td><td class="num">15</td><td><strong>SFRs</strong>; também a metade alta do <em>access bank</em></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p><span class="ds">p. 66, Figura 5-5</span></p>
+    </section>
+
+    <section>
+      <h2>O que é um SFR</h2>
+      <p>Um <strong>registrador de função especial</strong> (SFR, <em>Special Function Register</em>) é uma posição da
+      memória de dados que não guarda uma variável sua: ela está ligada a um circuito do chip. Escrever num SFR liga um
+      pino, dispara uma conversão ou configura um temporizador; ler um SFR devolve o estado de um pino ou o resultado de
+      uma medida. Para o processador, é uma posição de memória como qualquer outra — a mesma instrução que grava uma
+      variável grava um SFR. <span class="ds">p. 68, §5.3.5</span></p>
+      <p>No PIC18F4550 os SFRs ocupam <code>0xF60–0xFFF</code>, no topo do banco 15. Endereços sem registrador leem 0.
+      A lista completa, com o endereço de cada um, é a <strong>Tabela 5-1</strong>; os bits de cada registrador e o valor
+      depois do reset estão na <strong>Tabela 5-2</strong>. <span class="ds">p. 68, Tabela 5-1</span> <span class="ds">p. 69–72, Tabela 5-2</span></p>
+    </section>
+
+    <section>
+      <h2>Como uma instrução alcança um endereço de 12 bits</h2>
+      <p>O endereço de dados tem 12 bits, mas a instrução carrega só 8 (o campo <code>f</code>). Os 4 que faltam vêm de
+      um de dois lugares, escolhido pelo bit <code>a</code> da instrução:</p>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Bit <code>a</code></th><th>Endereço efetivo</th><th>Uso</th><th>Onde está</th></tr></thead>
+        <tbody>
+          <tr><td class="num"><code>1</code></td><td><code>BSR&lt;3:0&gt;</code> : <code>f</code></td><td>Qualquer banco; exige <code>MOVLB</code> antes</td><td><span class="ds">p. 65, §5.3.2</span></td></tr>
+          <tr class="linha-destaque"><td class="num"><code>0</code></td><td><em>Access bank</em>: <code>f</code> &lt; 0x60 → <code>0x0f</code>; <code>f</code> ≥ 0x60 → <code>0xFf</code></td><td>RAM baixa e <strong>todos</strong> os SFRs, sem tocar no BSR</td><td><span class="ds">p. 67, §5.3.3</span></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Como todos os SFRs do 4550 estão em <code>0xF60–0xFFF</code>, todos cabem no <em>access bank</em>: ler ou escrever
+      qualquer SFR custa uma instrução, sem trocar de banco. <span class="ds">p. 66, Figura 5-5</span></p>
+    </section>
+
+    <section>
+      <h2>Cada porta: três registradores</h2>
+      <p>Toda porta tem os mesmos três registradores. <span class="ds">p. 113, §10.0</span></p>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th>Registrador</th><th>Escrever</th><th>Ler</th></tr></thead>
+        <tbody>
+          <tr><td><code>TRISx</code></td><td>Direção do pino: <strong>1 = entrada</strong>, <strong>0 = saída</strong></td><td>A direção atual</td></tr>
+          <tr><td><code>LATx</code></td><td>O valor que o pino de saída vai ter</td><td>O último valor escrito (não o pino)</td></tr>
+          <tr><td><code>PORTx</code></td><td>Equivale a escrever em <code>LATx</code></td><td>O nível elétrico <strong>no pino</strong>, agora</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead>
+          <tr><th>Porta</th><th class="num"><code>PORTx</code></th><th class="num"><code>LATx</code></th><th class="num"><code>TRISx</code></th><th>Pinos</th><th>Onde está</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>A</td><td class="num"><code>0xF80</code></td><td class="num"><code>0xF89</code></td><td class="num"><code>0xF92</code></td><td>RA0–RA5 (RA6 só sem cristal)</td><td><span class="ds">p. 113, §10.1</span></td></tr>
+          <tr><td>B</td><td class="num"><code>0xF81</code></td><td class="num"><code>0xF8A</code></td><td class="num"><code>0xF93</code></td><td>RB0–RB7</td><td><span class="ds">p. 116, §10.2</span></td></tr>
+          <tr><td>C</td><td class="num"><code>0xF82</code></td><td class="num"><code>0xF8B</code></td><td class="num"><code>0xF94</code></td><td>RC0–RC2, RC4–RC7 (não existe RC3)</td><td><span class="ds">p. 119, §10.3</span></td></tr>
+          <tr class="linha-destaque"><td>D</td><td class="num"><code>0xF83</code></td><td class="num"><code>0xF8C</code></td><td class="num"><code>0xF95</code></td><td>RD0–RD7</td><td><span class="ds">p. 122, §10.4</span></td></tr>
+          <tr><td>E</td><td class="num"><code>0xF84</code></td><td class="num"><code>0xF8D</code></td><td class="num"><code>0xF96</code></td><td>RE0–RE2; RE3 só entrada</td><td><span class="ds">p. 125, §10.5</span></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p><span class="ds">p. 68, Tabela 5-1</span></p>
+
+      <p class="passagem">
+        <span class="rotulo">Do pino ao endereço</span>
+        O pino 19 é <code>RD0</code> (p. 2). Ele é o bit 0 da porta D. Para pôr 1 nele, escreve-se 1 no bit 0 de
+        <code>LATD</code>, que está em <code>0xF8C</code> (p. 68). Como 0xF8C ≥ 0xF60, o <em>access bank</em> o alcança
+        com <code>f</code> = 0x8C e <code>a</code> = 0: a instrução é <code>BSF 0x8C, 0, 0</code>. Em C, as três formas
+        abaixo geram essa mesma instrução.
+      </p>
+<pre><code>LATDbits.LATD0 = 1;                          // nome do xc.h
+LATD |= 0x01;                                // o registrador inteiro
+(*(volatile unsigned char *)0xF8C) |= 0x01;  // o endereço cru</code></pre>
+    </section>
+
+    <section>
+      <h2>Os 40 pinos (PDIP)</h2>
+      <p>Pinagem do encapsulamento de 40 pinos e funções de cada pino. A descrição de cada função está na
+      <strong>Tabela 1-3</strong>, e o que cada porta faz em cada função, nas tabelas 10-1, 10-3, 10-5, 10-7 e 10-9.
+      <span class="ds">p. 2</span> <span class="ds">p. 16–19, Tabela 1-3</span></p>
+      <div class="tabela-rolavel larga">
+      <table>
+        <thead><tr><th class="num">Pino</th><th>Porta e bit</th><th>Outras funções</th><th>No kit XM118</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td><code>RE3</code> (só entrada)</td><td>MCLR, V<sub>PP</sub></td><td>Reset</td></tr>
+          <tr><td class="num">2</td><td><code>RA0</code></td><td>AN0</td><td>LM35, pela chave CH1-7</td></tr>
+          <tr><td class="num">3</td><td><code>RA1</code></td><td>AN1</td><td>Potenciômetro P1, pela chave CH1-1</td></tr>
+          <tr><td class="num">4</td><td><code>RA2</code></td><td>AN2, V<sub>REF−</sub>, CV<sub>REF</sub></td><td>—</td></tr>
+          <tr><td class="num">5</td><td><code>RA3</code></td><td>AN3, V<sub>REF+</sub></td><td>—</td></tr>
+          <tr><td class="num">6</td><td><code>RA4</code></td><td>T0CKI, C1OUT, RCV</td><td>Também recebe o tacômetro</td></tr>
+          <tr><td class="num">7</td><td><code>RA5</code></td><td>AN4, SS, HLVDIN, C2OUT</td><td>—</td></tr>
+          <tr><td class="num">8</td><td><code>RE0</code></td><td>AN5, CK1SPP</td><td rowspan="3">Linhas de controle do display (a verificar)</td></tr>
+          <tr><td class="num">9</td><td><code>RE1</code></td><td>AN6, CK2SPP</td></tr>
+          <tr><td class="num">10</td><td><code>RE2</code></td><td>AN7, OESPP</td></tr>
+          <tr class="alim"><td class="num">11</td><td>V<sub>DD</sub></td><td>Alimentação</td><td></td></tr>
+          <tr class="alim"><td class="num">12</td><td>V<sub>SS</sub></td><td>Terra</td><td></td></tr>
+          <tr><td class="num">13</td><td>—</td><td>OSC1, CLKI</td><td rowspan="2">Cristal</td></tr>
+          <tr><td class="num">14</td><td><code>RA6</code></td><td>OSC2, CLKO</td></tr>
+          <tr><td class="num">15</td><td><code>RC0</code></td><td>T1OSO, T13CKI</td><td>Tacômetro, pela chave CH3-1</td></tr>
+          <tr><td class="num">16</td><td><code>RC1</code></td><td>T1OSI, CCP2, UOE</td><td>Aquecedor e lâmpada</td></tr>
+          <tr><td class="num">17</td><td><code>RC2</code></td><td>CCP1, P1A</td><td>Cooler, pela chave CH3-5</td></tr>
+          <tr class="alim"><td class="num">18</td><td>V<sub>USB</sub></td><td>Regulador interno da USB</td><td></td></tr>
+          <tr><td class="num">19</td><td><code>RD0</code></td><td>SPP0</td><td rowspan="4">LEDs, ativos em nível baixo</td></tr>
+          <tr><td class="num">20</td><td><code>RD1</code></td><td>SPP1</td></tr>
+          <tr><td class="num">21</td><td><code>RD2</code></td><td>SPP2</td></tr>
+          <tr><td class="num">22</td><td><code>RD3</code></td><td>SPP3</td></tr>
+          <tr><td class="num">23</td><td><code>RC4</code> (só entrada)</td><td>D−, VM</td><td rowspan="2">USB (bootloader)</td></tr>
+          <tr><td class="num">24</td><td><code>RC5</code> (só entrada)</td><td>D+, VP</td></tr>
+          <tr><td class="num">25</td><td><code>RC6</code></td><td>TX, CK</td><td rowspan="2">Serial RS-232, DB9 (chaves CH4-7 e CH4-8 a verificar)</td></tr>
+          <tr><td class="num">26</td><td><code>RC7</code></td><td>RX, DT, SDO</td></tr>
+          <tr><td class="num">27</td><td><code>RD4</code></td><td>SPP4</td><td rowspan="4">LEDs, ativos em nível baixo; dados do display</td></tr>
+          <tr><td class="num">28</td><td><code>RD5</code></td><td>SPP5, P1B</td></tr>
+          <tr><td class="num">29</td><td><code>RD6</code></td><td>SPP6, P1C</td></tr>
+          <tr><td class="num">30</td><td><code>RD7</code></td><td>SPP7, P1D</td></tr>
+          <tr class="alim"><td class="num">31</td><td>V<sub>SS</sub></td><td>Terra</td><td></td></tr>
+          <tr class="alim"><td class="num">32</td><td>V<sub>DD</sub></td><td>Alimentação</td><td></td></tr>
+          <tr><td class="num">33</td><td><code>RB0</code></td><td>AN12, INT0, FLT0, SDI, SDA</td><td>Botão SW12</td></tr>
+          <tr><td class="num">34</td><td><code>RB1</code></td><td>AN10, INT1, SCK, SCL</td><td>Botão de INT1</td></tr>
+          <tr><td class="num">35</td><td><code>RB2</code></td><td>AN8, INT2, VMO</td><td>Botão de INT2</td></tr>
+          <tr><td class="num">36</td><td><code>RB3</code></td><td>AN9, CCP2 (alternativo), VPO</td><td rowspan="5">Chaves SWITCHS e teclado; todos com resistor externo</td></tr>
+          <tr><td class="num">37</td><td><code>RB4</code></td><td>AN11, KBI0, CSSPP</td></tr>
+          <tr><td class="num">38</td><td><code>RB5</code></td><td>KBI1, PGM</td></tr>
+          <tr><td class="num">39</td><td><code>RB6</code></td><td>KBI2, PGC</td></tr>
+          <tr><td class="num">40</td><td><code>RB7</code></td><td>KBI3, PGD</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="margem"><strong>A coluna “No kit” é medida, não manual:</strong> ela vem das verificações de bancada e do mapa das
+      chaves do R1. Onde diz “a verificar”, o mapa da turma ainda não fechou. O manual da Exsto tem erros conhecidos
+      (SW1 no lugar de SW9; SW4 no lugar de SW12; CH3-2 no lugar de CH3-1).</p>
+    </section>
+
+    <section>
+      <h2>Registradores do núcleo, por endereço</h2>
+      <p>Os que aparecem nas primeiras aulas. <span class="ds">p. 68, Tabela 5-1</span></p>
+      <div class="tabela-rolavel">
+      <table>
+        <thead><tr><th class="num">Endereço</th><th>Nome</th><th>Função</th></tr></thead>
+        <tbody>
+          <tr><td class="num"><code>0xFFD–0xFFF</code></td><td><code>TOSL/TOSH/TOSU</code></td><td>Topo da pilha de retorno</td></tr>
+          <tr><td class="num"><code>0xFFC</code></td><td><code>STKPTR</code></td><td>Ponteiro da pilha</td></tr>
+          <tr><td class="num"><code>0xFF9–0xFFB</code></td><td><code>PCL/PCLATH/PCLATU</code></td><td>Contador de programa (byte baixo e travas dos altos)</td></tr>
+          <tr><td class="num"><code>0xFF5–0xFF8</code></td><td><code>TABLAT/TBLPTRL/H/U</code></td><td>Leitura de tabela na memória de programa (usada no R0)</td></tr>
+          <tr><td class="num"><code>0xFF2</code></td><td><code>INTCON</code></td><td>Controle de interrupções</td></tr>
+          <tr><td class="num"><code>0xFE8</code></td><td><code>WREG</code></td><td>Registrador de trabalho</td></tr>
+          <tr><td class="num"><code>0xFE0</code></td><td><code>BSR</code></td><td>Seleção de banco</td></tr>
+          <tr><td class="num"><code>0xFD8</code></td><td><code>STATUS</code></td><td>Indicadores da ULA</td></tr>
+          <tr><td class="num"><code>0xFD3</code></td><td><code>OSCCON</code></td><td>Fonte de relógio em execução</td></tr>
+          <tr><td class="num"><code>0xFC1</code></td><td><code>ADCON1</code></td><td>Pinos analógicos ou digitais (o bootloader deixa 0x07)</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Bits de configuração do relógio: <code>CONFIG1L</code> (0x300000)</h2>
+      <div class="tabela-rolavel">
+      <table class="registrador">
+        <thead><tr><th>b7</th><th>b6</th><th>b5</th><th>b4</th><th>b3</th><th>b2</th><th>b1</th><th>b0</th></tr></thead>
+        <tbody><tr>
+          <td class="nada">—</td><td class="nada">—</td><td><code>USBDIV</code></td>
+          <td colspan="2"><code>CPUDIV1:0</code></td><td colspan="3"><code>PLLDIV2:0</code></td>
+        </tr></tbody>
+      </table>
+      </div>
+      <ul>
+        <li><code>PLLDIV</code>: divide o cristal para entregar 4 MHz ao PLL. <code>100</code> = ÷5 (cristal de 20 MHz); <code>111</code> = ÷12 (48 MHz).</li>
+        <li><code>CPUDIV</code>: divide o relógio do processador; com PLL, <code>00</code> = 96 MHz ÷ 2 … <code>11</code> = 96 MHz ÷ 6.</li>
+        <li><code>USBDIV</code>: <code>1</code> = a USB recebe o PLL de 96 MHz ÷ 2.</li>
+      </ul>
+      <p><span class="ds">p. 292, Tabela 25-1</span> <span class="ds">p. 293, Registrador 25-1</span> <span class="ds">p. 24, Figura 2-1</span></p>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>Raoni F. S. Teixeira</span>
+    <span>DENE/UFMT</span>
+  </footer>
+
+</div>
+</body>
+</html>

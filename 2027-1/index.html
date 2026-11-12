@@ -31,19 +31,19 @@
       <ol class="lista lista--larga">
         <li><span class="cod">Aula 0</span><span class="item"><a href="./pdf/aula0-como-se-programa.pdf" target="_blank">Como se programa um microcontrolador</a></span></li>
         <li><span class="cod">Aula 1</span><span class="item"><a href="./pdf/aula1-memoria-e-datasheet.pdf" target="_blank">Memória e datasheet</a></span></li>
-        <li><span class="cod">Aula 2</span><span class="item"><a href="./pdf/aula2-clock-e-execucao.pdf" target="_blank">PC e o ciclo de busca-execução</a></span></li>
+        <li><span class="cod">Aula 2</span><span class="item"><a href="./pdf/aula2-clock-e-execucao.pdf" target="_blank">O relógio e o ciclo de busca-execução</a></span></li>
         <li><span class="cod">Aula 3</span><span class="item"><a href="./pdf/aula3-paralelo-e-display.pdf" target="_blank">Barramento paralelo e o HD44780</a></span></li>
         <li><span class="cod">Aula 4</span><span class="item">Entrada digital: o pino como sensor <span class="vazio">— em preparação</span></span></li>
         <li><span class="cod">Aula 5</span><span class="item">Aquisição analógica: ADC e LM35 <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">Aula 6</span><span class="item">Temporizadores e razão cíclica <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">Aula 6</span><span class="item">Temporizadores e PWM <span class="vazio">— em preparação</span></span></li>
         <li><span class="cod">Aula 7</span><span class="item">Avaliação integradora I <span class="vazio">— em preparação</span></span></li>
         <li><span class="cod">Aula 8</span><span class="item">Interrupções: o mesmo botão, sem varredura <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">Aula 9</span><span class="item">Estágio de potência e atuadores <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">Aula 9</span><span class="item">Estágio de potência: do ECCP do PIC ao TIM1 do STM32 <span class="vazio">— em preparação</span></span></li>
         <li><span class="cod">Aula 10</span><span class="item">Controle liga-desliga e histerese <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">Aula 11</span><span class="item">Comunicação serial <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">Aula 12</span><span class="item">I²C e memória não volátil <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">Aula 13</span><span class="item">Avaliação integradora II <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">Aula 14</span><span class="item">Controle embarcado na prática <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">Aula 11</span><span class="item">Comunicação serial: UART e I²C <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">Aula 12</span><span class="item">Avaliação integradora II <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">Aula 13</span><span class="item">Arquitetura de firmware e RTOS (STM32) <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">Aula 14</span><span class="item">Controle e IA embarcada (STM32) <span class="vazio">— em preparação</span></span></li>
         <li><span class="cod">Aula 15</span><span class="item">Seminários comparativos e encerramento <span class="vazio">— em preparação</span></span></li>
       </ol>
     </section>
@@ -55,18 +55,32 @@
         <li><span class="cod">R1</span><span class="item"><a href="./pdf/R1-o-kit-xm118.pdf" target="_blank">O mapa das chaves (sem nota)</a></span></li>
         <li><span class="cod">R2</span><span class="item"><a href="./pdf/R2-memoria-em-python.pdf" target="_blank">Memória em Python</a></span></li>
         <li><span class="cod">R3</span><span class="item"><a href="./pdf/R3-pino-tempo-osciloscopio.pdf" target="_blank">Pino, tempo e osciloscópio</a></span></li>
-        <li><span class="cod">R4</span><span class="item"><a href="./pdf/R4-display-hd44780.pdf" target="_blank">Display HD44780</a></span></li>
-        <li><span class="cod">R5</span><span class="item">Entrada digital na protoboard: chip nu, pull-up, repique <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">R6</span><span class="item">ADC e LM35 no display <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">R7</span><span class="item">PWM no cooler <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">Prática I</span><span class="item">Avaliação prática I (bancada, encontro 8) <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">R8</span><span class="item">Interrupções e teclado matricial <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">R9</span><span class="item">O aquecedor e o estágio de potência <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">R4</span><span class="item"><a href="./pdf/R4-display-hd44780.pdf" target="_blank">O seu driver do display</a></span></li>
+        <li><span class="cod">R5</span><span class="item">Botões e repique <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">R6</span><span class="item">Temperatura no display e primeira coleta <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">R7</span><span class="item">Tique, tacômetro e PWM no cooler <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">K1</span><span class="item">Do kit ao esquemático, no KiCad <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">R8</span><span class="item">Interrupções <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">R9</span><span class="item">PWM e meia-ponte no inversor <span class="vazio">— em preparação</span></span></li>
         <li><span class="cod">R10</span><span class="item">Termostato liga-desliga: oscilação e acionamentos por hora <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">R11</span><span class="item">Telemetria UART <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">R12</span><span class="item">Setpoint na EEPROM interna e na I²C <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">Prática II</span><span class="item">Avaliação prática II (bancada, encontro 14) <span class="vazio">— em preparação</span></span></li>
-        <li><span class="cod">R13</span><span class="item">Sintonia PI contra a planta simulada <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">R11</span><span class="item">Serial nos dois sentidos e EEPROM <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">Folga</span><span class="item">Fechamento do termostato com os próprios módulos</span></li>
+        <li><span class="cod">S1</span><span class="item">STM32: telemetria sem bloquear <span class="vazio">— em preparação</span></span></li>
+        <li><span class="cod">S2</span><span class="item">STM32: vibração e IA <span class="vazio">— em preparação</span></span></li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Folha de dados e folhas de referência</h2>
+      <ol class="lista lista--larga">
+        <li><span class="cod">DS</span><span class="item"><a href="./pdf/39632e.pdf" target="_blank">PIC18F2455/2550/4455/4550 Data Sheet, DS39632E (Microchip, 2009)</a><span class="glosa">A revisão citada em todo o material. As páginas citadas são as do rodapé (“DS39632E-page”); no leitor de PDF, some 2.</span></span></li>
+        <li><span class="cod">Aula 1</span><span class="item"><a href="../labs/cpu-memoria-pinos-referencia.html">CPU, memória e pinos — SFRs, mapa de dados e o endereço de cada pino</a></span></li>
+        <li><span class="cod">R4</span><span class="item"><a href="../labs/hd44780-referencia.html">HD44780 — tempos, comandos e endereços da tela</a></span></li>
+        <li><span class="cod">R6</span><span class="item"><a href="../labs/adc-referencia.html">Conversor A/D — registradores, tabela PCFG e referências</a></span></li>
+        <li><span class="cod">R7</span><span class="item"><a href="../labs/timers-referencia.html">Temporizadores — T0CON, T1CON, T2CON, pré-carga e contagem externa</a></span></li>
+        <li><span class="cod">R8</span><span class="item"><a href="../labs/interrupcoes-referencia.html">Interrupções — fontes, registradores e a rotina de tratamento</a></span></li>
+        <li><span class="cod">R9</span><span class="item"><a href="../labs/pwm-referencia.html">PWM e estágio de potência — período, resolução e CCP1CON</a></span></li>
+        <li><span class="cod">R11</span><span class="item"><a href="../labs/serial-referencia.html">Comunicação serial — EUSART e gerador de taxa</a> · <a href="../labs/i2c-referencia.html">I²C e memória não volátil</a></span></li>
       </ol>
     </section>
 

@@ -321,8 +321,8 @@ não há tradução nenhuma no meio.
 
 = Os periféricos: o mapa do curso
 
-A folha de dados do PIC18F4550 traz um diagrama de blocos do chip: o núcleo no
-centro, a memória ao lado, e em volta dele os periféricos ligados às portas.
+A folha de dados do PIC18F4550 — a DS39632E, publicada na página do curso —
+traz um diagrama de blocos do chip na Figura 1-2, p. 11: o núcleo no centro, a memória ao lado, e em volta dele os periféricos ligados às portas.
 Projetado na tela, esse diagrama é o mapa do semestre. Cada bloco recebe uma
 frase hoje e uma aula depois.
 
@@ -695,7 +695,8 @@ há ninguém escutando.
 == Os bits de configuração
 
 Além da memória de programa, o PIC18F4550 tem uma pequena área de *bits de
-configuração*, a partir do endereço 0x300000. Eles decidem coisas que precisam
+configuração*, a partir do endereço 0x300000 (DS39632E, §25.1, Tabela 25-1,
+p. 292). Eles decidem coisas que precisam
 estar resolvidas antes de a primeira instrução executar, e que o programa não
 muda enquanto roda:
 
@@ -717,7 +718,7 @@ precisou ter no programa da demonstração:
 
 void main(void)
 {
-    OSCCONbits.IRCF = 0b111;         // 8 MHz; o reset deixa em 1 MHz
+    OSCCONbits.IRCF = 0b111;         // 8 MHz; o reset deixa em 1 MHz (p. 33)
     /* ... o mesmo pisca de antes ... */
 }
 ```
