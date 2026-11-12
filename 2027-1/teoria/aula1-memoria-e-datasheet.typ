@@ -1,5 +1,5 @@
 // 2027/1 — base: teoria/aula1-memoria-e-datasheet.typ (2026/2).
-// Referencias internas (aula N, RN) ainda na numeracao de 2026/2: revisar.
+// Revisada em 12/11/2026: numeração de 2027/1 e contraste com o Cortex-M.
 
 // Aula 1 — Memória e a folha de dados
 // Microcontroladores — DENE/UFMT — Raoni F. S. Teixeira
@@ -92,7 +92,7 @@ ligada, que é o pior modo de um defeito se apresentar.
 
 #docente[
 Vale antecipar aqui que essa é exatamente a discussão de `volatile` do encontro
-7, onde quem muda o valor é o tratamento de interrupção em vez do mundo externo.
+8, onde quem muda o valor é o tratamento de interrupção em vez do mundo externo.
 Mesmo mecanismo, duas causas.
 ]
 ]
@@ -135,7 +135,8 @@ A segunda aparece no seu código. Num computador, uma tabela `const` e um vetor
 comum moram no mesmo espaço, e um ponteiro serve para os dois. Aqui a tabela
 está na Flash e o vetor na RAM, e chegar a cada um exige uma instrução
 diferente. Uma tabela de constantes grande demais para a RAM é lida com `TBLRD`,
-que é outro mecanismo — voltaremos a ele quando a tabela existir.
+que é outro mecanismo. O R0 já usou `TBLRD` sem explicar, para ler os bits de
+configuração em 0x300000: eles moram no espaço de programa, não no de dados.
 
 #nota[
 A EEPROM é o caso mais claro de "memória que não é endereço". Você não escreve
@@ -239,8 +240,21 @@ quebra o código que vier depois, e a quebra é silenciosa — o programa escrev
 endereço certo do banco errado.
 
 Este é o primeiro exemplo do semestre de estado global implícito. O último será
-a mesma coisa com interrupções, no encontro 7, e lá o dano é pior porque o
+a mesma coisa com interrupções, no encontro 8, e lá o dano é pior porque o
 momento da quebra é imprevisível.
+]
+
+#nota[
+*A mesma pergunta, noutro processador.* No Cortex-M do STM32 que aparece no fim
+do semestre, o endereço tem 32 bits e o espaço tem 4 GB, com a RAM, a Flash e os
+periféricos no mesmo mapa. Não existe banco: o pino de saída da porta A da
+Nucleo-F401RE mora em 0x40020014, e a instrução não tenta carregar esse número.
+Ela usa um registrador que já contém o endereço inteiro.
+
+O custo não desapareceu, mudou de lugar. Para escrever num periférico o
+processador primeiro carrega os 32 bits do endereço num registrador, e só então
+escreve. É o mesmo problema desta aula — um endereço largo demais para caber na
+instrução — com outra solução.
 ]
 
 == O access bank
@@ -280,8 +294,8 @@ alcança essa janela sem tocar no BSR.
 (b) `MOVWF 0x8C, 0` — uma instrução. Como 0x8C #sym.gt.eq 0x60, o access bank o
 mapeia para 0xF8C, que é exatamente o que se queria.
 
-O caso (b) é o que o compilador gera, e é por isso que a listagem do encontro 0
-tinha uma instrução onde você esperava duas.
+O caso (b) é o que o compilador gera, e é por isso que a listagem dele mostra
+uma instrução onde você esperava duas.
 ]
 
 #atencao[
@@ -354,7 +368,7 @@ níveis, é de hardware, guarda só endereços de retorno, e não está no espa�
 dados. Ela não serve para variáveis.
 
 A consequência prática — funções não reentrantes — só morde quando existe
-interrupção, e por isso fica para o encontro 7. Registre o fato agora.
+interrupção, e por isso fica para o encontro 8. Registre o fato agora.
 ]
 
 = A memória de programa

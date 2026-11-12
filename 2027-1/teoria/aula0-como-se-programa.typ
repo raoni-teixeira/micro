@@ -1,23 +1,23 @@
-// 2027/1 — base: teoria/aula0-como-se-programa.typ (2026/2).
-// Referencias internas (aula N, RN) ainda na numeracao de 2026/2: revisar.
-
 // Aula 0 — Como se programa um microcontrolador
 // Microcontroladores — DENE/UFMT — Raoni F. S. Teixeira
-// typst compile aula0-como-se-programa.typ aula0-como-se-programa.pdf
-// typst compile aula0-como-se-programa.typ aula0-como-se-programa-gab.pdf --input gab=1
+// 2027/1 — revisada em 12/11/2026: mesa de micros, periféricos como mapa do
+// curso, bits de configuração, duas placas (PIC e STM32), calendário novo.
+// typst compile --root . aula0-como-se-programa.typ
+// typst compile --root . --input gab=1 aula0-como-se-programa.typ aula0-como-se-programa-gab.pdf
 
 #import "estilo.typ": *
 #show: conf.with(
   titulo: "Aula 0 — Como se programa um microcontrolador",
-  subtitulo: "Um chip nu, um kit e o mesmo LED",
+  subtitulo: "Seis placas, um chip nu e o mesmo LED",
 )
 
 #objetivos[
-- Reconhecer o que distingue um microcontrolador de um computador de mesa, e identificar no chip nu os elementos mínimos para que ele execute código.
+- Separar *chip*, *placa* e *ecossistema*, e reconhecer na mesa de demonstração o microcontrolador de cada placa.
+- Explicar o que distingue um microcontrolador de um computador, usando a unidade de gerenciamento de memória como fronteira.
+- Ler o diagrama de blocos de um microcontrolador como um mapa: nomear cada periférico em uma frase e localizar a aula que o abre.
 - Escrever a mesma lógica em Python e em C, e apontar o que desaparece na travessia: a biblioteca, o sistema operacional e o retorno de `main`.
-- Explicar por que a saída de um programa embarcado é um pino, e por que escrever num pino é escrever numa posição de memória.
-- Descrever a cadeia que leva do arquivo `.c` ao conteúdo da memória de programa, e distinguir os dois caminhos de gravação disponíveis.
-- Situar o próprio trabalho no semestre: reconhecer o termostato como artefato final e o calendário de entregas e avaliações.
+- Descrever os dois caminhos de gravação e explicar por que, neste kit, `#pragma config` não tem efeito.
+- Situar o próprio trabalho no semestre: as duas placas, o termostato e o formato dos roteiros.
 ]
 
 = O curso
@@ -33,39 +33,53 @@ descreve, e a teoria existe porque o laboratório iria falhar sem ela. Você pod
 ser aprovado em uma e reprovado na outra, mas não vai passar em nenhuma
 tratando-as como assuntos separados.
 
-Uma mudança em relação aos semestres anteriores: *o laboratório implementa a
-teoria da semana anterior*, não a do mesmo dia. Os dois primeiros roteiros, R0 e
-R1, são introdutórios e não valem nota; a partir do R2 o laboratório anda um
-encontro atrás da teoria. O motivo é dar uma semana de decantação entre ouvir e
-fazer — e permitir que o miniteste da semana seguinte cobre o que você *fez*, e
-não só o que ouviu.
+*O laboratório implementa a teoria da semana anterior*, não a do mesmo dia. Os
+dois primeiros roteiros, R0 e R1, são introdutórios e não valem nota; a partir
+do R2 o laboratório anda um encontro atrás da teoria. O motivo é dar uma semana
+de decantação entre ouvir e fazer — e permitir que o miniteste da semana
+seguinte cobre o que você *fez*, e não só o que ouviu.
+
+== Duas placas
+
+O curso usa dois microcontroladores, e cada um tem um papel.
+
+#tab(
+  columns: (auto, 1fr, auto),
+  [Placa], [Papel], [Onde],
+  [PIC18F4550, no kit XM118], [A máquina que se enxerga inteira: memória, ciclos, pinos e periféricos, um registrador por vez], [encontros 0 a 12; R0 a R11],
+  [STM32F401, na Nucleo-F401RE], [A máquina que resolve o que o PIC não resolve: PWM trifásico, DMA, sistema operacional de tempo real, ponto flutuante, inferência de redes], [encontros 9, 13 e 14; S1 e S2],
+)
+
+Nenhum conceito é dado duas vezes. O STM32 não repete o que o PIC já ensinou: ele
+aparece quando o PIC chega a um limite que vocês mediram.
 
 == O que vamos construir
 
 O curso não é uma coleção de experimentos. É *um* artefato, construído em
-camadas: um termostato digital. Cada roteiro acrescenta uma camada ao mesmo
-código, e o código de referência é publicado depois de cada sessão — de modo que
-quem tropeçou numa semana não fica travado na seguinte.
+camadas: um termostato digital. Cada roteiro acrescenta um módulo ao mesmo
+código, escrito por você. Um módulo de referência é publicado depois de cada
+sessão, para que quem tropeçou numa semana não fique travado na seguinte.
 
 #tab(
   columns: (auto, 1fr),
-  [Camada], [O que passa a existir],
+  [Roteiro], [O que passa a existir],
   [R3], [Um pino que liga e desliga em tempo controlado],
-  [R4], [Uma tela que mostra números],
-  [R5], [Uma temperatura lida do mundo real],
-  [R6], [Um relógio que não depende do laço, e um contador de eventos],
-  [R7], [Um programa que atende eventos na hora certa, sem esperar],
-  [R8], [Uma saída proporcional, não apenas ligada ou desligada],
-  [R9], [Uma decisão automática, e um vigia em silício que não depende dela],
-  [R10], [Um registro do que aconteceu, enviado para fora],
-  [R11], [Uma memória que sobrevive a desligar a placa],
-  [R13], [Um controle que não fica oscilando em torno do alvo],
-  [TP], [O termostato inteiro, com aquecedor e cooler por PWM, apresentado e defendido],
+  [R4], [Uma tela que mostra números — o seu driver do display],
+  [R5], [Um botão que é lido uma vez por aperto, apesar do repique],
+  [R6], [Uma temperatura lida do mundo real, e a primeira coleta de dados no computador],
+  [R7], [Um relógio que não depende do laço, um contador de voltas e uma saída proporcional],
+  [K1], [O esquemático de um pedaço do kit, desenhado no KiCad e conferido com o multímetro],
+  [R8], [Um programa que atende eventos na hora certa, sem esperar],
+  [R9], [Uma meia-ponte de potência, acionada pelo PIC num inversor de verdade],
+  [R10], [Uma decisão automática que não destrói o relé],
+  [R11], [Uma conversa nos dois sentidos com o computador, e um alvo que sobrevive a desligar a placa],
+  [S1], [No STM32: telemetria que não trava o processador],
+  [S2], [No STM32: uma rede neural que reconhece a ventoinha com defeito],
 )
 
 Ao final, o objeto na sua bancada é o mesmo que existe dentro de uma estufa, de
-uma incubadora ou de um #box[ar-condicionado] inverter. Não é um modelo reduzido dele:
-é ele.
+uma incubadora ou de um #box[ar-condicionado] inverter. Não é um modelo reduzido
+dele: é ele.
 
 == Calendário
 
@@ -73,29 +87,28 @@ uma incubadora ou de um #box[ar-condicionado] inverter. Não é um modelo reduzi
 #tab(
   columns: (auto, 1.15fr, 1.15fr, auto),
   [\#], [Teoria], [Laboratório], [Miniteste],
-  [0],  [Como se programa um microcontrolador], [R0 — C, do PC ao micro; binário e hexa], [—],
-  [1],  [Memória e folha de dados], [R1 — o kit XM118: componentes, medidas, bits], [M1],
-  [2],  [PC e ciclo de busca-execução; o pino como endereço], [R2 — classe de memória em Python], [M2],
-  [3],  [Barramento paralelo e o controlador HD44780], [R3 — LED, atraso e frequência (osciloscópio)], [M3],
-  [4],  [Aquisição analógica: ADC e LM35], [R4 — display HD44780 em quatro bits], [M4],
-  [5],  [Temporizadores], [R5 — entrada digital, ADC e LM35 no display], [M5],
-  [6],  [*Avaliação integradora I*], [R6 — temporizadores: medir e contar], [—],
-  [7],  [Interrupções e ruído de contato], [*TP, parte 1 — o painel*], [M7],
-  [8],  [PWM e estágio de potência], [R7 — interrupções, botões e repique], [M8],
-  [9],  [Controle liga-desliga, histerese e comparação analógica], [R8 — PWM na ventoinha e no buzzer], [M9],
-  [10], [Comunicação serial], [R9 — liga-desliga, histerese e comparador], [M10],
-  [11], [Barramento serial síncrono: I#super[2]C e memória não volátil], [R10 — telemetria por UART], [M11],
-  [12], [*Avaliação integradora II*], [R11 — setpoint em memória não volátil], [—],
-  [13], [Controle embarcado na prática: do liga-desliga ao PI], [*Avaliação prática*], [—],
-  [14], [*Seminários comparativos*], [R13 — sintonia contra planta simulada], [—],
-  [15], [*Seminários comparativos* e encerramento], [*TP, parte 2 — o termostato*], [—],
+  [0],  [Como se programa um microcontrolador], [R0 — C, do PC ao micro], [—],
+  [1],  [Memória e folha de dados], [R1 — o mapa das chaves, com multímetro], [M1],
+  [2],  [O relógio e o ciclo de busca-execução], [R2 — classe de memória em Python], [M2],
+  [3],  [Barramento paralelo e o HD44780], [R3 — pino, tempo e osciloscópio], [M3],
+  [4],  [Entrada digital: o pino como sensor], [R4 — o seu driver do display], [M4],
+  [5],  [Aquisição analógica: ADC e LM35], [R5 — botões e repique], [M5],
+  [6],  [Temporizadores e PWM], [R6 — temperatura no display e primeira coleta], [M6],
+  [7],  [*Avaliação integradora I*], [R7 — tique, tacômetro e PWM no cooler], [—],
+  [8],  [Interrupções], [K1 — do kit ao esquemático, no KiCad], [M8],
+  [9],  [Estágio de potência: do ECCP do PIC ao TIM1 do STM32], [R8 — interrupções], [M9],
+  [10], [Controle liga-desliga e histerese], [R9 — PWM e meia-ponte no inversor], [M10],
+  [11], [Comunicação serial: UART e I#super[2]C], [R10 — termostato liga-desliga], [M11],
+  [12], [*Avaliação integradora II*], [R11 — serial nos dois sentidos e EEPROM], [—],
+  [13], [Arquitetura de firmware e RTOS (STM32)], [Folga — fechamento do termostato], [M13],
+  [14], [Controle e IA embarcada (STM32)], [S1 — STM32: telemetria sem bloquear], [M14],
+  [15], [*Seminários comparativos* e encerramento], [S2 — STM32: vibração e IA], [—],
 )
 ]
 
-Cada roteiro acompanha a aula de mesmo número; os encontros 6 e 12 são provas e
-não têm roteiro próprio. O encontro 15 é a apresentação do TP, o termostato que
-junta todos os roteiros. Não há semana de folga: se o semestre atrasar, o R13 é o
-que cede.
+Não há prova de laboratório. O que se avalia na bancada é o que você faz em cada
+roteiro, toda semana. O encontro 13 do laboratório é a folga do semestre: se
+nada atrasar, é a sessão em que o termostato fecha com os seus próprios módulos.
 
 == Como se avalia
 
@@ -103,42 +116,38 @@ Os minitestes ocupam os dez minutos finais da aula de teoria e cobram o que foi
 visto naquele dia e nos anteriores. Nunca cobram o que ainda não foi coberto: se
 uma questão parece pedir conteúdo futuro, é erro meu, e vale reclamar na hora.
 
-#grid(
-  columns: (1fr, 1fr),
-  gutter: 10pt,
-  [
-    #text(size: 9.5pt)[*Teoria*]
-    #text(size: 9pt)[
-    #tab(
-      columns: (1fr, auto),
-      [Instrumento], [Peso],
-      [Minitestes (10, contam os 8 melhores)], [20%],
-      [Avaliação integradora I], [25%],
-      [Avaliação integradora II], [30%],
-      [Seminário comparativo], [25%],
-    )]
-  ],
-  [
-    #text(size: 9.5pt)[*Laboratório*]
-    #text(size: 9pt)[
-    #tab(
-      columns: (1fr, auto),
-      [Instrumento], [Peso],
-      [Roteiros R2–R11 e R13 (11, sem descarte)], [40%],
-      [TP, parte 1 — o painel], [15%],
-      [TP, parte 2 — o termostato], [15%],
-      [Avaliação prática], [30%],
-      [R0 e R1], [sem nota],
-    )]
-  ],
+#tab(
+  columns: (1fr, auto),
+  [Teoria: instrumento], [Peso],
+  [Minitestes (contam os 8 melhores)], [20%],
+  [Avaliação integradora I], [25%],
+  [Avaliação integradora II], [30%],
+  [Seminário comparativo], [25%],
 )
 
-A avaliação prática e o TP são novidade. Metade do curso acontece na bancada, e
-até agora só a metade teórica era avaliada diretamente. O TP é um termostato
-construído em duas partes, uma depois do R6 e outra no fim, apresentado e
-defendido por cada integrante. A avaliação prática cai uma semana depois da
-integradora II, com tarefa fechada e tempo contado: ler um valor, mostrar,
-acionar uma saída.
+#tab(
+  columns: (1fr, auto),
+  [Laboratório: parte de cada roteiro], [Pontos],
+  [Previsões, antes da sessão], [2,0],
+  [Função do pré-lab, testada no simulador], [2,0],
+  [Tarefas de bancada], [4,0],
+  [Defesa de uma linha do seu código], [2,0],
+)
+
+A nota de laboratório é a média dos roteiros R2 a R11, do K1, do S1 e do S2, sem
+descarte. R0 e R1 não valem nota.
+
+#conceito[
+*Todo roteiro tem código para você escrever.* Antes da sessão você recebe o
+projeto montado com *uma função vazia*, escreve essa função e a testa no
+simulador. Na bancada você grava, mede, e a medida confirma ou derruba a sua
+função. O tempo da sessão é para medir e corrigir, não para começar.
+
+No fim, o professor ou o monitor aponta uma linha do *seu* código e pergunta por
+que ela está ali. Um aluno do grupo é sorteado para responder. Não há resposta
+decorada para essa pergunta: ou você escreveu a linha sabendo o que ela faz, ou
+não escreveu.
+]
 
 No seminário comparativo, a nota do grupo é ajustada por arguição individual.
 Isso não é desconfiança: é a única forma honesta de diferenciar quem estudou a
@@ -147,9 +156,9 @@ plataforma de quem estudou os slides do colega na véspera.
 == Regras de convivência
 
 - O material de cada encontro é publicado na página do curso *antes* da aula. Vir com ele lido muda a aula de ditado para discussão.
-- O código de referência de cada roteiro é publicado *depois* da sessão. Use-o para conferir, não para começar.
-- Roteiro entregue sem previsão preenchida não é corrigido. A previsão vale pelo raciocínio, não pelo acerto — errar uma previsão bem argumentada não custa nota.
-- Bancada é trabalho em dupla. Relatório é individual.
+- O módulo de referência de cada roteiro é publicado *depois* da sessão. Use-o para conferir, não para começar.
+- Roteiro sem previsão preenchida não é corrigido. A previsão vale pelo raciocínio, não pelo acerto — errar uma previsão bem argumentada não custa nota.
+- A bancada é em grupo. O pré-lab de código e as previsões são individuais.
 
 #atencao[
 Segurança de bancada, antes de qualquer coisa: a *garra de terra do osciloscópio
@@ -160,30 +169,71 @@ Cumprida essa regra, medir é seguro: com a garra no GND, a ponteira pode ir a
 qualquer ponto do circuito. Este curso é feito de medições, e a regra existe para
 que vocês possam medir à vontade, não para que evitem o instrumento.
 
-O tratamento completo, com a placa na mão e a caixa de perigo que ele merece,
-está no R1. Aqui fica o aviso mínimo, porque alguns de vocês vão encostar num
-osciloscópio antes disso.
+O tratamento completo, com a placa na mão, está no R1. Aqui fica o aviso mínimo,
+porque alguns de vocês vão encostar num osciloscópio antes disso.
 ]
 
 = O que é um microcontrolador
 
-== A demonstração
+== A mesa
 
 #experimento[
-Na mesa há dois objetos rodando *o mesmo programa*:
+Na mesa há sete objetos rodando *o mesmo programa* — um LED que pisca:
 
-+ Um PIC18F4550 espetado numa protoboard, com fonte, um capacitor, um resistor e um LED. Nada mais.
-+ O kit XM118, com display, teclado, relés, conversor USB, sensor de temperatura e quarenta outras coisas soldadas em volta de um PIC18F4550 idêntico.
++ Um PIC18F4550 espetado numa protoboard, com um capacitor, um resistor e um LED. Nada mais.
++ O kit XM118, com display, relés, sensor de temperatura e quarenta outras coisas soldadas em volta de um PIC18F4550 idêntico.
++ Um Arduino Uno.
++ Uma Raspberry Pi Pico.
++ Uma placa com ESP32.
++ Uma Nucleo-F401RE, da STMicroelectronics.
++ Uma plaquinha com um CH32V003, um microcontrolador que custa centavos de dólar.
 
-O LED pisca igual nos dois. Vale olhar para os dois ao mesmo tempo por um
-minuto antes de continuar lendo.
+Antes de continuar lendo, responda: *qual deles pisca mais rápido?*
 ]
 
-A pergunta que a demonstração responde é "o que é um microcontrolador", e ela
-responde por subtração: é aquilo que sobra quando se tira tudo que está em volta.
-O kit é conveniente e é ele que vocês vão usar o semestre inteiro — mas ele
-esconde justamente a resposta, porque nele o microcontrolador é o componente que
-menos chama atenção.
+Todos piscam igual. O atraso de cada um foi programado para dar o mesmo período,
+e o LED não tem como mostrar mais nada. O que distingue essas placas não se vê
+piscando um LED — e é disso que trata o resto do semestre.
+
+== Chip, placa e ecossistema
+
+Quase sempre que alguém diz "programei um Arduino", três coisas diferentes estão
+misturadas na frase.
+
+#tab(
+  columns: (auto, auto, auto, 1fr),
+  [Placa], [Microcontrolador], [Núcleo], [O que se destaca],
+  [Arduino Uno], [ATmega328P], [AVR, 8 bits], [O ecossistema mais conhecido],
+  [XM118], [PIC18F4550], [PIC18, 8 bits], [USB no próprio chip; o micro deste curso],
+  [—], [CH32V003], [RISC-V, 32 bits], [Custa uma fração de qualquer outro da mesa],
+  [Pico], [RP2040 ou RP2350], [Cortex-M0+ ou M33], [O RP2350 tem também núcleos RISC-V],
+  [ESP32 DevKit], [ESP32], [Xtensa, 32 bits, dois núcleos], [Wi-Fi e Bluetooth no chip],
+  [Nucleo-F401RE], [STM32F401], [Cortex-M4 com FPU], [O segundo micro deste curso],
+)
+
+#conceito[
+*O chip* é o microcontrolador: um componente de silício. *A placa* é o circuito
+em volta dele — conectores, LEDs, reguladores, um gravador embutido. *O
+ecossistema* é o software que alguém escreveu para você: o ambiente de
+programação, as bibliotecas, os exemplos, a comunidade.
+
+Arduino é placa e ecossistema; o microcontrolador é o ATmega328P. A Nucleo é
+placa; o microcontrolador é o STM32F401. A XM118 é placa; o microcontrolador é o
+PIC18F4550.
+
+Este curso vai manter essas três camadas separadas o tempo todo — e acrescentar
+uma quarta, o simulador. Muito do que dá errado na bancada é atribuir a uma
+camada o que é de outra.
+]
+
+#nota[
+Se o CH32V003 custa uma fração do PIC e tem memória parecida, por que o curso usa
+PIC e STM32? Porque o PIC é pequeno o bastante para ser entendido inteiro, e tem
+um kit com quarenta periféricos pronto na bancada. O STM32 entra quando o
+problema fica grande demais para o PIC. Preço é critério de produto, não de
+aula — e no seminário vocês vão ter de defender a escolha de uma plataforma para
+um produto.
+]
 
 == O que o chip nu precisa
 
@@ -226,10 +276,11 @@ não está na folha de dados do PIC18F4550, não está no compilador. Ela está 
 chave de duas posições no painel da placa.
 
 Toda camada que o kit acrescenta é uma camada que nenhuma ferramenta conhece —
-e é onde vão morar quase todos os defeitos deste semestre.
+e é onde vão morar quase todos os defeitos deste semestre. O R1 começa
+exatamente por aí: o mapa das chaves, medido com o multímetro.
 ]
 
-== O computador que você já conhece
+== A fronteira: a unidade de gerenciamento de memória
 
 Vocês já escreveram C. O mesmo compilador, apontado para outro destino, produz
 algo com três diferenças que aparecem já no primeiro programa.
@@ -242,22 +293,63 @@ algo com três diferenças que aparecem já no primeiro programa.
   [O programa é carregado na RAM], [O programa mora na Flash], [Variáveis inicializadas precisam ser copiadas da Flash para a RAM antes de `main` — por um código que ninguém escreveu],
 )
 
-#nota[
-A tabela sugere uma fronteira nítida que hoje não existe. Um Raspberry Pi Pico
-tem mais RAM que os primeiros PCs; um ESP32 roda pilha TCP/IP e sistema de
-arquivos; o processador do seu celular é um computador que cabe numa unha.
+A tabela sugere uma fronteira nítida que hoje não existe. A Pico da mesa tem mais
+RAM que os primeiros PCs; o ESP32 roda pilha TCP/IP e sistema de arquivos.
 Contar transistores, megahertz ou quilobytes não separa mais as duas coisas.
 
-A diferença que ainda separa é a *unidade de gerenciamento de memória*. Ela
-traduz endereços — o endereço que o programa usa não é o endereço físico — e é
+#conceito[
+A diferença que ainda separa é a *unidade de gerenciamento de memória*, a MMU.
+Ela traduz endereços: o endereço que o programa usa não é o endereço físico. É
 isso que permite processos isolados, memória virtual e um sistema operacional
 que sobrevive a um programa mal escrito.
 
-Sem ela, um ponteiro errado corrompe qualquer coisa, inclusive o próprio sistema.
-O PIC18F4550 não tem nada disso: o endereço que você escreve é o endereço que
-existe, e não há ninguém entre os dois. É por isso que o simulador do encontro 2
-consegue ser cinco linhas — e é a mesma razão pela qual um Cortex-A roda Linux e
-um Cortex-M não.
+Um microcontrolador não tem MMU. *O endereço que o programa escreve é o endereço
+que existe no chip*, e não há ninguém entre os dois. Um ponteiro errado corrompe
+qualquer coisa, inclusive o que você não queria tocar.
+
+O máximo que um microcontrolador maior oferece é uma *unidade de proteção de
+memória*, a MPU — o STM32 da mesa tem uma. Ela proíbe o acesso a certas regiões,
+mas não traduz endereço nenhum.
+]
+
+#nota[
+É por isso que um Cortex-A, o processador de um celular, roda Linux, e um
+Cortex-M, o da Nucleo, não roda. E é por isso que, no encontro 2, o simulador do
+PIC consegue tratar a memória como uma lista de Python: o endereço é o índice, e
+não há tradução nenhuma no meio.
+]
+
+= Os periféricos: o mapa do curso
+
+A folha de dados do PIC18F4550 traz um diagrama de blocos do chip: o núcleo no
+centro, a memória ao lado, e em volta dele os periféricos ligados às portas.
+Projetado na tela, esse diagrama é o mapa do semestre. Cada bloco recebe uma
+frase hoje e uma aula depois.
+
+#tab(
+  columns: (auto, 1fr, auto),
+  [Bloco do PIC18F4550], [O que faz, em uma frase], [Aula],
+  [Portas de entrada e saída], [O pino é um bit num registrador], [2 e 4],
+  [Conversor A/D], [Transforma tensão em número], [5],
+  [Temporizadores], [Contam tempo ou eventos sem o processador], [6],
+  [CCP e ECCP], [Geram PWM e medem período], [6 e 9],
+  [Interrupções], [O hardware chama o seu código], [8],
+  [Comparadores], [Comparam duas tensões sem o conversor], [10],
+  [EUSART], [Comunicação serial ponto a ponto], [11],
+  [MSSP], [Barramento I#super[2]C de dois fios, com endereço], [11],
+  [EEPROM de dados], [Memória que não apaga ao desligar], [11],
+  [USB], [O que o bootloader usa toda semana], [hoje e 11],
+)
+
+#conceito[
+Os mesmos blocos existem no STM32 da mesa, em maior número e com um a mais que
+muda tudo: o *DMA*, que copia dados entre periférico e memória sem o processador.
+O ESP32 acrescenta o rádio. A Pico acrescenta o PIO, pequenos processadores
+dedicados a inventar periféricos.
+
+O que muda de um microcontrolador para outro da mesa não é a lista de ideias. É
+*quais* blocos existem e *de que tamanho* eles são. Quem entende os blocos do PIC
+lê o diagrama de qualquer um deles.
 ]
 
 = As camadas, e por que descemos todas
@@ -281,6 +373,8 @@ elétron, e um curso de microcontroladores é aquele em que se desce por todas.
   [Pino], [Um transistor ligado a um fio], [A física],
 )
 
+== O mesmo pisca, sem nenhuma biblioteca
+
 #conceito[
 *A camada do "endereço cru" merece ser vista uma vez.* Sem nenhum arquivo de
 apoio, escrever num pino do PIC18F4550 é isto:
@@ -291,7 +385,8 @@ apoio, escrever num pino do PIC18F4550 é isto:
 LATD = 0x01;
 ```
 
-E num Arduino, exatamente a mesma forma:
+E no ATmega328P do Arduino Uno, sem a biblioteca do Arduino, exatamente a mesma
+forma:
 
 ```c
 #define PORTB (*(volatile unsigned char *) 0x25)
@@ -302,9 +397,42 @@ E num Arduino, exatamente a mesma forma:
 milhares de linhas assim, escritas por outra pessoa.
 ]
 
+O pisca do Arduino Uno escrito direto nos registradores, sem `digitalWrite`, fica
+muito próximo do pisca do PIC. As diferenças são de convenção, não de ideia.
+
+#tab(
+  columns: (auto, 1fr, 1fr),
+  [], [PIC18F4550 (XM118)], [ATmega328P (Arduino Uno)],
+  [Valor do pino], [`LATD`, em 0xF8C], [`PORTB`, em 0x25],
+  [Direção], [`TRISD`: *0* é saída], [`DDRB`: *1* é saída],
+  [Instrução de bit], [`BCF` e `BSF`], [`CBI` e `SBI`],
+  [Atraso pronto], [`__delay_ms`, uma macro], [`_delay_ms`, uma macro],
+  [Gravação], [bootloader pela USB], [bootloader pela serial da USB],
+  [Arquivo gravado], [Intel HEX], [Intel HEX, o mesmo formato],
+)
+
+#nota[
+A polaridade da direção é o tipo de detalhe que pega quem copia código de uma
+família para outra: a mesma ideia, com o bit invertido. O compilador não avisa,
+porque para ele os dois são só bytes.
+
+A Raspberry Pi Pico acrescenta uma ideia que nenhum dos dois tem: registradores
+separados para *ligar*, *desligar* e *inverter* bits, que mexem só nos bits
+pedidos sem ler o resto da porta. O motivo de eles existirem aparece no encontro
+2, no problema de ler, modificar e escrever.
+]
+
+#previsao[
+Os dois rodam a 16 MHz — o PIC deste kit e o ATmega do Uno. Com o mesmo laço de
+atraso, contando até o mesmo número, *qual dos dois pisca mais rápido, e por
+quanto?*
+
+Registre o palpite. A resposta é a primeira conta do encontro 2.
+]
+
 #atencao[
-*Não é para você entender essa linha hoje*, e vale dizer por quê. Ela empilha
-seis ideias, e nenhuma delas existe em Python:
+*Não é para você entender a linha do `#define` hoje*, e vale dizer por quê. Ela
+empilha seis ideias, e nenhuma delas existe em Python:
 
 um *endereço* como número; a *conversão* desse número para ponteiro; a
 *desreferência* do ponteiro; a palavra `volatile`, que proíbe o compilador de
@@ -314,13 +442,11 @@ um periférico, em vez de guardar um valor.
 O curso desce essas seis, uma por vez. No encontro 1 esta linha fica legível, e
 no encontro 2 você escreve o outro lado dela — o pedaço de memória que responde
 quando alguém escreve em 0x0F8C.
-
-É a mesma dívida do período do pisca: declarada agora, paga com data marcada.
 ]
 
 #conceito[
-*`xc.h` não é uma HAL.* Ele é a camada de baixo dessa tabela: dá nomes, não
-comportamento.
+*`xc.h` não é uma HAL.* Ele é a camada de baixo da tabela das camadas: dá nomes,
+não comportamento.
 
 A diferença é observável. `digitalWrite(13, HIGH)` funciona em qualquer pino de
 qualquer placa — é comportamento, e é portátil. `LATDbits.LATD0 = 1` só significa
@@ -353,12 +479,6 @@ Nada disso é desperdício: é o preço de a mesma linha funcionar em cem placas
 diferentes. Mas é preço, e saber quando ele importa é conteúdo de engenharia.
 ]
 
-#nota[
-O número exato depende da versão do núcleo e da plataforma, e é *medível*: um pino
-alternando num laço, o osciloscópio, e a conta. Se a curiosidade bater antes do
-encontro 2, o instrumento está no laboratório.
-]
-
 == Três razões para descer
 
 #conceito[
@@ -369,10 +489,10 @@ apenas quem consome — e para escrever a camada é preciso conhecer a de baixo.
 *Segunda: a abstração vaza exatamente quando importa.* Ela esconde detalhes até o
 dia em que um deles decide o resultado, e nesse dia não há como consertar por
 cima. Alguns exemplos que este semestre vai encontrar de frente: o tempo de
-aquisição do conversor decide se um divisor resistivo pode ser lido (encontro 4);
-uma função de envio serial bloquear ou enfileirar decide se o controle funciona
-(encontro 10); um contador de milissegundos de dezesseis bits dá a volta e o
-programa mede o tempo errado (encontro 7).
+aquisição do conversor decide se um divisor resistivo pode ser lido (encontro 5);
+um contador de milissegundos de dezesseis bits dá a volta e o programa mede o
+tempo errado (encontro 8); uma função de envio serial bloquear ou enfileirar
+decide se o controle funciona (encontro 11).
 
 *Terceira: aqui os recursos não sobram.* São 32 kB de programa e 2 kB de dados.
 Uma abstração que reserva um buffer por canal é uma decisão de projeto, não um
@@ -383,21 +503,14 @@ detalhe de implementação.
 *O que este curso não está dizendo.* Não está dizendo para não usar biblioteca.
 
 A posição, que vale para o semestre inteiro, é outra: *derive uma vez, e depois
-use para sempre.* No encontro 10 vocês vão calcular à mão o divisor de uma taxa
+use para sempre.* No encontro 11 vocês vão calcular à mão o divisor de uma taxa
 de comunicação — para que, quando o configurador mostrar uma caixa escrita
 "9600", vocês saibam que ele programou 9592,3, por que programou isso, e se o
-erro cabe.
+erro cabe. No STM32 dos encontros 13 e 14 vocês vão usar a biblioteca do
+fabricante, e vão saber o que ela esconde.
 
 Quem nunca fez a conta não consegue julgar a caixa. E quem não consegue julgar a
 caixa não escolheu a biblioteca: aceitou.
-]
-
-#nota[
-Uma consequência agradável, para o fim do semestre: quem escreve
-`LATDbits.LATD0 = 1` sabendo o que acontece está em condição de *escrever* um
-`digitalWrite`.
-
-Essa é a diferença entre usar uma plataforma e ter uma.
 ]
 
 = O mesmo programa em três formas
@@ -421,6 +534,14 @@ Duas coisas aqui são serviços que alguém prestou a você. `print` supõe um
 terminal, um sistema operacional e uma biblioteca. `time.sleep` supõe um relógio
 mantido por esse mesmo sistema, e que existe outra coisa para o processador
 fazer enquanto você espera.
+
+#nota[
+Python também roda *dentro* de um microcontrolador: a Pico da mesa sai de fábrica
+pronta para o MicroPython. Mas repare no que isso significa — o interpretador de
+Python é um programa em C, gravado na Flash, que lê o seu texto e o executa. Os
+serviços continuam existindo; só passaram a morar no chip, e a custar memória e
+ciclos dele.
+]
 
 == Em C, no computador
 
@@ -490,10 +611,9 @@ No encontro 2 isso deixa de ser regra decorada e passa a ser consequência.
 
 #nota[
 No XM118, os LEDs *acendem* quando a chave do painel é fechada, com o
-processador ainda em reset e sem que uma linha de C tenha executado — pinos em
-reset ficam em alta impedância. Portanto o evento observável do seu primeiro
-programa é *apagar*, não acender. Se você gravar esperando ver um LED acender,
-vai concluir que não funcionou.
+processador ainda em reset e sem que uma linha de C tenha executado. Portanto o
+evento observável do seu primeiro programa é *apagar*, não acender. Se você
+gravar esperando ver um LED acender, vai concluir que não funcionou.
 ]
 
 == Um atraso cuja duração você não sabe
@@ -544,9 +664,9 @@ main.c → [pré-processador] → [compilador] → [linker + biblioteca] → mai
 
 O `.hex` não é binário: é texto. Cada linha diz quantos bytes vêm, em qual
 endereço eles devem ser escritos, de que tipo é o registro, os bytes em si, e um
-byte de verificação. Abrir esse arquivo num editor de texto é a primeira coisa
-que faremos no R0 — junto com as representações binária e hexadecimal, que
-existem porque são os dígitos dos endereços.
+byte de verificação. Abrir esse arquivo num editor de texto é uma das coisas que
+faremos no R0 — junto com as representações binária e hexadecimal, que existem
+porque são os dígitos dos endereços.
 
 == Dois caminhos
 
@@ -559,7 +679,7 @@ e o que o fácil esconde.
   [Como], [Segurar SW9 e ligar; um aplicativo no PC envia o `.hex` pela USB], [Cinco fios em MCLR/V#sub[PP], PGC, PGD, V#sub[DD], V#sub[SS]],
   [Hardware extra], [Nenhum], [O gravador],
   [Exige], [Que o bootloader já esteja gravado no chip], [Nada; funciona em chip virgem],
-  [Grava a configuração], [Não], [Sim],
+  [Grava os bits de configuração], [*Não*], [Sim],
   [Ocupa memória], [Sim, o começo da Flash], [Não],
 )
 
@@ -570,6 +690,50 @@ escreve na Flash do PIC é o próprio PIC.
 
 Isso também explica por que o chip nu da protoboard exigiu o gravador: nele não
 há ninguém escutando.
+]
+
+== Os bits de configuração
+
+Além da memória de programa, o PIC18F4550 tem uma pequena área de *bits de
+configuração*, a partir do endereço 0x300000. Eles decidem coisas que precisam
+estar resolvidas antes de a primeira instrução executar, e que o programa não
+muda enquanto roda:
+
+- qual oscilador gera o relógio, e por quanto ele é dividido ou multiplicado;
+- se o cão de guarda (watchdog) começa ligado;
+- se o pino 1 é o reset ou um pino comum;
+- se RB0 a RB4 nascem analógicos ou digitais;
+- se o pino RB5 serve à gravação em baixa tensão.
+
+Em C, eles se escrevem com `#pragma config`. É o que o chip nu da protoboard
+precisou ter no programa da demonstração:
+
+```c
+#pragma config FOSC   = INTOSCIO_EC  // oscilador interno; RA6 livre
+#pragma config WDT    = OFF          // sem cão de guarda
+#pragma config MCLRE  = ON           // o pino 1 é o reset
+#pragma config PBADEN = OFF          // RB0 a RB4 nascem digitais
+#pragma config LVP    = OFF          // RB5 volta a ser um pino comum
+
+void main(void)
+{
+    OSCCONbits.IRCF = 0b111;         // 8 MHz; o reset deixa em 1 MHz
+    /* ... o mesmo pisca de antes ... */
+}
+```
+
+#conceito[
+*Quem grava os bits de configuração é o gravador*, junto com o programa. O
+compilador apenas coloca os valores do `#pragma config` no `.hex`, em registros
+com endereço 0x300000 em diante.
+
+O bootloader do kit *não grava* essa área. Ele já a gravou uma vez, de fábrica,
+e não a reescreve. Por isso, na XM118, `#pragma config` no seu código é
+*silenciosamente ignorado*: compila, grava, não dá erro, não dá aviso e não tem
+efeito.
+
+No R0 você vai provar isso na bancada, e vai ler de dentro do seu próprio
+programa os bits que o bootloader deixou.
 ]
 
 == O código que veio antes do seu
@@ -587,7 +751,7 @@ recursos. Você não programa numa máquina vazia: programa no espaço que sobro
   columns: (auto, 1fr),
   [Onde], [Quem rodou antes e o que ele guardou para si],
   [XM118], [Bootloader HID: o começo da Flash, os bits de configuração e os endereços de desvio],
-  [Placa STM32], [Bootloader DFU em ROM: uma região de memória e a decisão de qual imagem carregar],
+  [Nucleo], [Bootloader em ROM do STM32 e o gravador embutido na placa: a decisão de qual imagem carregar],
   [Computador], [Firmware UEFI: a inicialização do hardware, tabelas de memória e a ordem de carga],
   [Celular], [Uma cadeia de bootloaders, cada um verificando a assinatura do seguinte],
 )
@@ -597,28 +761,31 @@ pode mudar, porque não são dele.* Descobrir quais são, e por quê, é parte d
 conhecer qualquer plataforma.
 ]
 
-Neste curso essa restrição vai aparecer pelo menos quatro vezes, sempre com a
-mesma assinatura — uma linha de código que parece correta, não dá erro nenhum, e
-não tem efeito.
+Neste curso essa restrição vai aparecer várias vezes, sempre com a mesma
+assinatura — uma linha de código que parece correta, não dá erro nenhum, e não
+tem efeito. E com uma segunda assinatura, mais sutil: o bootloader rodou antes de
+você e *deixou registradores fora do estado de reset*. O que a folha de dados
+diz sobre o chip recém-ligado não vale, sem conferir, para o chip que acabou de
+sair do bootloader.
 
 #kit[
-O bootloader do XM118 grava a configuração de fábrica e não a reescreve. Logo:
+O que o bootloader do XM118 decidiu por você:
 
-o `#pragma config` da sua aplicação é *silenciosamente ignorado*;
+a frequência do núcleo é *16 MHz*, com 48 MHz para a USB, e você não escolhe — o
+encontro 2 mostra como os divisores chegam a esses números;
 
-a frequência do núcleo é 16 MHz e você não escolhe (encontro 2);
+`ADCON1` chega ao seu programa valendo 0x07, e por isso RB0 a RB4 já começam
+digitais, ao contrário do que a folha de dados diz para o chip recém-ligado
+(encontro 4);
 
-`PBADEN` deixa RB0–RB4 analógicos após o reset e você desfaz isso em tempo de
-execução, não na configuração (encontro 4);
-
-o watchdog pode estar fora do seu alcance (encontro 5);
+o cão de guarda pode estar fora do seu alcance (encontro 6);
 
 os endereços de desvio de interrupção pertencem a ele e precisam ser
-reencaminhados (encontro 7).
+reencaminhados (encontro 8).
 
 Nada disso vale para o chip nu da protoboard, e nada disso é conteúdo sobre
-microcontroladores: é conteúdo sobre *esta* placa. O que é conteúdo é o princípio
-acima.
+microcontroladores: é conteúdo sobre *esta* placa. O que é conteúdo é o
+princípio acima.
 ]
 
 #kit[
@@ -627,12 +794,10 @@ errado; a serigrafia da placa tem precedência sobre o manual.
 ]
 
 #atencao[
-Como o bootloader não grava configuração, os `#pragma config` que você escrever
-no seu código são *silenciosamente ignorados*. A configuração já está gravada, e
-foi ele quem escolheu: 48 MHz para a USB e *16 MHz para o núcleo*.
-
-Guarde o número. Você não escolhe o relógio deste kit, e todo cálculo de tempo
-do semestre depende dele.
+Gravar a XM118 com o gravador, e não pelo bootloader, apaga a Flash inteira —
+e leva o bootloader junto. A partir daí o kit só volta a ser gravado pela USB
+depois que alguém regravar o bootloader. No laboratório, o gravador não se liga
+na XM118.
 ]
 
 = O fio condutor
@@ -671,11 +836,12 @@ pinos em reset.
 período do pisca em segundos e registre a base do palpite — antes de ajustar
 qualquer constante na bancada.
 
-*P3.* Se você dobrar a constante do laço externo, o que acontece com o período?
-E com a frequência? Qual suposição sua resposta exige?
-
-*P4.* O que você espera observar se trocar a ordem das duas linhas de
+*P3.* O que você espera observar se trocar a ordem das duas linhas de
 inicialização — `TRISD` antes de `LATD`?
+
+*P4.* Você acrescenta ao programa do pisca a linha
+`#pragma config CPUDIV = OSC1_PLL2`, que pede ao chip um relógio três vezes mais
+rápido. Grava pelo bootloader. O que acontece com o pisca?
 
 *P5.* Você grava e nada muda no painel. Liste, em ordem, as três primeiras
 coisas que verificaria — e diga o que cada verificação eliminaria.
@@ -762,7 +928,9 @@ ele sozinhos.
 
 (b) Que caminho de gravação serve, e o que ele exige fisicamente?
 
-(c) Depois de gravar o chip da XM118 com um gravador, o caminho fácil continua
+(c) O programa dessa montagem precisa de `#pragma config`? E o da XM118?
+
+(d) Depois de gravar o chip da XM118 com um gravador, o caminho fácil continua
 disponível?
 ]
 
@@ -772,7 +940,11 @@ Chip novo vem com a Flash apagada.
 
 (b) O gravador, por ICSP: MCLR/V#sub[PP], PGC, PGD, V#sub[DD] e V#sub[SS].
 
-(c) Depende do que o gravador fez. O procedimento padrão apaga a Flash inteira
+(c) O da protoboard precisa: sem ele, os bits de configuração ficam no valor de
+fábrica, que não necessariamente escolhe o oscilador interno nem desliga o cão de
+guarda. O da XM118 não precisa e não adianta: o bootloader não grava essa área.
+
+(d) Depende do que o gravador fez. O procedimento padrão apaga a Flash inteira
 antes de escrever — e leva o bootloader junto. A partir daí só se grava pelo
 caminho difícil, até o bootloader ser regravado.
 
@@ -805,12 +977,34 @@ funciona sem cristal e não conseguiria funcionar como dispositivo USB.
 #docente[
 O caso do cristal é o mais produtivo dos dois: separa "obrigatório" de
 "necessário para uma função específica", que é a distinção que retorna em quase
-todo periférico do semestre.
+todo periférico do semestre. A frequência do cristal da XM118 ainda precisa ser
+conferida na marcação do componente.
 ]
 ]
 
 #tarefa[
-*Exercício 0.5.* Um colega diz: "esse micro roda a 16 MHz, meu notebook roda a
+*Exercício 0.5.* Separe os itens em *chip* e *placa*, e diga o que o
+*ecossistema* Arduino acrescenta a um deles: Arduino Uno; ATmega328P;
+Nucleo-F401RE; STM32F401; Raspberry Pi Pico; RP2040; XM118; PIC18F4550.
+]
+
+#resposta[
+Chips: ATmega328P, STM32F401, RP2040, PIC18F4550. Placas: Arduino Uno,
+Nucleo-F401RE, Pico, XM118 — cada uma com o chip da linha anterior no centro.
+
+O ecossistema Arduino acrescenta ao Uno o ambiente de programação, o bootloader
+que grava pela USB, a biblioteca com `digitalWrite` e companhia, e milhares de
+exemplos. Nenhuma dessas coisas está no ATmega328P: o mesmo chip, sem o
+ecossistema, se programa como o PIC, escrevendo nos registradores.
+
+#docente[
+O ponto a cobrar é a frase final: o ecossistema não é propriedade do chip. Quem
+responder "Arduino é um microcontrolador" ainda mistura as camadas.
+]
+]
+
+#tarefa[
+*Exercício 0.6.* Um colega diz: "esse micro roda a 16 MHz, meu notebook roda a
 3 GHz. É duzentas vezes pior." Aponte três coisas que a comparação ignora, e
 diga em qual delas o micro é *melhor*, não apenas mais barato.
 ]
@@ -829,9 +1023,9 @@ O que a comparação também ignora é que "melhor" depende da tarefa. Nenhum do
 dois roda a tarefa do outro.
 
 #docente[
-Esta questão é o gancho dos seminários comparativos dos encontros 14 e 15. Se
-alguém trouxer "determinismo" com essa palavra, vale registrar o nome — é a ideia
-que sustenta a aula de interrupções.
+Esta questão é o gancho do seminário comparativo do encontro 15. Se alguém
+trouxer "determinismo" com essa palavra, vale registrar o nome — é a ideia que
+sustenta a aula de interrupções.
 ]
 ]
 
